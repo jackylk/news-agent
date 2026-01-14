@@ -767,6 +767,7 @@
     let currentKeyword = '';
     let currentSource = null; // 当前选中的新闻源
     let sources = []; // 新闻源列表
+    let savedScrollPosition = 0; // 保存进入详情页前的滚动位置
     
     // 格式化日期
     function formatDate(dateStr) {
@@ -1230,8 +1231,10 @@
     function showList() {
       document.getElementById('listView').style.display = 'block';
       document.getElementById('detailView').style.display = 'none';
-      // 滚动到顶部
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // 恢复到进入详情页前的滚动位置
+      setTimeout(() => {
+        window.scrollTo({ top: savedScrollPosition, behavior: 'smooth' });
+      }, 100);
     }
 
     // 显示详情视图
@@ -1245,6 +1248,9 @@
     // 查看详情
     async function viewDetail(id) {
       const apiUrl = API_BASE_URL;
+      
+      // 保存当前滚动位置
+      savedScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
       
       // 显示加载状态
       showDetail();
