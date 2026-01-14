@@ -426,6 +426,84 @@
       opacity: 0.7;
     }
 
+    .detail-actions {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .summary-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .summary-btn:hover {
+      background-color: #218838;
+    }
+
+    .summary-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .generated-summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .generated-summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .generated-summary-header h3 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .close-summary-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 24px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .close-summary-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .generated-summary-content {
+      font-size: 16px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
     .detail-meta {
       display: flex;
       align-items: center;
@@ -648,10 +726,23 @@
             <span id="detailSource" class="detail-source"></span>
             <span id="detailDate" class="detail-date"></span>
           </div>
+          <div class="detail-actions" id="detailActions" style="display: none;">
+            <button id="summaryBtn" class="summary-btn" onclick="generateSummary()">
+              <span id="summaryIcon">📝</span>
+              <span id="summaryText">生成摘要</span>
+            </button>
+          </div>
         </div>
         <div id="detailImageContainer"></div>
         <div class="detail-content">
           <div id="detailSummary" class="detail-summary"></div>
+          <div id="generatedSummary" class="generated-summary" style="display: none;">
+            <div class="generated-summary-header">
+              <h3>文章摘要</h3>
+              <button class="close-summary-btn" onclick="closeSummary()">×</button>
+            </div>
+            <div id="generatedSummaryContent" class="generated-summary-content"></div>
+          </div>
           <div id="detailText" class="detail-text"></div>
         </div>
         <div class="detail-footer">
@@ -1139,8 +1230,19 @@
             // 按段落分割（双换行）
             content = content.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
             contentEl.innerHTML = content.map(para => `<p>${para}</p>`).join('');
+            
+            // 检测文章长度，如果超过500字，显示摘要按钮
+            const contentLength = originalContent.length;
+            const detailActions = document.getElementById('detailActions');
+            if (contentLength > 500) {
+              detailActions.style.display = 'flex';
+              detailActions.setAttribute('data-content-length', contentLength);
+            } else {
+              detailActions.style.display = 'none';
+            }
           } else {
             contentEl.textContent = '暂无详细内容';
+            document.getElementById('detailActions').style.display = 'none';
           }
           
           // 原文链接
@@ -1318,6 +1420,99 @@
           alert('当前浏览器不支持分享功能');
         }
       }
+    }
+
+    // 生成摘要功能
+    let isGeneratingSummary = false;
+    
+    async function generateSummary() {
+      const summaryBtn = document.getElementById('summaryBtn');
+      const summaryText = document.getElementById('summaryText');
+      const generatedSummaryEl = document.getElementById('generatedSummary');
+      const generatedSummaryContent = document.getElementById('generatedSummaryContent');
+      
+      if (isGeneratingSummary) return;
+      
+      // 如果已经生成过摘要，直接显示
+      if (generatedSummaryEl.style.display === 'block') {
+        generatedSummaryEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      
+      summaryBtn.disabled = true;
+      summaryText.textContent = '生成中...';
+      isGeneratingSummary = true;
+      
+      try {
+        const contentEl = document.getElementById('detailText');
+        const originalContent = contentEl.getAttribute('data-original') || contentEl.textContent || '';
+        
+        if (!originalContent || originalContent.trim().length === 0) {
+          throw new Error('没有可用的内容');
+        }
+        
+        // 调用摘要生成API
+        const summary = await generateSummaryAPI(originalContent);
+        
+        if (summary) {
+          generatedSummaryContent.textContent = summary;
+          generatedSummaryEl.style.display = 'block';
+          // 滚动到摘要位置
+          setTimeout(() => {
+            generatedSummaryEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        } else {
+          throw new Error('生成摘要失败');
+        }
+      } catch (error) {
+        console.error('生成摘要失败:', error);
+        alert('生成摘要失败，请稍后重试');
+      } finally {
+        summaryBtn.disabled = false;
+        summaryText.textContent = '生成摘要';
+        isGeneratingSummary = false;
+      }
+    }
+
+    // 关闭摘要
+    function closeSummary() {
+      document.getElementById('generatedSummary').style.display = 'none';
+    }
+
+    // 调用摘要生成API
+    async function generateSummaryAPI(text) {
+      if (!text || text.trim().length === 0) return '';
+      
+      // 限制文本长度（避免API限制）
+      const textToSummarize = text.substring(0, 3000);
+      
+      try {
+        // 使用简单的提取式摘要（不依赖外部API）
+        return generateSimpleSummary(textToSummarize);
+      } catch (error) {
+        console.error('生成摘要错误:', error);
+        // 使用简单的提取式摘要作为备选
+        return generateSimpleSummary(textToSummarize);
+      }
+    }
+
+    // 简单的提取式摘要（提取前几段的关键句子）
+    function generateSimpleSummary(text) {
+      // 按段落分割
+      const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+      
+      if (paragraphs.length === 0) return '';
+      
+      // 如果只有一段，提取前几句
+      if (paragraphs.length === 1) {
+        const sentences = paragraphs[0].split(/[.!?。！？]\s+/).filter(s => s.trim().length > 20);
+        const summaryLength = Math.min(3, Math.ceil(sentences.length * 0.3));
+        return sentences.slice(0, summaryLength).join('。') + '。';
+      }
+      
+      // 如果有多段，提取前两段
+      const summaryParagraphs = paragraphs.slice(0, Math.min(2, paragraphs.length));
+      return summaryParagraphs.join('\n\n');
     }
 
     // 页面加载时自动加载新闻和新闻源
