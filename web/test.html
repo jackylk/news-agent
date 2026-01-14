@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试页面</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .test-item {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .success { background-color: #d4edda; }
+    .error { background-color: #f8d7da; }
+    .info { background-color: #d1ecf1; }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Vercel 部署测试页面</h1>
+  
+  <div class="test-item info">
+    <h3>基本信息</h3>
+    <p><strong>当前 URL:</strong> <span id="currentUrl"></span></p>
+    <p><strong>User Agent:</strong> <span id="userAgent"></span></p>
+    <p><strong>屏幕尺寸:</strong> <span id="screenSize"></span></p>
+  </div>
+
+  <div class="test-item" id="apiTest">
+    <h3>API 连接测试</h3>
+    <p>测试连接到 Railway 后端 API...</p>
+    <button onclick="testAPI()">测试 API</button>
+    <div id="apiResult"></div>
+  </div>
+
+  <div class="test-item" id="corsTest">
+    <h3>CORS 测试</h3>
+    <p>测试跨域请求...</p>
+    <button onclick="testCORS()">测试 CORS</button>
+    <div id="corsResult"></div>
+  </div>
+
+  <div class="test-item">
+    <h3>导航</h3>
+    <button onclick="window.location.href='index.html'">前往主页面</button>
+  </div>
+
+  <script>
+    // 显示基本信息
+    document.getElementById('currentUrl').textContent = window.location.href;
+    document.getElementById('userAgent').textContent = navigator.userAgent;
+    document.getElementById('screenSize').textContent = `${window.innerWidth} x ${window.innerHeight}`;
+
+    // 测试 API 连接
+    async function testAPI() {
+      const apiUrl = 'https://news-agent-production-c5db.up.railway.app/api';
+      const resultDiv = document.getElementById('apiResult');
+      resultDiv.innerHTML = '<p>正在测试...</p>';
+      
+      try {
+        const response = await fetch(`${apiUrl}/news/update-info`);
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          resultDiv.innerHTML = `
+            <div class="success">
+              <p>✅ API 连接成功！</p>
+              <p>最后更新: ${data.data.lastUpdatedAt || '未知'}</p>
+              <p>总新闻数: ${data.data.totalCount || 0}</p>
+            </div>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <div class="error">
+              <p>❌ API 返回错误</p>
+              <p>${JSON.stringify(data, null, 2)}</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">
+            <p>❌ API 连接失败</p>
+            <p>错误信息: ${error.message}</p>
+            <p>可能原因:</p>
+            <ul>
+              <li>Railway 后端服务未运行</li>
+              <li>网络连接问题</li>
+              <li>CORS 配置问题</li>
+            </ul>
+          </div>
+        `;
+      }
+    }
+
+    // 测试 CORS
+    async function testCORS() {
+      const apiUrl = 'https://news-agent-production-c5db.up.railway.app/api';
+      const resultDiv = document.getElementById('corsResult');
+      resultDiv.innerHTML = '<p>正在测试 CORS...</p>';
+      
+      try {
+        const response = await fetch(`${apiUrl}/health`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const headers = {};
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+        
+        if (response.ok) {
+          resultDiv.innerHTML = `
+            <div class="success">
+              <p>✅ CORS 配置正常</p>
+              <p>响应头:</p>
+              <pre>${JSON.stringify(headers, null, 2)}</pre>
+            </div>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <div class="error">
+              <p>❌ CORS 测试失败</p>
+              <p>状态码: ${response.status}</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">
+            <p>❌ CORS 错误</p>
+            <p>错误信息: ${error.message}</p>
+            <p>这可能是 CORS 配置问题，需要检查后端 server.js 中的 CORS 设置</p>
+          </div>
+        `;
+      }
+    }
+
+    // 页面加载时自动测试 API
+    window.onload = function() {
+      testAPI();
+    };
+  </script>
+</body>
+</html>
