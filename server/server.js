@@ -34,8 +34,8 @@ app.post('/api/collect', async (req, res) => {
   }
 });
 
-// 定时任务：每天凌晨2点收集新闻
-cron.schedule('0 2 * * *', () => {
+// 定时任务：每30分钟收集一次新闻
+cron.schedule('*/30 * * * *', () => {
   console.log('开始定时收集新闻...');
   const collector = new NewsCollector();
   collector.collectFromRSS().catch(err => {
@@ -52,6 +52,6 @@ app.listen(PORT, () => {
   console.log(`  POST /api/collect - 手动触发新闻收集`);
   console.log(`数据库已持久化，启动时不再自动收集新闻`);
   console.log(`新闻收集方式：`);
-  console.log(`  - 定时任务：每天凌晨2点自动收集`);
+  console.log(`  - 定时任务：每30分钟自动收集`);
   console.log(`  - 手动触发：POST /api/collect`);
 });

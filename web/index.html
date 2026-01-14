@@ -117,33 +117,50 @@
       background-color: #5568d3;
     }
 
-    .refresh-btn-container {
+    .new-news-notification {
       max-width: 1200px;
       margin: 0 auto 20px auto;
-    }
-
-    .refresh-btn {
-      padding: 8px 16px;
-      background-color: #28a745;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      display: inline-flex;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 6px;
-      transition: background-color 0.3s;
+      animation: slideDown 0.3s ease-out;
     }
 
-    .refresh-btn:hover {
-      background-color: #218838;
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    .refresh-btn:disabled {
-      background-color: #6c757d;
-      cursor: not-allowed;
-      opacity: 0.7;
+    .close-notification-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+
+    .close-notification-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
     }
 
     .refresh-spinner {
@@ -631,12 +648,10 @@
       </div>
     </div>
     
-    <!-- 刷新新闻按钮 -->
-    <div class="refresh-btn-container">
-      <button class="refresh-btn" id="refreshBtn" onclick="refreshNews()">
-        <span id="refreshIcon">🔄</span>
-        <span id="refreshText">刷新新闻</span>
-      </button>
+    <!-- 新新闻提示 -->
+    <div id="newNewsNotification" class="new-news-notification" style="display: none;">
+      <span id="newNewsText"></span>
+      <button class="close-notification-btn" onclick="closeNotification()">×</button>
     </div>
 
     <!-- 搜索框 -->
@@ -1048,48 +1063,83 @@
       }
     }
 
-    // 手动刷新新闻（触发服务器抓取最新新闻）
-    async function refreshNews() {
-      const btn = document.getElementById('refreshBtn');
-      const icon = document.getElementById('refreshIcon');
-      const text = document.getElementById('refreshText');
-
-      btn.disabled = true;
-      icon.innerHTML = '<span class="refresh-spinner"></span>';
-      text.textContent = '正在抓取...';
-
+    // 检查新新闻
+    let lastCheckTime = Date.now();
+    let notificationShown = false;
+    
+    async function checkNewNews() {
       try {
-        const res = await fetch(`${API_BASE_URL}/collect`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const result = await res.json();
-
-        if (!result.success) {
-          throw new Error(result.message || '刷新失败');
+        // 计算距离上次检查的时间（分钟）
+        const minutesSinceLastCheck = Math.floor((Date.now() - lastCheckTime) / 60000);
+        
+        if (minutesSinceLastCheck < 1) {
+          return; // 至少间隔1分钟检查一次
         }
-
-        text.textContent = '刷新成功';
-
-        // 先重新加载新闻源（刷新顶部来源卡片）
-        await loadSources();
-
-        // 再根据当前筛选条件重新加载新闻列表
-        if (currentSource) {
-          await filterBySource(currentSource);
-        } else {
-          await loadNewsAll();
+        
+        const response = await fetch(`${API_BASE_URL}/news/recent/${minutesSinceLastCheck}`);
+        const result = await response.json();
+        
+        if (result.success && result.data.count > 0) {
+          const count = result.data.count;
+          const minutes = minutesSinceLastCheck;
+          
+          // 显示提示信息
+          showNewNewsNotification(count, minutes);
+          
+          // 更新新闻列表和新闻源
+          await loadSources();
+          if (currentSource) {
+            await filterBySource(currentSource);
+          } else {
+            await loadNewsAll();
+          }
         }
-      } catch (err) {
-        console.error('刷新失败:', err);
-        alert('刷新失败：' + err.message);
-      } finally {
-        // 恢复按钮
-        icon.textContent = '🔄';
-        text.textContent = '刷新新闻';
-        btn.disabled = false;
+        
+        lastCheckTime = Date.now();
+      } catch (error) {
+        console.error('检查新新闻失败:', error);
       }
     }
+    
+    // 显示新新闻提示
+    function showNewNewsNotification(count, minutes) {
+      const notification = document.getElementById('newNewsNotification');
+      const text = document.getElementById('newNewsText');
+      
+      let timeText = '';
+      if (minutes < 60) {
+        timeText = `过去${minutes}分钟`;
+      } else {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (mins === 0) {
+          timeText = `过去${hours}小时`;
+        } else {
+          timeText = `过去${hours}小时${mins}分钟`;
+        }
+      }
+      
+      text.textContent = `📰 ${timeText}出现了${count}条新新闻`;
+      notification.style.display = 'flex';
+      notificationShown = true;
+      
+      // 5秒后自动隐藏
+      setTimeout(() => {
+        if (notificationShown) {
+          closeNotification();
+        }
+      }, 5000);
+    }
+    
+    // 关闭提示
+    function closeNotification() {
+      const notification = document.getElementById('newNewsNotification');
+      notification.style.display = 'none';
+      notificationShown = false;
+    }
+    
+    // 启动定期检查（每2分钟检查一次）
+    setInterval(checkNewNews, 2 * 60 * 1000);
 
 
     // 处理搜索框回车键
@@ -1520,6 +1570,10 @@
     window.onload = async function() {
       await loadSources();
       await loadNewsAll();
+      // 初始化新新闻检查（延迟30秒后开始第一次检查）
+      setTimeout(() => {
+        checkNewNews();
+      }, 30 * 1000);
     };
   </script>
 </body>

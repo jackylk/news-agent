@@ -261,6 +261,25 @@ class News {
         callback(err, null);
       });
   }
+
+  // 获取最近X分钟内的新新闻数量
+  static getRecentNewsCount(minutes, callback) {
+    const sql = `
+      SELECT COUNT(*) as count, MIN(created_at) as oldest_time
+      FROM news
+      WHERE created_at >= NOW() - INTERVAL '1 minute' * $1
+    `;
+    
+    db.query(sql, [minutes])
+      .then(result => {
+        const count = parseInt(result.rows[0].count) || 0;
+        const oldestTime = result.rows[0].oldest_time;
+        callback(null, { count, oldestTime });
+      })
+      .catch(err => {
+        callback(err, null);
+      });
+  }
 }
 
 module.exports = News;
