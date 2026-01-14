@@ -26,10 +26,11 @@
 
     /* 新闻源过滤卡片 */
     .source-filter {
+      max-width: 1200px;
+      margin: 0 auto 20px auto;
       background: white;
       padding: 16px;
       border-radius: 12px;
-      margin-bottom: 20px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
@@ -116,6 +117,11 @@
       background-color: #5568d3;
     }
 
+    .refresh-btn-container {
+      max-width: 1200px;
+      margin: 0 auto 20px auto;
+    }
+
     .refresh-btn {
       padding: 8px 16px;
       background-color: #28a745;
@@ -128,7 +134,6 @@
       align-items: center;
       gap: 6px;
       transition: background-color 0.3s;
-      margin-bottom: 12px;
     }
 
     .refresh-btn:hover {
@@ -249,10 +254,11 @@
 
     /* 搜索框样式 */
     .search-container {
+      max-width: 1200px;
+      margin: 0 auto 20px auto;
       background: white;
       padding: 20px;
       border-radius: 12px;
-      margin-bottom: 20px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
@@ -349,7 +355,7 @@
     }
 
     .detail-container {
-      max-width: 800px;
+      max-width: 1200px;
       margin: 0 auto;
       background: white;
       border-radius: 12px;
@@ -430,6 +436,7 @@
       margin-top: 15px;
       display: flex;
       gap: 10px;
+      margin-bottom: 15px;
     }
 
     .summary-btn {
@@ -459,9 +466,10 @@
     .generated-summary {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 30px;
+      padding: 20px;
       border-radius: 12px;
-      margin-bottom: 30px;
+      margin-top: 10px;
+      margin-bottom: 20px;
       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
 
@@ -661,16 +669,20 @@
       <div class="source-filter-header">
         <div class="source-filter-title">新闻来源</div>
       </div>
-      <button class="refresh-btn" id="refreshBtn" onclick="refreshNews()">
-        <span id="refreshIcon">🔄</span>
-        <span id="refreshText">刷新新闻</span>
-      </button>
       <div class="source-tags" id="sourceTags">
         <div class="source-tag active" onclick="filterBySource(null)">
           <span>全部</span>
         </div>
         <!-- 动态加载新闻源 -->
       </div>
+    </div>
+    
+    <!-- 刷新新闻按钮 -->
+    <div class="refresh-btn-container">
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshNews()">
+        <span id="refreshIcon">🔄</span>
+        <span id="refreshText">刷新新闻</span>
+      </button>
     </div>
 
     <!-- 搜索框 -->
@@ -726,16 +738,16 @@
             <span id="detailSource" class="detail-source"></span>
             <span id="detailDate" class="detail-date"></span>
           </div>
+        </div>
+        <div id="detailImageContainer"></div>
+        <div class="detail-content">
+          <div id="detailSummary" class="detail-summary"></div>
           <div class="detail-actions" id="detailActions" style="display: none;">
             <button id="summaryBtn" class="summary-btn" onclick="generateSummary()">
               <span id="summaryIcon">📝</span>
               <span id="summaryText">生成摘要</span>
             </button>
           </div>
-        </div>
-        <div id="detailImageContainer"></div>
-        <div class="detail-content">
-          <div id="detailSummary" class="detail-summary"></div>
           <div id="generatedSummary" class="generated-summary" style="display: none;">
             <div class="generated-summary-header">
               <h3>文章摘要</h3>
