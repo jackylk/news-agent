@@ -383,12 +383,47 @@
       transform: translateX(-2px);
     }
 
+    .detail-header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
     .detail-title {
       font-size: 36px;
       font-weight: bold;
       color: #1a1a1a;
       line-height: 1.4;
-      margin-bottom: 20px;
+      margin: 0;
+      flex: 1;
+    }
+
+    .translate-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background-color: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .translate-btn:hover {
+      background-color: #5568d3;
+    }
+
+    .translate-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      opacity: 0.7;
     }
 
     .detail-meta {
@@ -602,7 +637,13 @@
           <button class="back-btn" onclick="showList()">
             ← 返回列表
           </button>
-          <h1 id="detailTitle" class="detail-title"></h1>
+          <div class="detail-header-content">
+            <h1 id="detailTitle" class="detail-title"></h1>
+            <button id="translateBtn" class="translate-btn" onclick="toggleTranslate()" style="display: none;">
+              <span id="translateIcon">🌐</span>
+              <span id="translateText">翻译为中文</span>
+            </button>
+          </div>
           <div class="detail-meta">
             <span id="detailSource" class="detail-source"></span>
             <span id="detailDate" class="detail-date"></span>
@@ -1053,17 +1094,34 @@
             imageContainer.innerHTML = '';
           }
           
+          // 检测语言并显示翻译按钮
+          const textToCheck = (news.title + ' ' + (news.summary || '') + ' ' + (news.content || '')).substring(0, 500);
+          const isEnglish = detectLanguage(textToCheck);
+          const translateBtn = document.getElementById('translateBtn');
+          if (isEnglish) {
+            translateBtn.style.display = 'inline-flex';
+            translateBtn.setAttribute('data-translated', 'false');
+            document.getElementById('translateText').textContent = '翻译为中文';
+            window.isTranslated = false;
+          } else {
+            translateBtn.style.display = 'none';
+          }
+          
           // 摘要
           const summaryEl = document.getElementById('detailSummary');
+          let originalSummary = '';
           if (news.summary) {
+            originalSummary = news.summary;
             summaryEl.textContent = news.summary;
             summaryEl.style.display = 'block';
+            summaryEl.setAttribute('data-original', originalSummary);
           } else {
             summaryEl.style.display = 'none';
           }
           
           // 正文内容
           const contentEl = document.getElementById('detailText');
+          let originalContent = '';
           if (news.content) {
             // 清理HTML标签并格式化
             let content = news.content
@@ -1074,6 +1132,9 @@
               .replace(/&gt;/g, '>')
               .replace(/&quot;/g, '"')
               .trim();
+            
+            originalContent = content;
+            contentEl.setAttribute('data-original', originalContent);
             
             // 按段落分割（双换行）
             content = content.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
@@ -1111,6 +1172,131 @@
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       return `${year}年${month}月${day}日 ${hours}:${minutes}`;
+    }
+
+    // 检测语言（简单检测：如果主要是英文字符，返回true）
+    function detectLanguage(text) {
+      if (!text || text.length === 0) return false;
+      
+      // 计算英文字符的比例
+      const englishChars = text.match(/[a-zA-Z]/g) || [];
+      const totalChars = text.match(/[a-zA-Z\u4e00-\u9fa5]/g) || [];
+      
+      if (totalChars.length === 0) return false;
+      
+      // 如果英文字符占比超过60%，认为是英文
+      const englishRatio = englishChars.length / totalChars.length;
+      return englishRatio > 0.6;
+    }
+
+    // 翻译功能
+    let isTranslating = false;
+    window.isTranslated = false;
+    
+    async function toggleTranslate() {
+      const translateBtn = document.getElementById('translateBtn');
+      const translateText = document.getElementById('translateText');
+      const contentEl = document.getElementById('detailText');
+      const summaryEl = document.getElementById('detailSummary');
+      
+      if (isTranslating) return;
+      
+      if (window.isTranslated) {
+        // 恢复原文
+        const originalContent = contentEl.getAttribute('data-original') || '';
+        const originalSummary = summaryEl.getAttribute('data-original') || '';
+        
+        if (originalContent) {
+          const paragraphs = originalContent.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
+          contentEl.innerHTML = paragraphs.map(para => `<p>${para}</p>`).join('');
+        }
+        
+        if (originalSummary) {
+          summaryEl.textContent = originalSummary;
+        }
+        
+        translateText.textContent = '翻译为中文';
+        translateBtn.setAttribute('data-translated', 'false');
+        window.isTranslated = false;
+      } else {
+        // 翻译为中文
+        translateBtn.disabled = true;
+        translateText.textContent = '翻译中...';
+        isTranslating = true;
+        
+        try {
+          const textToTranslate = contentEl.textContent || '';
+          const summaryToTranslate = summaryEl.textContent || '';
+          
+          // 使用免费的翻译API
+          const translatedText = textToTranslate ? await translateTextAPI(textToTranslate) : '';
+          const translatedSummary = summaryToTranslate ? await translateTextAPI(summaryToTranslate) : '';
+          
+          if (translatedText) {
+            const paragraphs = translatedText.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
+            if (paragraphs.length > 0) {
+              contentEl.innerHTML = paragraphs.map(para => `<p>${para}</p>`).join('');
+            }
+          }
+          
+          if (translatedSummary) {
+            summaryEl.textContent = translatedSummary;
+          }
+          
+          translateText.textContent = '显示原文';
+          translateBtn.setAttribute('data-translated', 'true');
+          window.isTranslated = true;
+        } catch (error) {
+          console.error('翻译失败:', error);
+          alert('翻译失败，请稍后重试');
+          translateText.textContent = '翻译为中文';
+        } finally {
+          translateBtn.disabled = false;
+          isTranslating = false;
+        }
+      }
+    }
+
+    // 调用翻译API
+    async function translateTextAPI(text) {
+      if (!text || text.trim().length === 0) return '';
+      
+      // 使用 LibreTranslate 的公共API（免费，无需API key）
+      try {
+        const response = await fetch('https://libretranslate.de/translate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: text.substring(0, 5000), // 限制长度
+            source: 'en',
+            target: 'zh',
+            format: 'text'
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('翻译服务不可用');
+        }
+        
+        const result = await response.json();
+        return result.translatedText || text;
+      } catch (error) {
+        // 如果 LibreTranslate 不可用，尝试使用 MyMemory API
+        try {
+          const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.substring(0, 500))}&langpair=en|zh`);
+          const result = await response.json();
+          
+          if (result.responseStatus === 200 && result.responseData) {
+            return result.responseData.translatedText || text;
+          }
+          throw new Error('翻译失败');
+        } catch (error2) {
+          console.error('翻译API错误:', error2);
+          throw error2;
+        }
+      }
     }
 
     // 分享功能
