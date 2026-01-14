@@ -3,32 +3,73 @@ const { Pool } = require('pg');
 // 从环境变量获取数据库连接信息
 // 支持 Neon、Railway PostgreSQL 或其他 PostgreSQL 服务
 // 优先使用 DATABASE_URL（Neon 和 Railway 都会提供）
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  // 如果没有DATABASE_URL，尝试从单独的环境变量构建
-  ...(process.env.DATABASE_URL ? {} : {
+
+// 检查 DATABASE_URL 是否设置
+if (!process.env.DATABASE_URL) {
+  console.warn('⚠️  警告: DATABASE_URL 环境变量未设置');
+  console.warn('   在 Railway 上部署时，请确保：');
+  console.warn('   1. 如果使用 Neon: 在 Railway 项目设置中添加 DATABASE_URL 环境变量');
+  console.warn('   2. 如果使用 Railway PostgreSQL: 在项目中添加 PostgreSQL 服务');
+  console.warn('   当前将尝试使用本地数据库配置（仅适用于本地开发）');
+}
+
+// 构建连接配置
+let poolConfig;
+
+if (process.env.DATABASE_URL) {
+  // 使用 DATABASE_URL（推荐，适用于 Neon 和 Railway PostgreSQL）
+  poolConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }, // Neon 和 Railway 都需要 SSL
+    // 连接池配置：针对 Neon Serverless 优化
+    max: 20, // 最大连接数
+    idleTimeoutMillis: 30000, // 空闲连接超时
+    connectionTimeoutMillis: 10000, // 连接超时
+  };
+  console.log('📦 使用 DATABASE_URL 连接数据库');
+} else {
+  // 本地开发：使用单独的环境变量
+  poolConfig = {
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
+    port: parseInt(process.env.DB_PORT || '5432'),
     database: process.env.DB_NAME || 'news_db',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || '',
-  }),
-  // SSL 配置：Neon 和 Railway 都需要 SSL
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-  // 连接池配置：针对 Neon Serverless 优化
-  max: 20, // 最大连接数
-  idleTimeoutMillis: 30000, // 空闲连接超时
-  connectionTimeoutMillis: 10000, // 连接超时
-});
+    ssl: false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  };
+  console.log('📦 使用本地数据库配置');
+}
+
+const pool = new Pool(poolConfig);
 
 // 测试连接并初始化数据库
 pool.query('SELECT NOW()')
   .then(() => {
-    console.log('已连接到 PostgreSQL 数据库');
+    console.log('✅ 已连接到 PostgreSQL 数据库');
     return initDatabase();
   })
   .catch(err => {
-    console.error('数据库连接失败:', err.message);
+    console.error('❌ 数据库连接失败:', err.message);
+    if (!process.env.DATABASE_URL) {
+      console.error('');
+      console.error('💡 解决方案：');
+      console.error('   1. 如果使用 Neon:');
+      console.error('      - 在 https://neon.tech 创建数据库');
+      console.error('      - 在 Railway 项目设置中添加 DATABASE_URL 环境变量');
+      console.error('   2. 如果使用 Railway PostgreSQL:');
+      console.error('      - 在 Railway 项目中点击 "New" → "Database" → "Add PostgreSQL"');
+      console.error('      - Railway 会自动设置 DATABASE_URL');
+    } else {
+      console.error('');
+      console.error('💡 请检查 DATABASE_URL 是否正确：');
+      console.error('   - 连接字符串格式是否正确');
+      console.error('   - 数据库服务是否正常运行');
+      console.error('   - 网络连接是否正常');
+    }
+    // 不退出进程，让应用继续运行（可能只是数据库暂时不可用）
   });
 
 // 初始化数据库表
