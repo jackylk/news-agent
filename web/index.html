@@ -697,21 +697,6 @@
       <button class="close-notification-btn" onclick="closeNotification()">×</button>
     </div>
 
-    <!-- 搜索框 -->
-    <div class="search-container">
-      <div class="search-box">
-        <input 
-          type="text" 
-          id="searchInput" 
-          class="search-input" 
-          placeholder="搜索新闻标题、内容、来源..." 
-          onkeypress="handleSearchKeyPress(event)"
-        >
-        <button class="search-btn" onclick="performSearch()">搜索</button>
-        <button class="clear-search-btn" id="clearSearchBtn" onclick="clearSearch()" style="display: none;">清除</button>
-      </div>
-    </div>
-
     <!-- 搜索结果标题 -->
     <div id="searchResultsHeader" class="search-results-header" style="display: none;">
       <div class="search-results-title">搜索结果</div>
@@ -1261,6 +1246,12 @@
       showDetail();
       document.getElementById('detailTitle').textContent = '加载中...';
       document.getElementById('detailText').textContent = '';
+      
+      // 清除之前的摘要
+      const generatedSummaryEl = document.getElementById('generatedSummary');
+      generatedSummaryEl.style.display = 'none';
+      document.getElementById('generatedSummaryContent').textContent = '';
+      isGeneratingSummary = false; // 重置生成状态
       
       try {
         const response = await fetch(`${apiUrl}/news/${id}`);
