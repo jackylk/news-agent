@@ -2,9 +2,9 @@
 
 本文档介绍如何将新闻应用部署到云端。
 
-## 方案一：Railway（推荐，最简单）
+## 方案一：Railway + Neon（推荐，Serverless PostgreSQL）
 
-Railway 支持 Node.js 应用，自动处理部署和定时任务。
+Railway 支持 Node.js 应用，Neon 提供 Serverless PostgreSQL 数据库服务。
 
 ### 步骤：
 
@@ -12,31 +12,65 @@ Railway 支持 Node.js 应用，自动处理部署和定时任务。
    - 访问 https://railway.app
    - 使用 GitHub 账号登录
 
-2. **创建新项目**
+2. **注册 Neon 账号并创建数据库**
+   - 访问 https://neon.tech
+   - 使用 GitHub 账号登录（推荐）
+   - 创建新项目（Project）
+   - 创建完成后，Neon 会提供一个连接字符串，格式类似：
+     ```
+     postgresql://username:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
+     ```
+   - 复制这个连接字符串，稍后会在 Railway 中使用
+
+3. **在 Railway 上创建新项目**
    - 点击 "New Project"
    - 选择 "Deploy from GitHub repo"
    - 选择你的代码仓库
 
-3. **配置环境变量**
-   - 在项目设置中添加环境变量：
+4. **配置 Neon 数据库连接**
+   - 在 Railway 项目设置中，点击 "Variables"
+   - 添加环境变量：
+     ```
+     DATABASE_URL=你的Neon连接字符串
+     ```
+   - 例如：
+     ```
+     DATABASE_URL=postgresql://username:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
+     ```
+
+5. **配置其他环境变量（可选）**
+   - 如需其他环境变量，在项目设置中添加：
      ```
      PORT=3000
      NODE_ENV=production
+     CORS_ORIGIN=*
      ```
 
-4. **部署**
+6. **部署**
    - Railway 会自动检测 `package.json` 并部署
    - 部署完成后会提供一个 `.railway.app` 域名
+   - 首次部署后，服务器会自动连接 Neon 数据库并创建表结构
+   - 服务器启动时会自动收集新闻并存储到 Neon 数据库
 
-5. **配置前端**
+7. **配置前端**
    - 修改 `web/index.html` 中的 `API_BASE_URL` 为你的 Railway 域名
    - 或者将前端也部署到 Railway 或 Vercel
 
 ### 优点：
-- ✅ 完全免费（有免费额度）
-- ✅ 自动部署
-- ✅ 支持定时任务
-- ✅ 自动 HTTPS
+- ✅ Neon 免费层：512MB 存储，每月 0.5 小时计算时间
+- ✅ Serverless：按使用量计费，不使用时自动暂停
+- ✅ 数据持久化：数据存储在 Neon 云端，容器重启不会丢失
+- ✅ 自动扩展：根据负载自动扩展
+- ✅ Railway 自动部署和 HTTPS
+- ✅ 支持数据库分支和即时恢复
+
+### 替代方案：使用 Railway 内置 PostgreSQL
+
+如果你不想使用 Neon，也可以使用 Railway 内置的 PostgreSQL：
+
+1. 在 Railway 项目中，点击 "New" → "Database" → "Add PostgreSQL"
+2. Railway 会自动创建 PostgreSQL 数据库并设置 `DATABASE_URL` 环境变量
+3. 无需手动配置，直接使用即可
 
 ---
 

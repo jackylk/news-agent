@@ -6,28 +6,29 @@ class News {
     const { title, content, summary, source, url, image_url, publish_date } = newsData;
     const sql = `
       INSERT INTO news (title, content, summary, source, url, image_url, publish_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id
     `;
     
-    db.run(sql, [title, content, summary, source, url, image_url, publish_date], function(err) {
-      if (err) {
+    db.query(sql, [title, content, summary, source, url, image_url, publish_date])
+      .then(result => {
+        callback(null, { id: result.rows[0].id, ...newsData });
+      })
+      .catch(err => {
         callback(err, null);
-      } else {
-        callback(null, { id: this.lastID, ...newsData });
-      }
-    });
+      });
   }
 
   // 检查新闻是否已存在（通过URL）
   static exists(url, callback) {
-    const sql = `SELECT id FROM news WHERE url = ?`;
-    db.get(sql, [url], (err, row) => {
-      if (err) {
+    const sql = `SELECT id FROM news WHERE url = $1`;
+    db.query(sql, [url])
+      .then(result => {
+        callback(null, result.rows.length > 0);
+      })
+      .catch(err => {
         callback(err, null);
-      } else {
-        callback(null, !!row);
-      }
-    });
+      });
   }
 
   // 获取新闻列表（按日期分组）
@@ -45,14 +46,13 @@ class News {
       ORDER BY publish_date DESC
     `;
     
-    db.all(sql, [], (err, rows) => {
-      if (err) {
-        callback(err, null);
-      } else {
+    db.query(sql, [])
+      .then(result => {
         // 按日期分组
         const grouped = {};
-        rows.forEach(row => {
-          const date = row.date;
+        result.rows.forEach(row => {
+          const date = row.date ? row.date.toISOString().split('T')[0] : null;
+          if (!date) return;
           if (!grouped[date]) {
             grouped[date] = [];
           }
@@ -67,28 +67,30 @@ class News {
         });
         
         // 转换为数组格式，按日期排序
-        const result = Object.keys(grouped)
+        const resultArray = Object.keys(grouped)
           .sort((a, b) => new Date(b) - new Date(a))
           .map(date => ({
             date,
             news: grouped[date]
           }));
         
-        callback(null, result);
-      }
-    });
+        callback(null, resultArray);
+      })
+      .catch(err => {
+        callback(err, null);
+      });
   }
 
   // 根据ID获取新闻详情
   static getById(id, callback) {
-    const sql = `SELECT * FROM news WHERE id = ?`;
-    db.get(sql, [id], (err, row) => {
-      if (err) {
+    const sql = `SELECT * FROM news WHERE id = $1`;
+    db.query(sql, [id])
+      .then(result => {
+        callback(null, result.rows[0] || null);
+      })
+      .catch(err => {
         callback(err, null);
-      } else {
-        callback(null, row);
-      }
-    });
+      });
   }
 
   // 获取今天的新闻
@@ -96,16 +98,23 @@ class News {
     const today = new Date().toISOString().split('T')[0];
     const sql = `
       SELECT * FROM news 
-      WHERE DATE(publish_date) = ?
+      WHERE DATE(publish_date) = $1
       ORDER BY publish_date DESC
     `;
-    db.all(sql, [today], callback);
+    db.query(sql, [today])
+      .then(result => {
+        callback(null, result.rows);
+      })
+      .catch(err => {
+        callback(err, null);
+      });
   }
 
   // 搜索新闻
   static search(keyword, callback) {
-    // 使用instr()函数进行搜索，对中文支持更好
-    // instr()返回子字符串的位置，如果找到返回>0，否则返回0
+    // PostgreSQL使用ILIKE进行不区分大小写的搜索，或使用POSITION函数
+    // 使用ILIKE '%keyword%' 对中文支持更好
+    const searchPattern = `%${keyword}%`;
     const sql = `
       SELECT 
         DATE(publish_date) as date,
@@ -116,22 +125,21 @@ class News {
         image_url,
         publish_date
       FROM news
-      WHERE instr(title, ?) > 0
-         OR instr(content, ?) > 0
-         OR instr(summary, ?) > 0
-         OR instr(source, ?) > 0
+      WHERE title ILIKE $1
+         OR content ILIKE $1
+         OR summary ILIKE $1
+         OR source ILIKE $1
       ORDER BY publish_date DESC
       LIMIT 100
     `;
     
-    db.all(sql, [keyword, keyword, keyword, keyword], (err, rows) => {
-      if (err) {
-        callback(err, null);
-      } else {
+    db.query(sql, [searchPattern])
+      .then(result => {
         // 按日期分组
         const grouped = {};
-        rows.forEach(row => {
-          const date = row.date;
+        result.rows.forEach(row => {
+          const date = row.date ? row.date.toISOString().split('T')[0] : null;
+          if (!date) return;
           if (!grouped[date]) {
             grouped[date] = [];
           }
@@ -146,21 +154,23 @@ class News {
         });
         
         // 转换为数组格式，按日期排序
-        const result = Object.keys(grouped)
+        const resultArray = Object.keys(grouped)
           .sort((a, b) => new Date(b) - new Date(a))
           .map(date => ({
             date,
             news: grouped[date]
           }));
         
-        callback(null, result);
-      }
-    });
+        callback(null, resultArray);
+      })
+      .catch(err => {
+        callback(err, null);
+      });
   }
 
   // 按新闻源获取新闻列表
   static getListBySource(source, callback) {
-    // 使用TRIM来匹配，避免空格问题
+    // PostgreSQL的TRIM函数同样支持
     const sql = `
       SELECT 
         DATE(publish_date) as date,
@@ -171,18 +181,17 @@ class News {
         image_url,
         publish_date
       FROM news
-      WHERE TRIM(source) = TRIM(?)
+      WHERE TRIM(source) = TRIM($1)
       ORDER BY publish_date DESC
     `;
     
-    db.all(sql, [source], (err, rows) => {
-      if (err) {
-        callback(err, null);
-      } else {
+    db.query(sql, [source])
+      .then(result => {
         // 按日期分组
         const grouped = {};
-        rows.forEach(row => {
-          const date = row.date;
+        result.rows.forEach(row => {
+          const date = row.date ? row.date.toISOString().split('T')[0] : null;
+          if (!date) return;
           if (!grouped[date]) {
             grouped[date] = [];
           }
@@ -197,16 +206,18 @@ class News {
         });
         
         // 转换为数组格式，按日期排序
-        const result = Object.keys(grouped)
+        const resultArray = Object.keys(grouped)
           .sort((a, b) => new Date(b) - new Date(a))
           .map(date => ({
             date,
             news: grouped[date]
           }));
         
-        callback(null, result);
-      }
-    });
+        callback(null, resultArray);
+      })
+      .catch(err => {
+        callback(err, null);
+      });
   }
 
   // 获取所有新闻源列表
@@ -218,13 +229,13 @@ class News {
       ORDER BY count DESC
     `;
     
-    db.all(sql, [], (err, rows) => {
-      if (err) {
+    db.query(sql, [])
+      .then(result => {
+        callback(null, result.rows);
+      })
+      .catch(err => {
         callback(err, null);
-      } else {
-        callback(null, rows);
-      }
-    });
+      });
   }
 }
 
