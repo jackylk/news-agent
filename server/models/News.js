@@ -376,6 +376,91 @@ class News {
         callback(err, null);
       });
   }
+
+  // 获取新闻总数
+  static getTotalCount(callback) {
+    const sql = `SELECT COUNT(*) as count FROM news`;
+    
+    db.query(sql, [])
+      .then(result => {
+        const count = parseInt(result.rows[0].count) || 0;
+        callback(null, count);
+      })
+      .catch(err => {
+        callback(err, null);
+      });
+  }
+
+  // 删除最早的新闻（按 publish_date 排序，保留最新的 maxCount 条）
+  static cleanupOldNews(maxCount, callback) {
+    // 先获取当前总数
+    this.getTotalCount((err, totalCount) => {
+      if (err) {
+        callback(err, null);
+        return;
+      }
+      
+      if (totalCount <= maxCount) {
+        console.log(`新闻总数 ${totalCount} 未超过限制 ${maxCount}，无需清理`);
+        callback(null, 0);
+        return;
+      }
+      
+      const deleteCount = totalCount - maxCount;
+      
+      // 获取需要删除的新闻ID列表（最早的 deleteCount 条）
+      const selectSql = `
+        SELECT id FROM news
+        ORDER BY publish_date ASC, created_at ASC
+        LIMIT $1
+      `;
+      
+      db.query(selectSql, [deleteCount])
+        .then(selectResult => {
+          if (selectResult.rows.length === 0) {
+            console.log('没有需要清理的旧新闻');
+            callback(null, 0);
+            return;
+          }
+          
+          const idsToDelete = selectResult.rows.map(row => row.id);
+          
+          // 删除这些新闻
+          const deleteSql = `DELETE FROM news WHERE id = ANY($1::int[])`;
+          
+          return db.query(deleteSql, [idsToDelete])
+            .then(deleteResult => {
+              const deletedCount = deleteResult.rowCount || 0;
+              console.log(`已清理 ${deletedCount} 条旧新闻，保留最新的 ${maxCount} 条`);
+              callback(null, deletedCount);
+            });
+        })
+        .catch(err => {
+          console.error('清理旧新闻失败:', err);
+          callback(err, null);
+        });
+    });
+  }
+
+  // 自动清理：如果总数超过 maxCount，删除最早的新闻
+  static autoCleanup(maxCount = 3000, callback) {
+    this.getTotalCount((err, totalCount) => {
+      if (err) {
+        console.error('获取新闻总数失败:', err);
+        if (callback) callback(err, null);
+        return;
+      }
+
+      if (totalCount > maxCount) {
+        const excessCount = totalCount - maxCount;
+        console.log(`新闻总数 ${totalCount} 超过限制 ${maxCount}，需要清理 ${excessCount} 条旧新闻`);
+        this.cleanupOldNews(maxCount, callback);
+      } else {
+        console.log(`新闻总数 ${totalCount}，未超过限制 ${maxCount}，无需清理`);
+        if (callback) callback(null, 0);
+      }
+    });
+  }
 }
 
 module.exports = News;

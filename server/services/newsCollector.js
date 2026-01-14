@@ -123,6 +123,18 @@ class NewsCollector {
     }
 
     console.log(`新闻收集完成，共收集 ${collectedCount} 条新新闻`);
+    
+    // 收集完成后，检查并清理旧新闻（最多保留3000条）
+    if (collectedCount > 0) {
+      console.log('开始检查是否需要清理旧新闻...');
+      News.autoCleanup(3000, (err, deletedCount) => {
+        if (err) {
+          console.error('自动清理旧新闻失败:', err);
+        } else if (deletedCount > 0) {
+          console.log(`自动清理完成，删除了 ${deletedCount} 条旧新闻`);
+        }
+      });
+    }
   }
 
   // 从新闻API收集（备用方案）
@@ -165,6 +177,18 @@ class NewsCollector {
       }
 
       console.log(`从API收集了 ${collectedCount} 条新闻`);
+      
+      // 收集完成后，检查并清理旧新闻（最多保留3000条）
+      if (collectedCount > 0) {
+        console.log('开始检查是否需要清理旧新闻...');
+        News.autoCleanup(3000, (err, deletedCount) => {
+          if (err) {
+            console.error('自动清理旧新闻失败:', err);
+          } else if (deletedCount > 0) {
+            console.log(`自动清理完成，删除了 ${deletedCount} 条旧新闻`);
+          }
+        });
+      }
     } catch (error) {
       console.error('从API收集新闻失败:', error.message);
     }
