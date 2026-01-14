@@ -1,0 +1,41 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 错误提示 -->
+  <view wx:if="{{error && !loading}}" class="error">
+    <text>{{error}}</text>
+    <button bindtap="loadNewsDetail" class="retry-btn">重试</button>
+  </view>
+
+  <!-- 新闻详情 -->
+  <view wx:if="{{!loading && !error && news}}" class="news-detail">
+    <view class="news-header">
+      <text class="news-title">{{news.title}}</text>
+      <view class="news-meta">
+        <text class="news-source">{{news.source}}</text>
+        <text class="news-date">{{formatDate(news.publish_date)}}</text>
+      </view>
+    </view>
+
+    <image 
+      wx:if="{{news.image_url}}" 
+      class="news-image" 
+      src="{{news.image_url}}" 
+      mode="widthFix"
+    ></image>
+
+    <view class="news-content">
+      <text wx:if="{{news.summary}}" class="news-summary">{{news.summary}}</text>
+      <text class="news-text">{{news.content}}</text>
+    </view>
+
+    <view wx:if="{{news.url}}" class="news-footer">
+      <button class="source-btn" bindtap="openSource">
+        查看原文
+      </button>
+    </view>
+  </view>
+</view>

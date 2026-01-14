@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>科技新闻 - 网页版</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* 新闻源过滤卡片 */
+    .source-filter {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .source-filter-title {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .source-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .source-tag {
+      padding: 8px 16px;
+      background-color: #f5f5f5;
+      color: #333;
+      border: 1px solid #e0e0e0;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .source-tag:hover {
+      background-color: #e8e8e8;
+      border-color: #667eea;
+    }
+
+    .source-tag.active {
+      background-color: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .source-tag-count {
+      font-size: 12px;
+      opacity: 0.7;
+      background-color: rgba(0, 0, 0, 0.1);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    .source-tag.active .source-tag-count {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .loading, .error, .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .error {
+      color: #e74c3c;
+    }
+
+    .retry-btn {
+      margin-top: 20px;
+      padding: 10px 30px;
+      background-color: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    .retry-btn:hover {
+      background-color: #5568d3;
+    }
+
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .date-section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .date-header {
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 20px;
+    }
+
+    .date-text {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .news-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
+
+    .news-item {
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid #e0e0e0;
+    }
+
+    .news-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      border-color: #667eea;
+    }
+
+    .news-image {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .news-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .news-summary {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.5;
+    }
+
+    .news-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #999;
+      padding-top: 12px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .news-source {
+      color: #667eea;
+      font-weight: 500;
+    }
+
+    /* 搜索框样式 */
+    .search-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .search-box {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 12px 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .search-btn {
+      padding: 12px 24px;
+      background-color: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      transition: background-color 0.3s;
+    }
+
+    .search-btn:hover {
+      background-color: #5568d3;
+    }
+
+    .search-btn:active {
+      transform: scale(0.98);
+    }
+
+    .clear-search-btn {
+      padding: 12px 20px;
+      background-color: #f5f5f5;
+      color: #666;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    .clear-search-btn:hover {
+      background-color: #e0e0e0;
+    }
+
+
+    .search-results-header {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .search-results-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .search-results-count {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .no-results-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    /* 详情页面样式 */
+    #detailView {
+      display: none;
+    }
+
+    .detail-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .detail-header {
+      padding: 30px 40px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background-color: #f5f5f5;
+      color: #333;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+
+    .back-btn:hover {
+      background-color: #e0e0e0;
+      transform: translateX(-2px);
+    }
+
+    .detail-title {
+      font-size: 36px;
+      font-weight: bold;
+      color: #1a1a1a;
+      line-height: 1.4;
+      margin-bottom: 20px;
+    }
+
+    .detail-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+      color: #666;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .detail-source {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .detail-date {
+      color: #999;
+    }
+
+    .detail-image {
+      width: 100%;
+      max-height: 500px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .detail-content {
+      padding: 40px;
+    }
+
+    .detail-summary {
+      font-size: 20px;
+      color: #555;
+      line-height: 1.8;
+      margin-bottom: 30px;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-left: 4px solid #667eea;
+      border-radius: 4px;
+    }
+
+    .detail-text {
+      font-size: 18px;
+      line-height: 1.9;
+      color: #333;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .detail-text p {
+      margin-bottom: 20px;
+    }
+
+    .detail-footer {
+      padding: 30px 40px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background-color: #667eea;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    .source-link:hover {
+      background-color: #5568d3;
+    }
+
+    .share-btn {
+      padding: 12px 24px;
+      background-color: #f5f5f5;
+      color: #333;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    .share-btn:hover {
+      background-color: #e0e0e0;
+    }
+
+    mark {
+      background-color: #fff3cd;
+      color: #856404;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    @media (max-width: 768px) {
+      .news-items {
+        grid-template-columns: 1fr;
+      }
+
+      .search-box {
+        flex-direction: column;
+      }
+
+      .search-input {
+        width: 100%;
+      }
+
+      .search-btn, .clear-search-btn {
+        width: 100%;
+      }
+
+      .source-tags {
+        gap: 8px;
+      }
+
+      .source-tag {
+        font-size: 13px;
+        padding: 6px 12px;
+      }
+
+      .detail-title {
+        font-size: 28px;
+      }
+
+      .detail-content {
+        padding: 24px;
+      }
+
+      .detail-header {
+        padding: 20px 24px;
+      }
+
+      .detail-footer {
+        padding: 20px 24px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .detail-text {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 新闻源过滤卡片 -->
+    <div class="source-filter">
+      <div class="source-filter-title">新闻来源</div>
+      <div class="source-tags" id="sourceTags">
+        <div class="source-tag active" onclick="filterBySource(null)">
+          <span>全部</span>
+        </div>
+        <!-- 动态加载新闻源 -->
+      </div>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="search-container">
+      <div class="search-box">
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="search-input" 
+          placeholder="搜索新闻标题、内容、来源..." 
+          onkeypress="handleSearchKeyPress(event)"
+        >
+        <button class="search-btn" onclick="performSearch()">搜索</button>
+        <button class="clear-search-btn" id="clearSearchBtn" onclick="clearSearch()" style="display: none;">清除</button>
+      </div>
+    </div>
+
+    <!-- 搜索结果标题 -->
+    <div id="searchResultsHeader" class="search-results-header" style="display: none;">
+      <div class="search-results-title">搜索结果</div>
+      <div class="search-results-count" id="searchResultsCount"></div>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+      <p>加载中...</p>
+    </div>
+
+    <div id="error" class="error" style="display: none;">
+      <p id="errorMsg"></p>
+      <button class="retry-btn" onclick="loadNews()">重试</button>
+    </div>
+
+    <!-- 新闻列表视图 -->
+    <div id="listView">
+      <div id="newsList" class="news-list"></div>
+    </div>
+
+    <!-- 新闻详情视图 -->
+    <div id="detailView">
+      <div class="detail-container">
+        <div class="detail-header">
+          <button class="back-btn" onclick="showList()">
+            ← 返回列表
+          </button>
+          <h1 id="detailTitle" class="detail-title"></h1>
+          <div class="detail-meta">
+            <span id="detailSource" class="detail-source"></span>
+            <span id="detailDate" class="detail-date"></span>
+          </div>
+        </div>
+        <div id="detailImageContainer"></div>
+        <div class="detail-content">
+          <div id="detailSummary" class="detail-summary"></div>
+          <div id="detailText" class="detail-text"></div>
+        </div>
+        <div class="detail-footer">
+          <a id="sourceLink" href="#" target="_blank" class="source-link">
+            查看原文 →
+          </a>
+          <button class="share-btn" onclick="shareNews()">分享</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = 'http://localhost:3000/api';
+    let isSearchMode = false;
+    let currentKeyword = '';
+    let currentSource = null; // 当前选中的新闻源
+    let sources = []; // 新闻源列表
+    
+    // 格式化日期
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      if (date.toDateString() === today.toDateString()) {
+        return '今天';
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return '昨天';
+      } else {
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        return `${month}月${day}日`;
+      }
+    }
+
+    // 格式化时间
+    function formatTime(dateStr) {
+      const date = new Date(dateStr);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+
+    // 加载新闻源列表
+    async function loadSources() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/news/sources`);
+        const result = await response.json();
+
+        if (result.success) {
+          sources = result.data;
+          renderSourceTags();
+        }
+      } catch (error) {
+        console.error('加载新闻源失败:', error);
+      }
+    }
+
+    // 渲染新闻源标签
+    function renderSourceTags() {
+      const sourceTagsEl = document.getElementById('sourceTags');
+      let html = '<div class="source-tag active" onclick="filterBySource(null)"><span>全部</span></div>';
+      
+      sources.forEach(source => {
+        const sourceName = source.source.trim(); // 显示和查询都使用trim后的名称
+        // 后端已使用TRIM匹配，所以前端传递trim后的名称即可
+        html += `
+          <div class="source-tag" data-source="${sourceName.replace(/"/g, '&quot;')}" onclick="filterBySource('${sourceName.replace(/'/g, "\\'")}')">
+            <span>${sourceName}</span>
+            <span class="source-tag-count">${source.count}</span>
+          </div>
+        `;
+      });
+      
+      sourceTagsEl.innerHTML = html;
+    }
+
+    // 按新闻源过滤
+    async function filterBySource(source) {
+      currentSource = source;
+      isSearchMode = false;
+      currentKeyword = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('clearSearchBtn').style.display = 'none';
+      document.getElementById('searchResultsHeader').style.display = 'none';
+      
+      // 更新标签状态
+      document.querySelectorAll('.source-tag').forEach(tag => {
+        tag.classList.remove('active');
+        if (source === null) {
+          // 点击"全部"
+          if (tag.textContent.includes('全部')) {
+            tag.classList.add('active');
+          }
+        } else {
+          // 点击具体新闻源，使用data-source属性匹配
+          const tagSource = tag.getAttribute('data-source');
+          if (tagSource === source) {
+            tag.classList.add('active');
+          }
+        }
+      });
+      
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const newsListEl = document.getElementById('newsList');
+      
+      loadingEl.style.display = 'block';
+      errorEl.style.display = 'none';
+      newsListEl.innerHTML = '';
+
+      try {
+        let url;
+        if (source) {
+          url = `${API_BASE_URL}/news/source/${encodeURIComponent(source)}`;
+        } else {
+          url = `${API_BASE_URL}/news/list`;
+        }
+        
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.message || '获取新闻失败');
+        }
+
+        const data = result.data;
+        loadingEl.style.display = 'none';
+        renderNewsList(data, false);
+      } catch (error) {
+        console.error('加载失败:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        document.getElementById('errorMsg').textContent = error.message || '加载失败，请检查服务器是否运行';
+      }
+    }
+
+    // 渲染新闻列表
+    function renderNewsList(data, isSearch = false) {
+      const newsListEl = document.getElementById('newsList');
+      
+      if (!data || data.length === 0) {
+        if (isSearch) {
+          newsListEl.innerHTML = `
+            <div class="no-results">
+              <div class="no-results-icon">🔍</div>
+              <p>没有找到相关新闻</p>
+              <p style="font-size: 14px; margin-top: 8px;">请尝试其他关键词</p>
+            </div>
+          `;
+        } else {
+          newsListEl.innerHTML = '<div class="empty"><p>暂无新闻</p></div>';
+        }
+        return;
+      }
+
+      // 计算总新闻数
+      let totalCount = 0;
+      data.forEach(section => {
+        totalCount += section.news.length;
+      });
+
+      // 显示搜索结果标题
+      if (isSearch) {
+        document.getElementById('searchResultsHeader').style.display = 'block';
+        document.getElementById('searchResultsCount').textContent = `找到 ${totalCount} 条相关新闻`;
+      } else {
+        document.getElementById('searchResultsHeader').style.display = 'none';
+      }
+
+      // 渲染新闻列表
+      let html = '';
+      data.forEach(section => {
+        html += `
+          <div class="date-section">
+            <div class="date-header">
+              <div class="date-text">${formatDate(section.date)}</div>
+            </div>
+            <div class="news-items">
+        `;
+
+        section.news.forEach(news => {
+          // 高亮搜索关键词
+          let title = news.title;
+          let summary = news.summary || '';
+          if (isSearch && currentKeyword) {
+            const regex = new RegExp(`(${currentKeyword})`, 'gi');
+            title = title.replace(regex, '<mark>$1</mark>');
+            summary = summary.replace(regex, '<mark>$1</mark>');
+          }
+
+          html += `
+            <div class="news-item" onclick="viewDetail(${news.id})">
+              ${news.image_url ? `<img src="${news.image_url}" alt="${news.title}" class="news-image" onerror="this.style.display='none'">` : ''}
+              <div class="news-title">${title}</div>
+              ${summary ? `<div class="news-summary">${summary}</div>` : ''}
+              <div class="news-meta">
+                <span class="news-source">${news.source}</span>
+                <span class="news-time">${formatTime(news.publish_date)}</span>
+              </div>
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+      });
+
+      newsListEl.innerHTML = html;
+    }
+
+    // 加载全部新闻
+    async function loadNewsAll() {
+      const apiUrl = API_BASE_URL;
+      
+      // 清除搜索状态
+      isSearchMode = false;
+      currentKeyword = '';
+      currentSource = null;
+      document.getElementById('searchInput').value = '';
+      document.getElementById('clearSearchBtn').style.display = 'none';
+      document.getElementById('searchResultsHeader').style.display = 'none';
+      
+      // 重置标签状态
+      document.querySelectorAll('.source-tag').forEach(tag => {
+        tag.classList.remove('active');
+        if (tag.textContent.includes('全部')) {
+          tag.classList.add('active');
+        }
+      });
+      
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const newsListEl = document.getElementById('newsList');
+      
+      loadingEl.style.display = 'block';
+      errorEl.style.display = 'none';
+      newsListEl.innerHTML = '';
+
+      try {
+        const response = await fetch(`${apiUrl}/news/list`);
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.message || '获取新闻失败');
+        }
+
+        const data = result.data;
+        loadingEl.style.display = 'none';
+        renderNewsList(data, false);
+      } catch (error) {
+        console.error('加载失败:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        document.getElementById('errorMsg').textContent = error.message || '加载失败，请检查服务器是否运行';
+      }
+    }
+
+    // 加载新闻列表（兼容旧代码）
+    async function loadNews() {
+      if (currentSource) {
+        await filterBySource(currentSource);
+      } else {
+        await loadNewsAll();
+      }
+    }
+
+    // 执行搜索
+    async function performSearch() {
+      const keyword = document.getElementById('searchInput').value.trim();
+      
+      if (!keyword) {
+        alert('请输入搜索关键词');
+        return;
+      }
+
+      const apiUrl = API_BASE_URL;
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const newsListEl = document.getElementById('newsList');
+      
+      loadingEl.style.display = 'block';
+      errorEl.style.display = 'none';
+      newsListEl.innerHTML = '';
+      isSearchMode = true;
+      currentKeyword = keyword;
+      document.getElementById('clearSearchBtn').style.display = 'inline-block';
+
+      try {
+        const response = await fetch(`${apiUrl}/news/search?q=${encodeURIComponent(keyword)}`);
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.message || '搜索失败');
+        }
+
+        const data = result.data;
+        loadingEl.style.display = 'none';
+        renderNewsList(data, true);
+      } catch (error) {
+        console.error('搜索失败:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        document.getElementById('errorMsg').textContent = error.message || '搜索失败，请检查服务器是否运行';
+      }
+    }
+
+    // 清除搜索
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('clearSearchBtn').style.display = 'none';
+      isSearchMode = false;
+      currentKeyword = '';
+      if (currentSource) {
+        filterBySource(currentSource);
+      } else {
+        loadNewsAll();
+      }
+    }
+
+
+    // 处理搜索框回车键
+    function handleSearchKeyPress(event) {
+      if (event.key === 'Enter') {
+        performSearch();
+      }
+    }
+
+    // 显示列表视图
+    function showList() {
+      document.getElementById('listView').style.display = 'block';
+      document.getElementById('detailView').style.display = 'none';
+      // 滚动到顶部
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 显示详情视图
+    function showDetail() {
+      document.getElementById('listView').style.display = 'none';
+      document.getElementById('detailView').style.display = 'block';
+      // 滚动到顶部
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 查看详情
+    async function viewDetail(id) {
+      const apiUrl = API_BASE_URL;
+      
+      // 显示加载状态
+      showDetail();
+      document.getElementById('detailTitle').textContent = '加载中...';
+      document.getElementById('detailText').textContent = '';
+      
+      try {
+        const response = await fetch(`${apiUrl}/news/${id}`);
+        const result = await response.json();
+
+        if (result.success) {
+          const news = result.data;
+          
+          // 填充详情页面
+          document.getElementById('detailTitle').textContent = news.title;
+          document.getElementById('detailSource').textContent = news.source || '未知来源';
+          document.getElementById('detailDate').textContent = formatFullDate(news.publish_date);
+          
+          // 图片
+          const imageContainer = document.getElementById('detailImageContainer');
+          if (news.image_url) {
+            imageContainer.innerHTML = `<img src="${news.image_url}" alt="${news.title}" class="detail-image" onerror="this.style.display='none'">`;
+          } else {
+            imageContainer.innerHTML = '';
+          }
+          
+          // 摘要
+          const summaryEl = document.getElementById('detailSummary');
+          if (news.summary) {
+            summaryEl.textContent = news.summary;
+            summaryEl.style.display = 'block';
+          } else {
+            summaryEl.style.display = 'none';
+          }
+          
+          // 正文内容
+          const contentEl = document.getElementById('detailText');
+          if (news.content) {
+            // 清理HTML标签并格式化
+            let content = news.content
+              .replace(/<[^>]*>/g, '') // 移除HTML标签
+              .replace(/&nbsp;/g, ' ') // 替换&nbsp;
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .trim();
+            
+            // 按段落分割（双换行）
+            content = content.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
+            contentEl.innerHTML = content.map(para => `<p>${para}</p>`).join('');
+          } else {
+            contentEl.textContent = '暂无详细内容';
+          }
+          
+          // 原文链接
+          const sourceLink = document.getElementById('sourceLink');
+          if (news.url) {
+            sourceLink.href = news.url;
+            sourceLink.style.display = 'inline-flex';
+          } else {
+            sourceLink.style.display = 'none';
+          }
+          
+          // 保存当前新闻ID用于分享
+          window.currentNewsId = id;
+          window.currentNews = news;
+        } else {
+          document.getElementById('detailText').textContent = '获取新闻详情失败：' + result.message;
+        }
+      } catch (error) {
+        document.getElementById('detailText').textContent = '获取新闻详情失败：' + error.message;
+      }
+    }
+
+    // 格式化完整日期
+    function formatFullDate(dateStr) {
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}年${month}月${day}日 ${hours}:${minutes}`;
+    }
+
+    // 分享功能
+    function shareNews() {
+      if (navigator.share && window.currentNews) {
+        navigator.share({
+          title: window.currentNews.title,
+          text: window.currentNews.summary || '',
+          url: window.currentNews.url || window.location.href
+        }).catch(err => console.log('分享失败:', err));
+      } else {
+        // 降级方案：复制链接
+        const url = window.currentNews?.url || window.location.href;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url).then(() => {
+            alert('链接已复制到剪贴板');
+          });
+        } else {
+          alert('当前浏览器不支持分享功能');
+        }
+      }
+    }
+
+    // 页面加载时自动加载新闻和新闻源
+    window.onload = async function() {
+      await loadSources();
+      await loadNewsAll();
+    };
+  </script>
+</body>
+</html>

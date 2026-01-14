@@ -1,0 +1,53 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 错误提示 -->
+  <view wx:if="{{error && !loading}}" class="error">
+    <text>{{error}}</text>
+    <button bindtap="loadNewsList" class="retry-btn">重试</button>
+  </view>
+
+  <!-- 新闻列表 -->
+  <view wx:if="{{!loading && !error}}" class="news-list">
+    <block wx:for="{{newsList}}" wx:key="date">
+      <view class="date-section">
+        <view class="date-header">
+          <text class="date-text">{{item.displayDate}}</text>
+        </view>
+        
+        <view class="news-items">
+          <view 
+            wx:for="{{item.news}}" 
+            wx:for-item="news"
+            wx:key="id"
+            class="news-item"
+            bindtap="onNewsTap"
+            data-id="{{news.id}}"
+          >
+            <image 
+              wx:if="{{news.image_url}}" 
+              class="news-image" 
+              src="{{news.image_url}}" 
+              mode="aspectFill"
+            ></image>
+            <view class="news-content">
+              <text class="news-title">{{news.title}}</text>
+              <text wx:if="{{news.summary}}" class="news-summary">{{news.summary}}</text>
+              <view class="news-meta">
+                <text class="news-source">{{news.source}}</text>
+                <text class="news-time">{{news.publish_date}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view wx:if="{{newsList.length === 0}}" class="empty">
+      <text>暂无新闻</text>
+    </view>
+  </view>
+</view>
