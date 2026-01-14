@@ -103,6 +103,23 @@ router.get('/recent/:minutes', (req, res) => {
   });
 });
 
+// 获取最近更新时间统计
+router.get('/update-info', (req, res) => {
+  News.getLastUpdateInfo((err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '获取更新信息失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      data: result
+    });
+  });
+});
+
 // 生成文章摘要（使用AI大模型）
 router.post('/summarize', async (req, res) => {
   const { text } = req.body;

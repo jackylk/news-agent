@@ -24,6 +24,39 @@
       padding: 20px;
     }
 
+    .update-info {
+      max-width: 1200px;
+      margin: 0 auto 20px auto;
+      background: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .update-info-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .update-info-label {
+      font-weight: 500;
+      color: #999;
+    }
+
+    .update-info-time,
+    .update-info-count {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .update-info-separator {
+      color: #ddd;
+      margin: 0 4px;
+    }
+
     /* 新闻源过滤卡片 */
     .source-filter {
       max-width: 1200px;
@@ -455,8 +488,7 @@
       color: white;
       padding: 20px;
       border-radius: 12px;
-      margin-top: 10px;
-      margin-bottom: 20px;
+      margin-top: 20px;
       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
 
@@ -635,6 +667,17 @@
 </head>
 <body>
   <div class="container">
+    <!-- 更新信息显示 -->
+    <div class="update-info">
+      <div class="update-info-content">
+        <span class="update-info-label">最近更新：</span>
+        <span id="lastUpdateTime" class="update-info-time">加载中...</span>
+        <span class="update-info-separator">|</span>
+        <span class="update-info-label">总新闻数：</span>
+        <span id="totalNewsCount" class="update-info-count">加载中...</span>
+      </div>
+    </div>
+    
     <!-- 新闻源过滤卡片 -->
     <div class="source-filter">
       <div class="source-filter-header">
@@ -707,16 +750,16 @@
             <span id="detailSource" class="detail-source"></span>
             <span id="detailDate" class="detail-date"></span>
           </div>
-        </div>
-        <div id="detailImageContainer"></div>
-        <div class="detail-content">
-          <div id="detailSummary" class="detail-summary"></div>
           <div id="generatedSummary" class="generated-summary" style="display: none;">
             <div class="generated-summary-header">
               <h3>文章摘要</h3>
             </div>
             <div id="generatedSummaryContent" class="generated-summary-content"></div>
           </div>
+        </div>
+        <div id="detailImageContainer"></div>
+        <div class="detail-content">
+          <div id="detailSummary" class="detail-summary"></div>
           <div id="detailText" class="detail-text"></div>
         </div>
         <div class="detail-footer">
@@ -1063,36 +1106,81 @@
       }
     }
 
+    // 加载更新信息
+    async function loadUpdateInfo() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/news/update-info`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          const { lastUpdateTime, totalCount } = result.data;
+          
+          // 更新总新闻数
+          document.getElementById('totalNewsCount').textContent = totalCount + ' 条';
+          
+          // 更新最近更新时间
+          if (lastUpdateTime) {
+            const updateTime = new Date(lastUpdateTime);
+            const now = new Date();
+            const diffMs = now - updateTime;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            let timeText = '';
+            if (diffMins < 1) {
+              timeText = '刚刚';
+            } else if (diffMins < 60) {
+              timeText = `${diffMins}分钟前`;
+            } else {
+              const hours = Math.floor(diffMins / 60);
+              if (hours < 24) {
+                timeText = `${hours}小时前`;
+              } else {
+                const days = Math.floor(hours / 24);
+                timeText = `${days}天前`;
+              }
+            }
+            
+            document.getElementById('lastUpdateTime').textContent = timeText;
+          }
+        }
+      } catch (error) {
+        console.error('加载更新信息失败:', error);
+      }
+    }
+
     // 检查新新闻
     let lastCheckTime = Date.now();
     let notificationShown = false;
+    let lastTotalCount = 0;
     
     async function checkNewNews() {
       try {
-        // 计算距离上次检查的时间（分钟）
-        const minutesSinceLastCheck = Math.floor((Date.now() - lastCheckTime) / 60000);
+        // 先获取更新信息
+        const updateResponse = await fetch(`${API_BASE_URL}/news/update-info`);
+        const updateResult = await updateResponse.json();
         
-        if (minutesSinceLastCheck < 1) {
-          return; // 至少间隔1分钟检查一次
-        }
-        
-        const response = await fetch(`${API_BASE_URL}/news/recent/${minutesSinceLastCheck}`);
-        const result = await response.json();
-        
-        if (result.success && result.data.count > 0) {
-          const count = result.data.count;
-          const minutes = minutesSinceLastCheck;
+        if (updateResult.success && updateResult.data) {
+          const { totalCount } = updateResult.data;
           
-          // 显示提示信息
-          showNewNewsNotification(count, minutes);
-          
-          // 更新新闻列表和新闻源
-          await loadSources();
-          if (currentSource) {
-            await filterBySource(currentSource);
-          } else {
-            await loadNewsAll();
+          // 如果总数增加了，说明有新新闻
+          if (lastTotalCount > 0 && totalCount > lastTotalCount) {
+            const newCount = totalCount - lastTotalCount;
+            const minutesSinceLastCheck = Math.floor((Date.now() - lastCheckTime) / 60000);
+            
+            // 显示提示信息
+            showNewNewsNotification(newCount, minutesSinceLastCheck);
+            
+            // 更新新闻列表和新闻源
+            await loadSources();
+            if (currentSource) {
+              await filterBySource(currentSource);
+            } else {
+              await loadNewsAll();
+            }
           }
+          
+          lastTotalCount = totalCount;
+          await loadUpdateInfo(); // 更新显示信息
         }
         
         lastCheckTime = Date.now();
@@ -1568,8 +1656,21 @@
 
     // 页面加载时自动加载新闻和新闻源
     window.onload = async function() {
+      await loadUpdateInfo(); // 先加载更新信息
       await loadSources();
       await loadNewsAll();
+      
+      // 获取初始总数
+      try {
+        const response = await fetch(`${API_BASE_URL}/news/update-info`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          lastTotalCount = result.data.totalCount || 0;
+        }
+      } catch (error) {
+        console.error('获取初始总数失败:', error);
+      }
+      
       // 初始化新新闻检查（延迟30秒后开始第一次检查）
       setTimeout(() => {
         checkNewNews();

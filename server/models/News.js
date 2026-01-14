@@ -280,6 +280,26 @@ class News {
         callback(err, null);
       });
   }
+
+  // 获取最近更新时间统计
+  static getLastUpdateInfo(callback) {
+    const sql = `
+      SELECT 
+        MAX(created_at) as last_update_time,
+        COUNT(*) as total_count
+      FROM news
+    `;
+    
+    db.query(sql, [])
+      .then(result => {
+        const lastUpdateTime = result.rows[0].last_update_time;
+        const totalCount = parseInt(result.rows[0].total_count) || 0;
+        callback(null, { lastUpdateTime, totalCount });
+      })
+      .catch(err => {
+        callback(err, null);
+      });
+  }
 }
 
 module.exports = News;
