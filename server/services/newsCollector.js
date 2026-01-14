@@ -11,6 +11,34 @@ const SOURCE_NAME_MAP = {
   // 可以继续添加其他映射
 };
 
+// 新闻源分类映射（根据来源自动分类）
+const SOURCE_CATEGORY_MAP = {
+  // 科技新闻
+  '36氪': '科技',
+  'TechCrunch': '科技',
+  'The Verge': '科技',
+  'O\'Reilly Radar': '科技',
+  // 云技术
+  'Google Cloud': '云技术',
+  'AWS': '云技术',
+  'Databricks': '云技术',
+  // 综合资讯
+  '虎嗅': '综合',
+  'CNN': '综合',
+  // 默认分类
+  'default': '科技'
+};
+
+// 根据来源获取分类
+function getCategoryBySource(sourceName) {
+  for (const [key, category] of Object.entries(SOURCE_CATEGORY_MAP)) {
+    if (sourceName.includes(key)) {
+      return category;
+    }
+  }
+  return SOURCE_CATEGORY_MAP.default;
+}
+
 // 科技新闻RSS源列表
 const RSS_FEEDS = [
   // 36氪RSS源（综合资讯）
@@ -60,11 +88,15 @@ class NewsCollector {
               // 处理来源名称，使用映射表或原始名称
               const sourceName = SOURCE_NAME_MAP[feed.title] || feed.title || '未知来源';
               
+              // 根据来源自动分类
+              const category = getCategoryBySource(sourceName);
+              
               const newsData = {
                 title: item.title || '无标题',
                 content: content,
                 summary: summary,
                 source: sourceName,
+                category: category,
                 url: item.link || item.guid || '',
                 image_url: this.extractImage(item),
                 publish_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()

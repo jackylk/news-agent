@@ -83,12 +83,22 @@ async function initDatabase() {
         content TEXT,
         summary TEXT,
         source TEXT,
+        category TEXT,
         url TEXT UNIQUE,
         image_url TEXT,
         publish_date TIMESTAMP NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // 如果表已存在但没有category字段，添加该字段
+    try {
+      await client.query(`
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS category TEXT
+      `);
+    } catch (err) {
+      // 字段可能已存在，忽略错误
+    }
 
     // 创建索引以提高查询性能
     await client.query(`
@@ -101,6 +111,10 @@ async function initDatabase() {
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_source ON news(source)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_category ON news(category)
     `);
 
     console.log('数据库表初始化完成');

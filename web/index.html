@@ -693,6 +693,12 @@
         </div>
         <!-- 动态加载新闻源 -->
       </div>
+      <div class="category-tags" id="categoryTags" style="margin-top: 12px;">
+        <div class="source-tag active" onclick="filterByCategory(null)">
+          <span>全部分类</span>
+        </div>
+        <!-- 动态加载分类 -->
+      </div>
     </div>
     
     <!-- 新新闻提示 -->
@@ -846,6 +852,107 @@
       });
       
       sourceTagsEl.innerHTML = html;
+    }
+
+    // 加载分类列表
+    let categories = [];
+    async function loadCategories() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/news/categories`);
+        const result = await response.json();
+
+        if (result.success) {
+          categories = result.data;
+          renderCategoryTags();
+        }
+      } catch (error) {
+        console.error('加载分类失败:', error);
+      }
+    }
+
+    // 渲染分类标签
+    function renderCategoryTags() {
+      const categoryTagsEl = document.getElementById('categoryTags');
+      let html = '<div class="source-tag active" onclick="filterByCategory(null)"><span>全部分类</span></div>';
+      
+      categories.forEach(category => {
+        const categoryName = category.category || '未分类';
+        html += `
+          <div class="source-tag" data-category="${categoryName.replace(/"/g, '&quot;')}" onclick="filterByCategory('${categoryName.replace(/'/g, "\\'")}')">
+            <span>${categoryName}</span>
+            <span class="source-tag-count">${category.count}</span>
+          </div>
+        `;
+      });
+      
+      categoryTagsEl.innerHTML = html;
+    }
+
+    // 按分类过滤
+    let currentCategory = null;
+    async function filterByCategory(category) {
+      // 无论当前在什么状态，都先回到列表视图
+      showList();
+      
+      // 更新分类标签的激活状态
+      document.querySelectorAll('#categoryTags .source-tag').forEach(tag => {
+        tag.classList.remove('active');
+        if (category === null) {
+          // 点击"全部分类"
+          if (tag.textContent.includes('全部分类')) {
+            tag.classList.add('active');
+          }
+        } else {
+          // 点击具体分类
+          if (tag.getAttribute('data-category') === category) {
+            tag.classList.add('active');
+          }
+        }
+      });
+      
+      // 重置新闻源标签为"全部"
+      document.querySelectorAll('#sourceTags .source-tag').forEach(tag => {
+        tag.classList.remove('active');
+        if (tag.textContent.includes('全部')) {
+          tag.classList.add('active');
+        }
+      });
+      
+      // 重置当前筛选状态
+      currentSource = null;
+      currentCategory = category;
+      
+      // 加载对应分类的新闻
+      if (category === null) {
+        await loadNewsAll();
+      } else {
+        await loadNewsByCategory(category);
+      }
+    }
+
+    // 按分类加载新闻
+    async function loadNewsByCategory(category) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('listView').style.display = 'block';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/news/category/${encodeURIComponent(category)}`);
+        const result = await response.json();
+        
+        document.getElementById('loading').style.display = 'none';
+        
+        if (result.success) {
+          renderNewsList(result.data);
+        } else {
+          document.getElementById('error').style.display = 'block';
+          document.getElementById('errorMsg').textContent = result.message || '加载新闻失败';
+        }
+      } catch (error) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('errorMsg').textContent = '加载新闻失败：' + error.message;
+      }
     }
 
     // 按新闻源过滤
@@ -1162,6 +1269,7 @@
             
             // 更新新闻列表和新闻源
             await loadSources();
+            await loadCategories();
             if (currentSource) {
               await filterBySource(currentSource);
             } else {
@@ -1673,6 +1781,7 @@
     window.onload = async function() {
       await loadUpdateInfo(); // 先加载更新信息
       await loadSources();
+      await loadCategories();
       await loadNewsAll();
       
       // 获取初始总数

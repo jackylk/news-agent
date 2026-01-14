@@ -84,6 +84,43 @@ router.get('/source/:source', (req, res) => {
   });
 });
 
+// 获取所有分类列表（必须在/:id之前）
+router.get('/categories', (req, res) => {
+  News.getCategories((err, categories) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '获取分类列表失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      data: categories
+    });
+  });
+});
+
+// 按分类获取新闻列表（必须在/:id之前）
+router.get('/category/:category', (req, res) => {
+  const category = decodeURIComponent(req.params.category);
+  
+  News.getListByCategory(category, (err, data) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '获取新闻列表失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      data: data,
+      category: category
+    });
+  });
+});
+
 // 获取最近X分钟内的新新闻数量
 router.get('/recent/:minutes', (req, res) => {
   const minutes = parseInt(req.params.minutes) || 30;
