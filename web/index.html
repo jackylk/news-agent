@@ -432,36 +432,6 @@
       opacity: 0.7;
     }
 
-    .detail-actions {
-      margin-top: 15px;
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-
-    .summary-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.3s;
-    }
-
-    .summary-btn:hover {
-      background-color: #218838;
-    }
-
-    .summary-btn:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
 
     .generated-summary {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -474,9 +444,6 @@
     }
 
     .generated-summary-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       margin-bottom: 20px;
     }
 
@@ -485,25 +452,12 @@
       font-size: 24px;
       font-weight: 600;
     }
-
-    .close-summary-btn {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: white;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 24px;
-      line-height: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s;
-    }
-
-    .close-summary-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
+    
+    .summary-loading {
+      text-align: center;
+      padding: 20px;
+      color: rgba(255, 255, 255, 0.8);
+      font-style: italic;
     }
 
     .generated-summary-content {
@@ -742,16 +696,9 @@
         <div id="detailImageContainer"></div>
         <div class="detail-content">
           <div id="detailSummary" class="detail-summary"></div>
-          <div class="detail-actions" id="detailActions" style="display: none;">
-            <button id="summaryBtn" class="summary-btn" onclick="generateSummary()">
-              <span id="summaryIcon">📝</span>
-              <span id="summaryText">生成摘要</span>
-            </button>
-          </div>
           <div id="generatedSummary" class="generated-summary" style="display: none;">
             <div class="generated-summary-header">
               <h3>文章摘要</h3>
-              <button class="close-summary-btn" onclick="closeSummary()">×</button>
             </div>
             <div id="generatedSummaryContent" class="generated-summary-content"></div>
           </div>
@@ -1243,18 +1190,14 @@
             content = content.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
             contentEl.innerHTML = content.map(para => `<p>${para}</p>`).join('');
             
-            // 检测文章长度，如果超过500字，显示摘要按钮
+            // 检测文章长度，如果超过500字，自动生成摘要
             const contentLength = originalContent.length;
-            const detailActions = document.getElementById('detailActions');
             if (contentLength > 500) {
-              detailActions.style.display = 'flex';
-              detailActions.setAttribute('data-content-length', contentLength);
-            } else {
-              detailActions.style.display = 'none';
+              // 自动生成摘要
+              autoGenerateSummary(originalContent);
             }
           } else {
             contentEl.textContent = '暂无详细内容';
-            document.getElementById('detailActions').style.display = 'none';
           }
           
           // 原文链接
@@ -1434,61 +1377,40 @@
       }
     }
 
-    // 生成摘要功能
+    // 自动生成摘要功能
     let isGeneratingSummary = false;
     
-    async function generateSummary() {
-      const summaryBtn = document.getElementById('summaryBtn');
-      const summaryText = document.getElementById('summaryText');
+    async function autoGenerateSummary(text) {
+      if (isGeneratingSummary) return;
+      
       const generatedSummaryEl = document.getElementById('generatedSummary');
       const generatedSummaryContent = document.getElementById('generatedSummaryContent');
       
-      if (isGeneratingSummary) return;
-      
-      // 如果已经生成过摘要，直接显示
-      if (generatedSummaryEl.style.display === 'block') {
-        generatedSummaryEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
-      }
-      
-      summaryBtn.disabled = true;
-      summaryText.textContent = '生成中...';
+      // 显示加载状态
+      generatedSummaryEl.style.display = 'block';
+      generatedSummaryContent.innerHTML = '<div class="summary-loading">正在生成摘要...</div>';
       isGeneratingSummary = true;
       
       try {
-        const contentEl = document.getElementById('detailText');
-        const originalContent = contentEl.getAttribute('data-original') || contentEl.textContent || '';
-        
-        if (!originalContent || originalContent.trim().length === 0) {
+        if (!text || text.trim().length === 0) {
           throw new Error('没有可用的内容');
         }
         
         // 调用摘要生成API
-        const summary = await generateSummaryAPI(originalContent);
+        const summary = await generateSummaryAPI(text);
         
         if (summary) {
           generatedSummaryContent.textContent = summary;
-          generatedSummaryEl.style.display = 'block';
-          // 滚动到摘要位置
-          setTimeout(() => {
-            generatedSummaryEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 100);
         } else {
           throw new Error('生成摘要失败');
         }
       } catch (error) {
         console.error('生成摘要失败:', error);
-        alert('生成摘要失败，请稍后重试');
+        // 如果生成失败，隐藏摘要区域
+        generatedSummaryEl.style.display = 'none';
       } finally {
-        summaryBtn.disabled = false;
-        summaryText.textContent = '生成摘要';
         isGeneratingSummary = false;
       }
-    }
-
-    // 关闭摘要
-    function closeSummary() {
-      document.getElementById('generatedSummary').style.display = 'none';
     }
 
     // 调用摘要生成API（使用大模型服务）
