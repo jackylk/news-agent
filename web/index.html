@@ -33,10 +33,16 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
+    .source-filter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
     .source-filter-title {
       font-size: 14px;
       color: #666;
-      margin-bottom: 12px;
       font-weight: 500;
     }
 
@@ -107,13 +113,6 @@
 
     .retry-btn:hover {
       background-color: #5568d3;
-    }
-
-    /* 刷新按钮样式 */
-    .refresh-bar {
-      display: flex;
-      justify-content: flex-end;
-      margin: 10px 0 0;
     }
 
     .refresh-btn {
@@ -544,7 +543,13 @@
   <div class="container">
     <!-- 新闻源过滤卡片 -->
     <div class="source-filter">
-      <div class="source-filter-title">新闻来源</div>
+      <div class="source-filter-header">
+        <div class="source-filter-title">新闻来源</div>
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshNews()">
+          <span id="refreshIcon">🔄</span>
+          <span id="refreshText">刷新新闻</span>
+        </button>
+      </div>
       <div class="source-tags" id="sourceTags">
         <div class="source-tag active" onclick="filterBySource(null)">
           <span>全部</span>
@@ -565,12 +570,6 @@
         >
         <button class="search-btn" onclick="performSearch()">搜索</button>
         <button class="clear-search-btn" id="clearSearchBtn" onclick="clearSearch()" style="display: none;">清除</button>
-      </div>
-      <div class="refresh-bar">
-        <button class="refresh-btn" id="refreshBtn" onclick="refreshNews()">
-          <span id="refreshIcon">🔄</span>
-          <span id="refreshText">刷新新闻</span>
-        </button>
       </div>
     </div>
 
@@ -956,7 +955,11 @@
         }
 
         text.textContent = '刷新成功';
-        // 抓取完成后重新加载当前筛选条件下的新闻
+
+        // 先重新加载新闻源（刷新顶部来源卡片）
+        await loadSources();
+
+        // 再根据当前筛选条件重新加载新闻列表
         if (currentSource) {
           await filterBySource(currentSource);
         } else {

@@ -16,10 +16,9 @@ const RSS_FEEDS = [
   'https://techcrunch.com/feed/', // TechCrunch
   'https://www.theverge.com/rss/index.xml', // The Verge
   // 云厂商与大数据博客RSS源
-  'https://cloudblog.withgoogle.com/blog/rss/', // Google Cloud Blog
-  'https://research.google/blog/rss/', // Google Research Blog
+  'https://cloudblog.withgoogle.com/blog/rss/', // Google Cloud Blog（旧入口，部分文章）
+  'https://blog.google/innovation-and-ai/infrastructure-and-cloud/google-cloud/rss/', // Google Cloud 官方博客（新入口）
   'https://feeds.feedburner.com/AmazonWebServicesBlog', // AWS 官方博客
-  'https://www.databricks.com/blog/feed', // Databricks 博客
 ];
 
 // 备用：使用新闻API（如果需要）
