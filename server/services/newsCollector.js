@@ -19,6 +19,7 @@ const RSS_FEEDS = [
   'https://cloudblog.withgoogle.com/blog/rss/', // Google Cloud Blog（旧入口，部分文章）
   'https://blog.google/innovation-and-ai/infrastructure-and-cloud/google-cloud/rss/', // Google Cloud 官方博客（新入口）
   'https://feeds.feedburner.com/AmazonWebServicesBlog', // AWS 官方博客
+  'https://docs.databricks.com/aws/en/feed.xml', // Databricks 文档博客
 ];
 
 // 备用：使用新闻API（如果需要）

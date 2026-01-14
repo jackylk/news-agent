@@ -104,7 +104,8 @@ class News {
 
   // 搜索新闻
   static search(keyword, callback) {
-    const searchTerm = `%${keyword}%`;
+    // 使用instr()函数进行搜索，对中文支持更好
+    // instr()返回子字符串的位置，如果找到返回>0，否则返回0
     const sql = `
       SELECT 
         DATE(publish_date) as date,
@@ -115,15 +116,15 @@ class News {
         image_url,
         publish_date
       FROM news
-      WHERE title LIKE ? 
-         OR content LIKE ? 
-         OR summary LIKE ? 
-         OR source LIKE ?
+      WHERE instr(title, ?) > 0
+         OR instr(content, ?) > 0
+         OR instr(summary, ?) > 0
+         OR instr(source, ?) > 0
       ORDER BY publish_date DESC
       LIMIT 100
     `;
     
-    db.all(sql, [searchTerm, searchTerm, searchTerm, searchTerm], (err, rows) => {
+    db.all(sql, [keyword, keyword, keyword, keyword], (err, rows) => {
       if (err) {
         callback(err, null);
       } else {
