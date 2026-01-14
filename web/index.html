@@ -1271,7 +1271,9 @@
           const news = result.data;
           
           // 填充详情页面
-          document.getElementById('detailTitle').textContent = news.title;
+          const titleEl = document.getElementById('detailTitle');
+          titleEl.textContent = news.title;
+          titleEl.setAttribute('data-original', news.title); // 保存原始标题
           document.getElementById('detailSource').textContent = news.source || '未知来源';
           document.getElementById('detailDate').textContent = formatFullDate(news.publish_date);
           
@@ -1392,6 +1394,7 @@
     async function toggleTranslate() {
       const translateBtn = document.getElementById('translateBtn');
       const translateText = document.getElementById('translateText');
+      const titleEl = document.getElementById('detailTitle');
       const contentEl = document.getElementById('detailText');
       const summaryEl = document.getElementById('detailSummary');
       
@@ -1399,8 +1402,13 @@
       
       if (window.isTranslated) {
         // 恢复原文
+        const originalTitle = titleEl.getAttribute('data-original') || '';
         const originalContent = contentEl.getAttribute('data-original') || '';
         const originalSummary = summaryEl.getAttribute('data-original') || '';
+        
+        if (originalTitle) {
+          titleEl.textContent = originalTitle;
+        }
         
         if (originalContent) {
           const paragraphs = originalContent.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
@@ -1421,12 +1429,18 @@
         isTranslating = true;
         
         try {
+          const titleToTranslate = titleEl.textContent || '';
           const textToTranslate = contentEl.textContent || '';
           const summaryToTranslate = summaryEl.textContent || '';
           
           // 使用免费的翻译API
+          const translatedTitle = titleToTranslate ? await translateTextAPI(titleToTranslate) : '';
           const translatedText = textToTranslate ? await translateTextAPI(textToTranslate) : '';
           const translatedSummary = summaryToTranslate ? await translateTextAPI(summaryToTranslate) : '';
+          
+          if (translatedTitle) {
+            titleEl.textContent = translatedTitle;
+          }
           
           if (translatedText) {
             const paragraphs = translatedText.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
