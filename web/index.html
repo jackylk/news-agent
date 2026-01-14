@@ -128,6 +128,7 @@
       align-items: center;
       gap: 6px;
       transition: background-color 0.3s;
+      margin-bottom: 12px;
     }
 
     .refresh-btn:hover {
@@ -545,12 +546,12 @@
     <!-- 新闻源过滤卡片 -->
     <div class="source-filter">
       <div class="source-filter-header">
-        <button class="refresh-btn" id="refreshBtn" onclick="refreshNews()">
-          <span id="refreshIcon">🔄</span>
-          <span id="refreshText">刷新新闻</span>
-        </button>
         <div class="source-filter-title">新闻来源</div>
       </div>
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshNews()">
+        <span id="refreshIcon">🔄</span>
+        <span id="refreshText">刷新新闻</span>
+      </button>
       <div class="source-tags" id="sourceTags">
         <div class="source-tag active" onclick="filterBySource(null)">
           <span>全部</span>
@@ -649,7 +650,26 @@
 
     // 格式化时间
     function formatTime(dateStr) {
-      const date = new Date(dateStr);
+      if (!dateStr) return '';
+      // 处理PostgreSQL返回的时间格式
+      // 可能是Date对象、ISO字符串或其他格式
+      let date;
+      if (dateStr instanceof Date) {
+        date = dateStr;
+      } else if (typeof dateStr === 'string') {
+        // PostgreSQL返回的时间字符串可能是 "2024-01-01 12:00:00" 格式
+        // 或者是ISO格式 "2024-01-01T12:00:00.000Z"
+        date = new Date(dateStr);
+      } else {
+        return '';
+      }
+      
+      // 检查日期是否有效
+      if (isNaN(date.getTime())) {
+        console.warn('无效的日期:', dateStr);
+        return '';
+      }
+      
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       return `${hours}:${minutes}`;

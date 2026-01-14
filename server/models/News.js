@@ -1,5 +1,17 @@
 const db = require('../config/database');
 
+// 辅助函数：确保日期正确序列化
+function serializeDate(dateValue) {
+  if (!dateValue) return null;
+  if (dateValue instanceof Date) {
+    return dateValue.toISOString();
+  }
+  if (typeof dateValue === 'string') {
+    return dateValue;
+  }
+  return null;
+}
+
 class News {
   // 插入新闻
   static create(newsData, callback) {
@@ -51,7 +63,7 @@ class News {
         // 按日期分组
         const grouped = {};
         result.rows.forEach(row => {
-          const date = row.date ? row.date.toISOString().split('T')[0] : null;
+          const date = row.date ? (row.date instanceof Date ? row.date.toISOString().split('T')[0] : row.date.split('T')[0]) : null;
           if (!date) return;
           if (!grouped[date]) {
             grouped[date] = [];
@@ -62,7 +74,7 @@ class News {
             summary: row.summary,
             source: row.source,
             image_url: row.image_url,
-            publish_date: row.publish_date
+            publish_date: serializeDate(row.publish_date)
           });
         });
         
@@ -86,7 +98,19 @@ class News {
     const sql = `SELECT * FROM news WHERE id = $1`;
     db.query(sql, [id])
       .then(result => {
-        callback(null, result.rows[0] || null);
+        if (!result.rows[0]) {
+          callback(null, null);
+          return;
+        }
+        const news = result.rows[0];
+        // 确保日期正确序列化
+        if (news.publish_date) {
+          news.publish_date = serializeDate(news.publish_date);
+        }
+        if (news.created_at) {
+          news.created_at = serializeDate(news.created_at);
+        }
+        callback(null, news);
       })
       .catch(err => {
         callback(err, null);
@@ -138,7 +162,7 @@ class News {
         // 按日期分组
         const grouped = {};
         result.rows.forEach(row => {
-          const date = row.date ? row.date.toISOString().split('T')[0] : null;
+          const date = row.date ? (row.date instanceof Date ? row.date.toISOString().split('T')[0] : row.date.split('T')[0]) : null;
           if (!date) return;
           if (!grouped[date]) {
             grouped[date] = [];
@@ -149,7 +173,7 @@ class News {
             summary: row.summary,
             source: row.source,
             image_url: row.image_url,
-            publish_date: row.publish_date
+            publish_date: serializeDate(row.publish_date)
           });
         });
         
@@ -190,7 +214,7 @@ class News {
         // 按日期分组
         const grouped = {};
         result.rows.forEach(row => {
-          const date = row.date ? row.date.toISOString().split('T')[0] : null;
+          const date = row.date ? (row.date instanceof Date ? row.date.toISOString().split('T')[0] : row.date.split('T')[0]) : null;
           if (!date) return;
           if (!grouped[date]) {
             grouped[date] = [];
@@ -201,7 +225,7 @@ class News {
             summary: row.summary,
             source: row.source,
             image_url: row.image_url,
-            publish_date: row.publish_date
+            publish_date: serializeDate(row.publish_date)
           });
         });
         
