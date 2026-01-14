@@ -6,11 +6,8 @@ const parser = new RSSParser();
 
 // 科技新闻RSS源列表
 const RSS_FEEDS = [
-  // 36氪RSS源（中文科技新闻）
+  // 36氪RSS源（综合资讯）
   'https://36kr.com/feed', // 36氪 - 综合资讯
-  'https://36kr.com/feed-article', // 36氪 - 文章资讯
-  'https://36kr.com/feed-newsflash', // 36氪 - 最新快讯
-  'https://36kr.com/feed-moment', // 36氪 - 动态内容
   // 虎嗅网RSS源
   'https://rss.huxiu.com/', // 虎嗅网 - 资讯栏目
   // 国际科技新闻RSS源
@@ -18,6 +15,11 @@ const RSS_FEEDS = [
   'https://feeds.feedburner.com/oreilly/radar', // O'Reilly Radar
   'https://techcrunch.com/feed/', // TechCrunch
   'https://www.theverge.com/rss/index.xml', // The Verge
+  // 云厂商与大数据博客RSS源
+  'https://cloudblog.withgoogle.com/blog/rss/', // Google Cloud Blog
+  'https://research.google/blog/rss/', // Google Research Blog
+  'https://feeds.feedburner.com/AmazonWebServicesBlog', // AWS 官方博客
+  'https://www.databricks.com/blog/feed', // Databricks 博客
 ];
 
 // 备用：使用新闻API（如果需要）
