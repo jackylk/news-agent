@@ -4,6 +4,13 @@ const News = require('../models/News');
 
 const parser = new RSSParser();
 
+// 新闻源名称映射（将RSS源的标题映射为更友好的名称）
+const SOURCE_NAME_MAP = {
+  'Databricks Release Notes': 'Databricks',
+  'Databricks Documentation': 'Databricks',
+  // 可以继续添加其他映射
+};
+
 // 科技新闻RSS源列表
 const RSS_FEEDS = [
   // 36氪RSS源（综合资讯）
@@ -50,11 +57,14 @@ class NewsCollector {
               const content = this.extractContent(item);
               const summary = this.extractSummary(item, content);
               
+              // 处理来源名称，使用映射表或原始名称
+              const sourceName = SOURCE_NAME_MAP[feed.title] || feed.title || '未知来源';
+              
               const newsData = {
                 title: item.title || '无标题',
                 content: content,
                 summary: summary,
-                source: feed.title || '未知来源',
+                source: sourceName,
                 url: item.link || item.guid || '',
                 image_url: this.extractImage(item),
                 publish_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()

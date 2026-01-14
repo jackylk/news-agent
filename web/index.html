@@ -35,8 +35,9 @@
 
     .source-filter-header {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
+      gap: 12px;
       margin-bottom: 12px;
     }
 
@@ -544,11 +545,11 @@
     <!-- 新闻源过滤卡片 -->
     <div class="source-filter">
       <div class="source-filter-header">
-        <div class="source-filter-title">新闻来源</div>
         <button class="refresh-btn" id="refreshBtn" onclick="refreshNews()">
           <span id="refreshIcon">🔄</span>
           <span id="refreshText">刷新新闻</span>
         </button>
+        <div class="source-filter-title">新闻来源</div>
       </div>
       <div class="source-tags" id="sourceTags">
         <div class="source-tag active" onclick="filterBySource(null)">
@@ -690,6 +691,9 @@
 
     // 按新闻源过滤
     async function filterBySource(source) {
+      // 无论当前在什么状态，都先回到列表视图
+      showList();
+      
       currentSource = source;
       isSearchMode = false;
       currentKeyword = '';

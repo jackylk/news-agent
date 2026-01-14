@@ -50,4 +50,15 @@ app.listen(PORT, () => {
   console.log(`  GET  /api/news/list - 获取新闻列表`);
   console.log(`  GET  /api/news/:id - 获取新闻详情`);
   console.log(`  POST /api/collect - 手动触发新闻收集`);
+  
+  // 服务器启动后立即执行一次新闻收集
+  console.log('服务器启动完成，开始首次新闻收集...');
+  const collector = new NewsCollector();
+  collector.collectFromRSS()
+    .then(() => {
+      console.log('首次新闻收集完成');
+    })
+    .catch(err => {
+      console.error('首次新闻收集失败:', err);
+    });
 });
