@@ -768,7 +768,15 @@
   </div>
 
   <script>
-    const API_BASE_URL = 'https://news-agent-production-c5db.up.railway.app/api';
+    // API 基础地址 - 可以通过环境变量或默认值配置
+    const API_BASE_URL = (() => {
+      // 优先使用环境变量（Vercel 部署时可通过环境变量配置）
+      if (typeof window !== 'undefined' && window.API_BASE_URL) {
+        return window.API_BASE_URL;
+      }
+      // 默认使用 Railway 后端地址
+      return 'https://news-agent-production-c5db.up.railway.app/api';
+    })();
     let isSearchMode = false;
     let currentKeyword = '';
     let currentSource = null; // 当前选中的新闻源
