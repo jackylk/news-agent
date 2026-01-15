@@ -156,6 +156,103 @@
       font-size: 18px;
       margin-bottom: 16px;
       color: #333;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .add-topic-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+
+    .add-topic-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    }
+
+    /* 弹窗样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 20px;
+      color: #333;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #f0f0f0;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .modal-close:hover {
+      background: #e0e0e0;
+      color: #333;
     }
 
     .input-group {
@@ -1487,28 +1584,36 @@
 
       <!-- 主题管理 -->
       <div class="section">
-        <h3>我的主题</h3>
+        <h3>
+          我的主题
+          <button class="add-topic-btn" onclick="showAddTopicModal()" title="添加新主题">+</button>
+        </h3>
         <div id="topicsList" class="topics-list">
           <div class="loading">加载中...</div>
         </div>
       </div>
 
-      <!-- 添加新主题 -->
-      <div class="section">
-        <h3>添加新主题</h3>
-        <p style="color: #666; margin-bottom: 16px; font-size: 14px;">
-          输入您关注的主题关键词，系统将为您推荐优质的信息源
-        </p>
-        <div class="input-group">
-          <input 
-            type="text" 
-            id="topicInput" 
-            placeholder="例如：人工智能、机器学习、区块链..."
-            onkeypress="if(event.key==='Enter') recommendSources()"
-          >
-          <button class="btn-primary" onclick="recommendSources()" id="recommendBtn">
-            获取推荐
-          </button>
+      <!-- 添加新主题弹窗 -->
+      <div class="modal-overlay" id="addTopicModal" onclick="closeAddTopicModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+          <div class="modal-header">
+            <h3>添加新主题</h3>
+            <button class="modal-close" onclick="closeAddTopicModal()">×</button>
+          </div>
+          <p style="color: #666; margin-bottom: 16px; font-size: 14px;">
+            输入您关注的主题关键词，系统将为您推荐优质的信息源
+          </p>
+          <div class="input-group">
+            <input 
+              type="text" 
+              id="topicInput" 
+              placeholder="例如：人工智能、机器学习、区块链..."
+              onkeypress="if(event.key==='Enter') recommendSources()"
+            >
+            <button class="btn-primary" onclick="recommendSources()" id="recommendBtn">
+              获取推荐
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1594,6 +1699,48 @@
     let currentTopicFilter = null; // 当前选中的主题
     let userTopics = []; // 用户主题列表
     let topicRecommendationHistory = {}; // 主题推荐历史 {topic_keywords: {recommended_sources: [...]}}
+    
+    // 文章列表缓存
+    const articlesCache = {
+      data: null, // 缓存的原始数据（按日期分组）
+      flatData: null, // 缓存的展平数据
+      timestamp: null, // 缓存时间戳
+      cacheDuration: 5 * 60 * 1000 // 缓存有效期：5分钟
+    };
+    
+    // 检查缓存是否有效
+    function isCacheValid() {
+      if (!articlesCache.data || !articlesCache.timestamp) {
+        return false;
+      }
+      const now = Date.now();
+      return (now - articlesCache.timestamp) < articlesCache.cacheDuration;
+    }
+    
+    // 清除缓存
+    function clearArticlesCache() {
+      articlesCache.data = null;
+      articlesCache.flatData = null;
+      articlesCache.timestamp = null;
+    }
+    
+    // 从缓存获取文章数据
+    function getArticlesFromCache() {
+      if (isCacheValid()) {
+        return {
+          data: articlesCache.data,
+          flatData: articlesCache.flatData
+        };
+      }
+      return null;
+    }
+    
+    // 设置缓存
+    function setArticlesCache(data, flatData) {
+      articlesCache.data = data;
+      articlesCache.flatData = flatData;
+      articlesCache.timestamp = Date.now();
+    }
 
     // 检查登录状态
     if (!authToken) {
@@ -1771,6 +1918,33 @@
       processEl.scrollTop = processEl.scrollHeight;
     }
 
+    // 显示添加主题弹窗
+    function showAddTopicModal() {
+      const modal = document.getElementById('addTopicModal');
+      if (modal) {
+        modal.classList.add('show');
+        // 聚焦到输入框
+        setTimeout(() => {
+          const input = document.getElementById('topicInput');
+          if (input) input.focus();
+        }, 100);
+      }
+    }
+
+    // 关闭添加主题弹窗
+    function closeAddTopicModal(event) {
+      // 如果点击的是关闭按钮或遮罩层，关闭弹窗
+      if (!event || event.target.classList.contains('modal-overlay') || event.target.classList.contains('modal-close')) {
+        const modal = document.getElementById('addTopicModal');
+        if (modal) {
+          modal.classList.remove('show');
+          // 清空输入框
+          const input = document.getElementById('topicInput');
+          if (input) input.value = '';
+        }
+      }
+    }
+
     // 推荐信息源
     async function recommendSources() {
       const keywords = document.getElementById('topicInput').value.trim();
@@ -1778,6 +1952,9 @@
         showMessage('请输入主题关键词', 'error');
         return;
       }
+
+      // 立即关闭弹窗
+      closeAddTopicModal();
 
       const recommendBtn = document.getElementById('recommendBtn');
       recommendBtn.disabled = true;
@@ -1802,61 +1979,81 @@
       }
 
       try {
-        addProcessLogInTab(newTabIndex, '正在调用 DeepSeek API...', 'loading');
-
-        const startTime = Date.now();
-        
-        // 使用 fetch 获取响应，但实时显示日志
+        // 使用 fetch 获取流式响应，实时显示进度
         const response = await fetch(`${API_BASE_URL}/user/topics/recommend`, {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify({ keywords })
         });
 
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-        addProcessLogInTab(newTabIndex, `API 调用完成，耗时 ${elapsedTime} 秒`, 'success');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-        const result = await response.json();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalResult = null;
 
-        if (result.success) {
-          // 如果有服务器返回的 processLogs，使用服务器的日志（实时显示）
-          if (result.processLogs && result.processLogs.length > 0) {
-            // 实时显示所有日志
-            renderProcessLogsInTab(newTabIndex, result.processLogs);
-          } else {
-            addProcessLogInTab(newTabIndex, `成功获取 ${result.data.length} 个推荐信息源`, 'success');
-            addProcessLogInTab(newTabIndex, '推荐结果:', 'info', result.data);
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            break;
           }
           
-          recommendedSources = result.data;
+          // 解码数据并添加到缓冲区
+          buffer += decoder.decode(value, { stream: true });
           
-          // 保存推荐历史到数据库（后端已经在 recommend 接口中保存了）
-          // 重新加载所有推荐历史（包括新添加的），这会更新页签内容
-          await loadAllRecommendationHistory();
+          // 按行分割并处理每行 JSON
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // 保留最后不完整的行
           
-          // 确保选中新添加的主题页签（根据主题关键词查找）
-          const tabsHeader = document.getElementById('topicsTabsHeader');
-          if (tabsHeader) {
-            const tabs = Array.from(tabsHeader.children);
-            for (let i = 0; i < tabs.length; i++) {
-              const tab = tabs[i];
-              // 检查页签文本是否包含该主题关键词
-              if (tab.textContent.includes(keywords.trim())) {
-                switchTopicTab(i);
-                break;
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const progress = JSON.parse(line);
+                
+                // 实时更新进度显示
+                if (progress.type === 'progress') {
+                  addProcessLogInTab(newTabIndex, progress.message, progress.logType || 'info');
+                } else if (progress.type === 'final') {
+                  finalResult = progress;
+                }
+              } catch (e) {
+                console.error('解析进度数据失败:', e, line);
               }
             }
           }
-          
-          showMessage(`已找到 ${result.data.length} 个推荐信息源`, 'success');
-        } else {
-          // 如果有错误日志，显示它们
-          if (result.processLogs && result.processLogs.length > 0) {
-            renderProcessLogsInTab(newTabIndex, result.processLogs);
+        }
+
+        // 处理最终结果
+        if (finalResult) {
+          if (finalResult.success) {
+            recommendedSources = finalResult.data || [];
+            
+            // 保存推荐历史到数据库（后端已经在 recommend 接口中保存了）
+            // 重新加载所有推荐历史（包括新添加的），这会更新页签内容
+            await loadAllRecommendationHistory();
+            
+            // 确保选中新添加的主题页签（根据主题关键词查找）
+            const tabsHeader = document.getElementById('topicsTabsHeader');
+            if (tabsHeader) {
+              const tabs = Array.from(tabsHeader.children);
+              for (let i = 0; i < tabs.length; i++) {
+                const tab = tabs[i];
+                // 检查页签文本是否包含该主题关键词
+                if (tab.textContent.includes(keywords.trim())) {
+                  switchTopicTab(i);
+                  break;
+                }
+              }
+            }
+            
+            showMessage(finalResult.message || `已找到 ${recommendedSources.length} 个推荐信息源`, 'success');
           } else {
-            addProcessLogInTab(newTabIndex, '获取推荐失败: ' + (result.message || '未知错误'), 'error');
+            showMessage(finalResult.message || '获取推荐失败', 'error');
           }
-          showMessage(result.message || '获取推荐失败', 'error');
         }
       } catch (error) {
         addProcessLogInTab(newTabIndex, 'API 调用异常: ' + error.message, 'error');
@@ -2354,16 +2551,19 @@
             
             // 等待几秒后重新加载文章列表
             setTimeout(async () => {
+              // 清除缓存，强制刷新
+              clearArticlesCache();
+              
               if (tabIndex !== null && currentTopicFilter) {
                 // 如果是在主题页签中，重新加载该主题的文章
-                await loadArticlesForTopic(currentTopicFilter, tabIndex);
+                await loadArticlesForTopic(currentTopicFilter, tabIndex, true);
                 // 更新该页签的刷新时间
                 if (document.getElementById(`lastRefreshTime-${tabIndex}`)) {
                   document.getElementById(`lastRefreshTime-${tabIndex}`).textContent = '刚刚';
                 }
               } else {
                 // 否则使用原有的加载方式
-                await loadArticles();
+                await loadArticles(true);
                 await loadRefreshStatus();
               }
             }, 1000);
@@ -2395,8 +2595,39 @@
     }
 
     // 加载文章列表
-    async function loadArticles() {
+    async function loadArticles(forceRefresh = false) {
       const articlesListEl = document.getElementById('articlesList');
+      
+      // 检查缓存
+      if (!forceRefresh) {
+        const cached = getArticlesFromCache();
+        if (cached) {
+          // 使用缓存数据，立即显示
+          allArticles = cached.flatData;
+          
+          if (allArticles.length === 0) {
+            articlesListEl.innerHTML = '<div class="empty-state"><p>暂无文章，请先订阅信息源</p><p style="margin-top: 12px; font-size: 13px; color: #999;">系统每10分钟自动收集一次，请稍候</p></div>';
+            updateStats([]);
+            loadSourceCards([]);
+          } else {
+            // 更新统计信息
+            updateStats(allArticles);
+            
+            // 加载信息源卡片
+            const sources = [...new Set(allArticles.map(a => a.source))];
+            loadSourceCards(sources);
+            
+            // 应用当前过滤和搜索
+            applyFilters();
+          }
+          
+          // 后台刷新缓存（不阻塞UI）
+          refreshArticlesCache();
+          return;
+        }
+      }
+      
+      // 缓存无效或强制刷新，显示加载状态
       articlesListEl.innerHTML = '<div class="loading">加载中...</div>';
 
       try {
@@ -2418,6 +2649,9 @@
               });
             });
           });
+          
+          // 更新缓存
+          setArticlesCache(data, allArticles);
 
           if (allArticles.length === 0) {
             articlesListEl.innerHTML = '<div class="empty-state"><p>暂无文章，请先订阅信息源</p><p style="margin-top: 12px; font-size: 13px; color: #999;">系统每10分钟自动收集一次，请稍候</p></div>';
@@ -2439,6 +2673,36 @@
         }
       } catch (error) {
         articlesListEl.innerHTML = '<div class="empty-state"><p>加载失败: ' + error.message + '</p></div>';
+      }
+    }
+    
+    // 后台刷新缓存（不阻塞UI）
+    async function refreshArticlesCache() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/news/list`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          const data = result.data;
+          
+          // 将所有文章展平到一个数组中
+          const flatData = [];
+          data.forEach(day => {
+            day.news.forEach(news => {
+              flatData.push({
+                ...news,
+                date: day.date
+              });
+            });
+          });
+          
+          // 更新缓存
+          setArticlesCache(data, flatData);
+        }
+      } catch (error) {
+        console.error('后台刷新缓存失败:', error);
       }
     }
 
@@ -2989,7 +3253,9 @@
       articlesRefreshInterval = setInterval(() => {
         const articlesPage = document.getElementById('articlesPage');
         if (articlesPage.classList.contains('active')) {
-          loadArticles();
+          // 自动刷新时清除缓存，确保获取最新数据
+          clearArticlesCache();
+          loadArticles(true);
           loadRefreshStatus();
         }
       }, 30000); // 30秒刷新一次
@@ -3224,6 +3490,13 @@
       if (typeFilter !== 'all') {
         filteredSources = filteredSources.filter(s => (s.sourceType || 'rss') === typeFilter);
       }
+      
+      // 排序：有效的排在前面，无效的排在后面，未验证的排在中间
+      filteredSources.sort((a, b) => {
+        const aValid = a.isValid === true ? 0 : (a.isValid === false ? 2 : 1);
+        const bValid = b.isValid === true ? 0 : (b.isValid === false ? 2 : 1);
+        return aValid - bValid;
+      });
       
       tbody.innerHTML = filteredSources.map((source, idx) => {
         const isSubscribed = userSubscriptions.includes(source.sourceName);
@@ -3696,17 +3969,53 @@
     }
     
     // 为特定主题加载文章
-    async function loadArticlesForTopic(topicKeywords, tabIndex) {
+    async function loadArticlesForTopic(topicKeywords, tabIndex, forceRefresh = false) {
       const articlesListEl = document.getElementById(`articlesList-${tabIndex}`);
       if (!articlesListEl) return;
       
+      // 获取该主题的推荐信息源
+      const recommendedSources = topicRecommendationHistory[topicKeywords]?.recommended_sources || [];
+      const sourceNames = recommendedSources.map(s => s.sourceName || s.name).filter(Boolean);
+      
+      // 检查缓存
+      if (!forceRefresh) {
+        const cached = getArticlesFromCache();
+        if (cached) {
+          // 使用缓存数据，立即显示
+          let topicArticles = [];
+          cached.flatData.forEach(article => {
+            // 只包含属于该主题推荐信息源的文章
+            if (sourceNames.length === 0 || sourceNames.includes(article.source)) {
+              topicArticles.push(article);
+            }
+          });
+          
+          // 更新统计信息
+          updateStatsForTab(topicArticles, tabIndex);
+          
+          // 加载信息源卡片（只显示该主题相关的信息源）
+          const sources = [...new Set(topicArticles.map(a => a.source))];
+          loadSourceCardsForTab(sources, tabIndex);
+          
+          // 存储该主题的文章数据
+          if (!window.topicArticlesData) {
+            window.topicArticlesData = {};
+          }
+          window.topicArticlesData[topicKeywords] = topicArticles;
+          
+          // 应用当前过滤和搜索
+          applyFiltersForTab(topicKeywords, tabIndex);
+          
+          // 后台刷新缓存（不阻塞UI）
+          refreshArticlesCache();
+          return;
+        }
+      }
+      
+      // 缓存无效或强制刷新，显示加载状态
       articlesListEl.innerHTML = '<div class="loading">加载中...</div>';
       
       try {
-        // 获取该主题的推荐信息源
-        const recommendedSources = topicRecommendationHistory[topicKeywords]?.recommended_sources || [];
-        const sourceNames = recommendedSources.map(s => s.sourceName || s.name).filter(Boolean);
-        
         // 加载所有文章
         const response = await fetch(`${API_BASE_URL}/news/list`, {
           headers: getHeaders()
@@ -3718,17 +4027,24 @@
           
           // 将所有文章展平到一个数组中
           let topicArticles = [];
+          const flatData = [];
           data.forEach(day => {
             day.news.forEach(news => {
+              const article = {
+                ...news,
+                date: day.date
+              };
+              flatData.push(article);
+              
               // 只包含属于该主题推荐信息源的文章
               if (sourceNames.length === 0 || sourceNames.includes(news.source)) {
-                topicArticles.push({
-                  ...news,
-                  date: day.date
-                });
+                topicArticles.push(article);
               }
             });
           });
+          
+          // 更新缓存
+          setArticlesCache(data, flatData);
           
           // 更新统计信息
           updateStatsForTab(topicArticles, tabIndex);
@@ -3969,6 +4285,16 @@
       
       articlesListEl.innerHTML = html;
     }
+
+    // 处理ESC键关闭弹窗
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        const modal = document.getElementById('addTopicModal');
+        if (modal && modal.classList.contains('show')) {
+          closeAddTopicModal();
+        }
+      }
+    });
 
     // 页面加载时
     window.onload = async function() {

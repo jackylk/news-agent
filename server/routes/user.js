@@ -124,25 +124,40 @@ router.post('/topics/recommend', async (req, res) => {
   const processLogs = [];
   const startTime = Date.now();
   
+  // 设置流式响应头
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  
+  // 发送进度消息的函数
+  const sendProgress = (data) => {
+    res.write(JSON.stringify(data) + '\n');
+  };
+  
   // 后台日志：开始推荐
   console.log(`\n[推荐信息源] 用户 ${req.user.id} (${req.user.username}) 开始为关键词 "${trimmedKeywords}" 获取推荐信息源...`);
   
   try {
     // 记录开始
     const startLog = {
+      type: 'progress',
       message: `开始为关键词 "${trimmedKeywords}" 获取推荐信息源...`,
-      type: 'loading',
+      logType: 'loading',
       timestamp: new Date().toISOString()
     };
     processLogs.push(startLog);
+    sendProgress(startLog);
     console.log(`[推荐信息源] ${startLog.message}`);
     
     const apiCallLog = {
+      type: 'progress',
       message: '正在调用 DeepSeek API...',
-      type: 'loading',
+      logType: 'loading',
       timestamp: new Date().toISOString()
     };
     processLogs.push(apiCallLog);
+    sendProgress(apiCallLog);
     console.log(`[推荐信息源] ${apiCallLog.message}`);
     
     const recommender = new TopicRecommender();
@@ -152,55 +167,67 @@ router.post('/topics/recommend', async (req, res) => {
     
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
     const apiCompleteLog = {
+      type: 'progress',
       message: `API 调用完成，耗时 ${elapsedTime} 秒`,
-      type: 'success',
+      logType: 'success',
       timestamp: new Date().toISOString()
     };
     processLogs.push(apiCompleteLog);
+    sendProgress(apiCompleteLog);
     console.log(`[推荐信息源] ${apiCompleteLog.message}`);
     
     const successLog = {
+      type: 'progress',
       message: `成功获取 ${sources.length} 个推荐信息源`,
-      type: 'success',
+      logType: 'success',
       timestamp: new Date().toISOString()
     };
     processLogs.push(successLog);
+    sendProgress(successLog);
     console.log(`[推荐信息源] ${successLog.message}`);
     
     // 开始验证信息源
     const validateStartLog = {
+      type: 'progress',
       message: `开始验证 ${sources.length} 个信息源的有效性...`,
-      type: 'loading',
+      logType: 'loading',
       timestamp: new Date().toISOString()
     };
     processLogs.push(validateStartLog);
+    sendProgress(validateStartLog);
     console.log(`[推荐信息源] ${validateStartLog.message}`);
     
-    // 验证信息源，带进度回调
+    // 验证信息源，带进度回调（实时推送）
     const validatedSources = await recommender.validateSources(sources, (sourceName, sourceUrl, result) => {
       if (result.validating) {
         const validatingLog = {
-          message: `正在验证: ${sourceName} (${sourceUrl})...`,
-          type: 'loading',
+          type: 'progress',
+          message: `正在验证: ${sourceName}`,
+          logType: 'loading',
           timestamp: new Date().toISOString()
         };
         processLogs.push(validatingLog);
+        sendProgress(validatingLog);
         console.log(`[推荐信息源] ${validatingLog.message}`);
       } else if (result.valid) {
         const validLog = {
+          type: 'progress',
           message: `✓ ${sourceName} 验证通过`,
-          type: 'success',
+          logType: 'success',
           timestamp: new Date().toISOString()
         };
         processLogs.push(validLog);
+        sendProgress(validLog);
         console.log(`[推荐信息源] ${validLog.message}`);
       } else {
         const invalidLog = {
+          type: 'progress',
           message: `✗ ${sourceName} 验证失败: ${result.error || '无效的RSS源'}`,
-          type: 'error',
+          logType: 'error',
           timestamp: new Date().toISOString()
         };
         processLogs.push(invalidLog);
+        sendProgress(invalidLog);
         console.log(`[推荐信息源] ${invalidLog.message}`);
       }
     });
@@ -210,11 +237,13 @@ router.post('/topics/recommend', async (req, res) => {
     const invalidCount = validatedSources.filter(s => !s.isValid).length;
     
     const validateCompleteLog = {
+      type: 'progress',
       message: `验证完成: ${validCount} 个有效，${invalidCount} 个无效`,
-      type: validCount > 0 ? 'success' : 'warning',
+      logType: validCount > 0 ? 'success' : 'warning',
       timestamp: new Date().toISOString()
     };
     processLogs.push(validateCompleteLog);
+    sendProgress(validateCompleteLog);
     console.log(`[推荐信息源] ${validateCompleteLog.message}`);
     console.log(`[推荐信息源] 推荐完成，共 ${validatedSources.length} 个信息源，其中 ${validCount} 个有效，${invalidCount} 个无效\n`);
     
@@ -235,19 +264,25 @@ router.post('/topics/recommend', async (req, res) => {
       }
     );
     
-    res.json({
+    // 发送最终结果
+    sendProgress({
+      type: 'final',
       success: true,
       data: validatedSources,
       processLogs: processLogs,
       message: `已找到 ${sources.length} 个推荐信息源，其中 ${validCount} 个有效，${invalidCount} 个无效`
     });
+    
+    res.end();
   } catch (error) {
     const errorLog = {
+      type: 'progress',
       message: `API 调用异常: ${error.message}`,
-      type: 'error',
+      logType: 'error',
       timestamp: new Date().toISOString()
     };
     processLogs.push(errorLog);
+    sendProgress(errorLog);
     console.error(`[推荐信息源] ${errorLog.message}`);
     console.error(`[推荐信息源] 错误详情:`, error);
     
@@ -267,11 +302,15 @@ router.post('/topics/recommend', async (req, res) => {
       }
     );
     
-    res.status(500).json({
+    // 发送错误结果
+    sendProgress({
+      type: 'final',
       success: false,
       message: error.message,
       processLogs: processLogs
     });
+    
+    res.end();
   }
 });
 

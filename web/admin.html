@@ -221,10 +221,6 @@
           <div class="stat-label">总新闻数</div>
         </div>
         <div class="stat-item">
-          <div class="stat-value" id="sourceCount">-</div>
-          <div class="stat-label">来源数量</div>
-        </div>
-        <div class="stat-item">
           <div class="stat-value" id="lastUpdated">-</div>
           <div class="stat-label">最后更新</div>
         </div>
@@ -290,22 +286,45 @@
       </div>
 
       <div class="sources-section">
-        <h2>新闻来源列表</h2>
-        <div id="loading" class="loading">加载中...</div>
-        <table class="sources-table" id="sourcesTable" style="display: none;">
+        <h2>新闻列表管理</h2>
+        <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <input 
+            type="text" 
+            id="newsSearchInput" 
+            placeholder="搜索新闻标题、摘要或内容..." 
+            style="flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+            onkeypress="if(event.key==='Enter') loadNews()"
+          >
+          <select 
+            id="newsSourceFilter" 
+            style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+            onchange="loadNews()"
+          >
+            <option value="">全部来源</option>
+          </select>
+          <button class="btn btn-refresh" onclick="loadNews()">刷新</button>
+          <button class="btn btn-delete" onclick="deleteSelectedNews()" id="deleteSelectedBtn" style="display: none;">删除选中</button>
+        </div>
+        <div id="newsLoading" class="loading">加载中...</div>
+        <table class="sources-table" id="newsTable" style="display: none;">
           <thead>
             <tr>
-              <th>来源名称</th>
-              <th>新闻数量</th>
-              <th>最后更新</th>
-              <th>最早添加</th>
-              <th>最新发布日期</th>
+              <th style="width: 40px;">
+                <input type="checkbox" id="selectAllNews" onchange="toggleSelectAllNews()">
+              </th>
+              <th>标题</th>
+              <th>来源</th>
+              <th>分类</th>
+              <th>发布日期</th>
+              <th>创建时间</th>
               <th>操作</th>
             </tr>
           </thead>
-          <tbody id="sourcesBody">
+          <tbody id="newsBody">
           </tbody>
         </table>
+        <div id="newsPagination" style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+        </div>
       </div>
     </div>
   </div>
@@ -333,10 +352,11 @@
       document.getElementById('adminContent').style.display = 'block';
       
       loadStats();
-      loadSources();
       loadUsers();
       loadTopics();
       loadSubscriptions();
+      loadNewsSources();
+      loadNews();
     }
 
     function handleKeyPress(event) {
@@ -370,128 +390,219 @@
       }
     }
 
-    async function loadSources() {
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('sourcesTable').style.display = 'none';
-      
+    let currentNewsPage = 1;
+    let currentNewsPageSize = 20;
+    let selectedNewsIds = new Set();
+
+    // 加载新闻来源列表（用于筛选）
+    async function loadNewsSources() {
       try {
         const response = await fetch(`${API_BASE_URL}/admin/sources`, {
           headers: getHeaders()
         });
         const result = await response.json();
         
-        document.getElementById('loading').style.display = 'none';
+        if (result.success) {
+          const sourceFilter = document.getElementById('newsSourceFilter');
+          sourceFilter.innerHTML = '<option value="">全部来源</option>';
+          
+          result.data.forEach(source => {
+            const option = document.createElement('option');
+            option.value = source.source;
+            option.textContent = `${escapeHtml(source.source)} (${source.count})`;
+            sourceFilter.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('加载新闻来源列表失败:', error);
+      }
+    }
+
+    // 加载新闻列表
+    async function loadNews(page = 1) {
+      currentNewsPage = page;
+      document.getElementById('newsLoading').style.display = 'block';
+      document.getElementById('newsTable').style.display = 'none';
+      
+      const search = document.getElementById('newsSearchInput').value.trim();
+      const source = document.getElementById('newsSourceFilter').value;
+      
+      try {
+        const params = new URLSearchParams({
+          page: currentNewsPage,
+          pageSize: currentNewsPageSize
+        });
+        if (search) params.append('search', search);
+        if (source) params.append('source', source);
+        
+        const response = await fetch(`${API_BASE_URL}/admin/news?${params.toString()}`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        
+        document.getElementById('newsLoading').style.display = 'none';
         
         if (result.success) {
-          const sources = result.data;
-          document.getElementById('sourceCount').textContent = sources.length;
+          const { news, totalCount, totalPages } = result.data;
           
-          const tbody = document.getElementById('sourcesBody');
+          const tbody = document.getElementById('newsBody');
           tbody.innerHTML = '';
           
-          sources.forEach(source => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${escapeHtml(source.source)}</td>
-              <td>${source.count}</td>
-              <td>${formatDate(source.lastUpdated)}</td>
-              <td>${formatDate(source.firstAdded)}</td>
-              <td>${formatDate(source.latestPublishDate)}</td>
-              <td>
-                <div class="action-buttons">
-                  <button class="btn btn-refresh" onclick="refreshSource('${escapeHtml(source.source)}')">刷新</button>
-                  <button class="btn btn-clear" onclick="clearSource('${escapeHtml(source.source)}')">清空</button>
-                  <button class="btn btn-delete" onclick="deleteSource('${escapeHtml(source.source)}')">删除</button>
-                </div>
-              </td>
-            `;
-            tbody.appendChild(row);
-          });
+          if (news.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">暂无新闻</td></tr>';
+          } else {
+            news.forEach(item => {
+              const row = document.createElement('tr');
+              const isSelected = selectedNewsIds.has(item.id);
+              row.innerHTML = `
+                <td>
+                  <input type="checkbox" class="news-checkbox" value="${item.id}" ${isSelected ? 'checked' : ''} onchange="toggleNewsSelection(${item.id})">
+                </td>
+                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.title)}">
+                  ${escapeHtml(item.title)}
+                </td>
+                <td>${escapeHtml(item.source || '未知')}</td>
+                <td>${escapeHtml(item.category || '未分类')}</td>
+                <td>${formatDate(item.publish_date)}</td>
+                <td>${formatDate(item.created_at)}</td>
+                <td>
+                  <button class="btn btn-delete" onclick="deleteNews(${item.id})" title="删除新闻">删除</button>
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
           
-          document.getElementById('sourcesTable').style.display = 'table';
+          document.getElementById('newsTable').style.display = 'table';
+          renderNewsPagination(totalPages);
+          updateDeleteButton();
         } else {
-          showMessage(result.message || '加载来源列表失败', 'error');
+          showMessage(result.message || '加载新闻列表失败', 'error');
         }
       } catch (error) {
-        document.getElementById('loading').style.display = 'none';
-        showMessage('加载来源列表失败: ' + error.message, 'error');
+        document.getElementById('newsLoading').style.display = 'none';
+        showMessage('加载新闻列表失败: ' + error.message, 'error');
       }
     }
 
-    async function refreshSource(source) {
-      if (!confirm(`确定要刷新来源 "${source}" 的数据吗？`)) {
+    // 渲染分页
+    function renderNewsPagination(totalPages) {
+      const pagination = document.getElementById('newsPagination');
+      pagination.innerHTML = '';
+      
+      if (totalPages <= 1) return;
+      
+      // 上一页
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'btn';
+      prevBtn.textContent = '上一页';
+      prevBtn.disabled = currentNewsPage === 1;
+      prevBtn.onclick = () => loadNews(currentNewsPage - 1);
+      pagination.appendChild(prevBtn);
+      
+      // 页码
+      const pageInfo = document.createElement('span');
+      pageInfo.textContent = `第 ${currentNewsPage} / ${totalPages} 页`;
+      pageInfo.style.padding = '0 10px';
+      pagination.appendChild(pageInfo);
+      
+      // 下一页
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'btn';
+      nextBtn.textContent = '下一页';
+      nextBtn.disabled = currentNewsPage === totalPages;
+      nextBtn.onclick = () => loadNews(currentNewsPage + 1);
+      pagination.appendChild(nextBtn);
+    }
+
+    // 切换新闻选择
+    function toggleNewsSelection(id) {
+      if (selectedNewsIds.has(id)) {
+        selectedNewsIds.delete(id);
+      } else {
+        selectedNewsIds.add(id);
+      }
+      updateDeleteButton();
+    }
+
+    // 全选/取消全选
+    function toggleSelectAllNews() {
+      const selectAll = document.getElementById('selectAllNews');
+      const checkboxes = document.querySelectorAll('.news-checkbox');
+      
+      checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+        const id = parseInt(cb.value);
+        if (selectAll.checked) {
+          selectedNewsIds.add(id);
+        } else {
+          selectedNewsIds.delete(id);
+        }
+      });
+      
+      updateDeleteButton();
+    }
+
+    // 更新删除按钮显示
+    function updateDeleteButton() {
+      const deleteBtn = document.getElementById('deleteSelectedBtn');
+      if (selectedNewsIds.size > 0) {
+        deleteBtn.style.display = 'inline-block';
+        deleteBtn.textContent = `删除选中 (${selectedNewsIds.size})`;
+      } else {
+        deleteBtn.style.display = 'none';
+      }
+    }
+
+    // 删除单条新闻
+    async function deleteNews(id) {
+      if (!confirm(`确定要删除这条新闻吗？此操作不可恢复！`)) {
         return;
       }
       
       try {
-        const response = await fetch(`${API_BASE_URL}/admin/source/${encodeURIComponent(source)}/refresh`, {
-          method: 'POST',
-          headers: getHeaders()
-        });
-        const result = await response.json();
-        
-        if (result.success) {
-          showMessage(result.message || '已开始刷新数据', 'success');
-          // 延迟刷新列表，给服务器时间处理
-          setTimeout(() => {
-            loadSources();
-            loadStats();
-          }, 2000);
-        } else {
-          showMessage(result.message || '刷新失败', 'error');
-        }
-      } catch (error) {
-        showMessage('刷新失败: ' + error.message, 'error');
-      }
-    }
-
-    async function clearSource(source) {
-      if (!confirm(`确定要清空来源 "${source}" 的所有数据吗？此操作不可恢复！`)) {
-        return;
-      }
-      
-      if (!confirm('再次确认：此操作将永久清空该来源的所有新闻数据！')) {
-        return;
-      }
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/admin/source/${encodeURIComponent(source)}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/news/${id}`, {
           method: 'DELETE',
           headers: getHeaders()
         });
         const result = await response.json();
         
         if (result.success) {
-          showMessage(result.message || `已清空 ${result.deletedCount} 条数据`, 'success');
-          loadSources();
+          showMessage('新闻删除成功', 'success');
+          selectedNewsIds.delete(id);
+          loadNews(currentNewsPage);
           loadStats();
         } else {
-          showMessage(result.message || '清空失败', 'error');
+          showMessage(result.message || '删除失败', 'error');
         }
       } catch (error) {
-        showMessage('清空失败: ' + error.message, 'error');
+        showMessage('删除失败: ' + error.message, 'error');
       }
     }
 
-    async function deleteSource(source) {
-      if (!confirm(`⚠️ 确定要删除新闻源 "${source}" 吗？\n\n此操作将：\n- 永久删除该新闻源的所有数据\n- 该操作不可恢复！`)) {
+    // 批量删除新闻
+    async function deleteSelectedNews() {
+      if (selectedNewsIds.size === 0) {
+        showMessage('请先选择要删除的新闻', 'error');
         return;
       }
       
-      if (!confirm(`🚨 最后确认：\n\n您即将删除新闻源 "${source}" 及其所有数据。\n\n此操作不可恢复，请再次确认！`)) {
+      if (!confirm(`确定要删除选中的 ${selectedNewsIds.size} 条新闻吗？此操作不可恢复！`)) {
         return;
       }
       
       try {
-        const response = await fetch(`${API_BASE_URL}/admin/source/${encodeURIComponent(source)}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/news`, {
           method: 'DELETE',
-          headers: getHeaders()
+          headers: getHeaders(),
+          body: JSON.stringify({ ids: Array.from(selectedNewsIds) })
         });
         const result = await response.json();
         
         if (result.success) {
-          showMessage(result.message || `已删除新闻源 "${source}" 的 ${result.deletedCount} 条数据`, 'success');
-          loadSources();
+          showMessage(`已删除 ${result.deletedCount} 条新闻`, 'success');
+          selectedNewsIds.clear();
+          loadNews(currentNewsPage);
           loadStats();
         } else {
           showMessage(result.message || '删除失败', 'error');

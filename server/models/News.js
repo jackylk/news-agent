@@ -568,6 +568,103 @@ class News {
         callback(err, null);
       });
   }
+
+  // 获取新闻列表（管理员用，支持分页和搜索）
+  static getListForAdmin(page = 1, pageSize = 20, search = '', source = '', callback) {
+    const offset = (page - 1) * pageSize;
+    let sql = 'SELECT id, title, summary, source, category, url, image_url, publish_date, created_at, user_id FROM news WHERE 1=1';
+    const params = [];
+    let paramIndex = 1;
+
+    if (search && search.trim()) {
+      sql += ` AND (title ILIKE $${paramIndex} OR summary ILIKE $${paramIndex} OR content ILIKE $${paramIndex})`;
+      params.push(`%${search.trim()}%`);
+      paramIndex++;
+    }
+
+    if (source && source.trim()) {
+      sql += ` AND TRIM(source) = TRIM($${paramIndex})`;
+      params.push(source.trim());
+      paramIndex++;
+    }
+
+    sql += ` ORDER BY publish_date DESC, created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(pageSize, offset);
+
+    // 获取总数
+    let countSql = 'SELECT COUNT(*) as count FROM news WHERE 1=1';
+    const countParams = [];
+    let countParamIndex = 1;
+
+    if (search && search.trim()) {
+      countSql += ` AND (title ILIKE $${countParamIndex} OR summary ILIKE $${countParamIndex} OR content ILIKE $${countParamIndex})`;
+      countParams.push(`%${search.trim()}%`);
+      countParamIndex++;
+    }
+
+    if (source && source.trim()) {
+      countSql += ` AND TRIM(source) = TRIM($${countParamIndex})`;
+      countParams.push(source.trim());
+      countParamIndex++;
+    }
+
+    Promise.all([
+      db.query(sql, params),
+      db.query(countSql, countParams)
+    ])
+      .then(([result, countResult]) => {
+        const news = result.rows.map(row => ({
+          id: row.id,
+          title: row.title,
+          summary: row.summary,
+          source: row.source,
+          category: row.category,
+          url: row.url,
+          image_url: row.image_url,
+          publish_date: serializeDate(row.publish_date),
+          created_at: serializeDate(row.created_at),
+          user_id: row.user_id
+        }));
+        const totalCount = parseInt(countResult.rows[0].count, 10);
+        callback(null, {
+          news,
+          totalCount,
+          page,
+          pageSize,
+          totalPages: Math.ceil(totalCount / pageSize)
+        });
+      })
+      .catch(err => {
+        callback(err, null);
+      });
+  }
+
+  // 删除单条新闻
+  static deleteById(id, callback) {
+    const sql = 'DELETE FROM news WHERE id = $1';
+    db.query(sql, [id])
+      .then(result => {
+        callback(null, { deleted: result.rowCount > 0 });
+      })
+      .catch(err => {
+        callback(err, null);
+      });
+  }
+
+  // 批量删除新闻
+  static deleteByIds(ids, callback) {
+    if (!ids || ids.length === 0) {
+      return callback(null, { deletedCount: 0 });
+    }
+    const sql = 'DELETE FROM news WHERE id = ANY($1::int[])';
+    db.query(sql, [ids])
+      .then(result => {
+        callback(null, { deletedCount: result.rowCount || 0 });
+      })
+      .catch(err => {
+        callback(err, null);
+      });
+  }
 }
 
 module.exports = News;

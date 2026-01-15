@@ -274,4 +274,97 @@ router.delete('/subscriptions/:userId/:sourceName', authenticateAdmin, (req, res
   });
 });
 
+// 获取新闻列表（管理员用，支持分页和搜索）
+router.get('/news', authenticateAdmin, (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 20;
+  const search = req.query.search || '';
+  const source = req.query.source || '';
+
+  News.getListForAdmin(page, pageSize, search, source, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '获取新闻列表失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      data: result
+    });
+  });
+});
+
+// 删除单条新闻
+router.delete('/news/:id', authenticateAdmin, (req, res) => {
+  const id = parseInt(req.params.id);
+  
+  if (isNaN(id)) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的新闻ID'
+    });
+  }
+  
+  News.deleteById(id, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '删除新闻失败',
+        error: err.message
+      });
+    }
+    
+    if (!result.deleted) {
+      return res.status(404).json({
+        success: false,
+        message: '新闻不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: '新闻删除成功'
+    });
+  });
+});
+
+// 批量删除新闻
+router.delete('/news', authenticateAdmin, (req, res) => {
+  const { ids } = req.body;
+  
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: '请提供要删除的新闻ID列表'
+    });
+  }
+  
+  const validIds = ids.filter(id => !isNaN(parseInt(id))).map(id => parseInt(id));
+  
+  if (validIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的新闻ID列表'
+    });
+  }
+  
+  News.deleteByIds(validIds, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '批量删除新闻失败',
+        error: err.message
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: `已删除 ${result.deletedCount} 条新闻`,
+      deletedCount: result.deletedCount
+    });
+  });
+});
+
 module.exports = router;
