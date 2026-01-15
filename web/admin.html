@@ -269,6 +269,27 @@
       </div>
 
       <div class="sources-section">
+        <h2>用户订阅信息源管理</h2>
+        <div id="subscriptionsLoading" class="loading">加载中...</div>
+        <table class="sources-table" id="subscriptionsTable" style="display: none;">
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>邮箱</th>
+              <th>信息源名称</th>
+              <th>信息源URL</th>
+              <th>类型</th>
+              <th>分类</th>
+              <th>订阅时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="subscriptionsBody">
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sources-section">
         <h2>新闻来源列表</h2>
         <div id="loading" class="loading">加载中...</div>
         <table class="sources-table" id="sourcesTable" style="display: none;">
@@ -315,6 +336,7 @@
       loadSources();
       loadUsers();
       loadTopics();
+      loadSubscriptions();
     }
 
     function handleKeyPress(event) {
@@ -628,6 +650,91 @@
           loadTopics(); // 重新加载主题词列表
           loadUsers(); // 重新加载用户列表（更新主题数）
           loadStats(); // 重新加载统计信息（更新文章总数）
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+
+    async function loadSubscriptions() {
+      document.getElementById('subscriptionsLoading').style.display = 'block';
+      document.getElementById('subscriptionsTable').style.display = 'none';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/subscriptions`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        
+        document.getElementById('subscriptionsLoading').style.display = 'none';
+        
+        if (result.success) {
+          const subscriptions = result.data;
+          const tbody = document.getElementById('subscriptionsBody');
+          tbody.innerHTML = '';
+          
+          if (subscriptions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">暂无订阅信息源</td></tr>';
+          } else {
+            subscriptions.forEach(sub => {
+              const row = document.createElement('tr');
+              const createdDate = sub.created_at 
+                ? new Date(sub.created_at).toLocaleString('zh-CN')
+                : '-';
+              row.innerHTML = `
+                <td>${escapeHtml(sub.username)}</td>
+                <td>${escapeHtml(sub.email)}</td>
+                <td><strong>${escapeHtml(sub.source_name)}</strong></td>
+                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(sub.source_url)}">${escapeHtml(sub.source_url)}</td>
+                <td>${escapeHtml(sub.source_type || '未知')}</td>
+                <td>${escapeHtml(sub.category || '未分类')}</td>
+                <td>${createdDate}</td>
+                <td>
+                  <button class="btn btn-delete" onclick="deleteSubscription(${sub.user_id}, '${escapeHtml(sub.source_name).replace(/'/g, "\\'")}')" title="删除订阅">
+                    删除
+                  </button>
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
+          
+          document.getElementById('subscriptionsTable').style.display = 'table';
+        } else {
+          showMessage(result.message || '加载订阅列表失败', 'error');
+        }
+      } catch (error) {
+        document.getElementById('subscriptionsLoading').style.display = 'none';
+        showMessage('加载订阅列表失败: ' + error.message, 'error');
+      }
+    }
+
+    async function deleteSubscription(userId, sourceName) {
+      if (!confirm(`确定要删除用户订阅信息源 "${sourceName}" 吗？\n\n此操作不可恢复！`)) {
+        return;
+      }
+      
+      if (!confirm(`🚨 最后确认：\n\n您即将删除订阅信息源 "${sourceName}"。\n\n此操作不可恢复，请再次确认！`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/admin/subscriptions/${userId}/${encodeURIComponent(sourceName)}`,
+          {
+            method: 'DELETE',
+            headers: getHeaders()
+          }
+        );
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(result.message || '删除成功', 'success');
+          loadSubscriptions(); // 重新加载订阅列表
+          loadUsers(); // 重新加载用户列表（更新订阅数）
         } else {
           showMessage(result.message || '删除失败', 'error');
         }

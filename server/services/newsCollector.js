@@ -4,19 +4,26 @@ const cheerio = require('cheerio');
 const News = require('../models/News');
 
 // 配置RSS解析器，添加超时和重试机制
+// 注意：rss-parser 会自动解析 content:encoded，但可能以不同的字段名存在
 const parser = new RSSParser({
   timeout: 30000, // 30秒超时
   headers: {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
     'Accept-Encoding': 'gzip, deflate, br',
     'Connection': 'keep-alive',
   },
   maxRedirects: 5,
   requestOptions: {
     timeout: 30000,
-    rejectUnauthorized: true,
+    rejectUnauthorized: false, // 允许自签名证书
+  },
+  customFields: {
+    item: [
+      ['content:encoded', 'contentEncoded'],
+      ['description', 'description'],
+    ]
   }
 });
 
@@ -254,32 +261,80 @@ class NewsCollector {
     }
   }
 
-  // 提取内容（从RSS item或文章URL获取完整内容）
+  // 提取内容（从RSS item或文章URL获取完整内容，保留HTML格式）
   async extractContent(item, articleUrl = null) {
     // 首先尝试从RSS item中获取内容
+    // rss-parser 可能将 content:encoded 解析为不同的字段名，需要检查所有可能的变体
     let content = '';
-    if (item.content) {
-      content = item.content;
-    } else if (item['content:encoded']) {
-      content = item['content:encoded'];
-    } else if (item.contentSnippet) {
-      content = item.contentSnippet;
-    } else if (item.description) {
-      content = item.description;
+    let contentHtml = ''; // 保留HTML格式的内容
+    
+    // 检查所有可能的字段名（rss-parser可能使用不同的命名）
+    const possibleFields = [
+      'content:encoded',      // 原始字段名
+      'contentEncoded',       // 驼峰命名
+      'content_encoded',      // 下划线命名
+      'content',              // 标准content字段
+      'contentSnippet',       // 内容摘要
+      'description'           // 描述字段
+    ];
+    
+    // 遍历所有可能的字段
+    for (const fieldName of possibleFields) {
+      if (item[fieldName] && item[fieldName].trim()) {
+        const fieldValue = item[fieldName];
+        // 如果字段值看起来像HTML（包含标签），保存为HTML内容
+        if (fieldValue.includes('<') && fieldValue.includes('>')) {
+          contentHtml = fieldValue;
+          content = fieldValue; // 保留HTML格式
+        } else {
+          content = fieldValue;
+        }
+        break; // 找到第一个有效字段就停止
+      }
     }
     
-    // 移除HTML标签，获取纯文本
-    if (content) {
-      content = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    // 如果有HTML内容，使用cheerio清理但保留格式
+    if (contentHtml) {
+      try {
+        const $ = cheerio.load(contentHtml, {
+          decodeEntities: false, // 保留HTML实体
+          xml: false
+        });
+        // 移除脚本、样式、广告等不需要的元素，但保留其他HTML结构
+        $('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, iframe').remove();
+        // 保留HTML格式，只清理危险元素
+        content = $.html();
+        // 移除最外层的html和body标签（如果存在）
+        content = content.replace(/^<html[^>]*>|<\/html>$/gi, '').replace(/^<body[^>]*>|<\/body>$/gi, '').trim();
+      } catch (error) {
+        // 如果cheerio解析失败，使用简单的清理方法，但保留基本HTML标签
+        console.warn('使用cheerio解析HTML失败，使用简单方法:', error.message);
+        // 只移除危险标签，保留其他HTML
+        content = contentHtml
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
+      }
+    } else if (content) {
+      // 对于非HTML内容，检查是否包含HTML标签
+      if (content.includes('<') && content.includes('>')) {
+        // 包含HTML标签，清理危险元素但保留格式
+        content = content
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
+      }
+      // 如果不包含HTML，保持原样（纯文本）
     }
     
     // 如果内容太短（少于500字符），尝试从文章URL获取完整内容
     const url = articleUrl || item.link || item.guid || '';
     if (url && (!content || content.length < 500)) {
       try {
-        console.log(`从文章URL获取完整内容: ${url}`);
+        console.log(`RSS内容不足(${content.length}字符)，从文章URL获取完整内容: ${url}`);
         const fullContent = await this.fetchArticleContent(url);
         if (fullContent && fullContent.length > content.length) {
+          console.log(`成功从URL获取内容，长度: ${fullContent.length}字符`);
           content = fullContent;
         }
       } catch (error) {
@@ -288,8 +343,8 @@ class NewsCollector {
       }
     }
     
-    // 限制长度，但保留更多内容（增加到20000字符）
-    return content ? content.substring(0, 20000) : '';
+    // 限制长度，但保留更多内容（增加到50000字符以容纳HTML）
+    return content ? content.substring(0, 50000) : '';
   }
 
   // 从文章URL获取完整内容
@@ -317,50 +372,115 @@ class NewsCollector {
 
         const $ = cheerio.load(response.data);
         
-        // 尝试多种常见的内容选择器
-        const contentSelectors = [
-          'article',
-          '[role="article"]',
-          '.article-content',
-          '.post-content',
-          '.entry-content',
-          '.content',
-          'main article',
-          '.article-body',
-          '.post-body',
-          '#article-content',
-          '#content',
-        ];
-        
+        // 针对不同网站的特殊处理
         let articleContent = '';
-        for (const selector of contentSelectors) {
-          const elements = $(selector);
-          if (elements.length > 0) {
-            // 移除script、style、nav、header、footer等不需要的元素
-            elements.find('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share').remove();
-            articleContent = elements.text().trim();
-            if (articleContent.length > 500) {
-              break;
+        
+        // 1. Karpathy博客等GitHub Pages网站的特殊处理
+        if (url.includes('karpathy.github.io') || url.includes('.github.io')) {
+          const articleBody = $('article, .post, .post-content, .entry-content, main article, [role="article"]');
+          if (articleBody.length > 0) {
+            articleBody.find('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, .related-articles, .post-header, .post-meta').remove();
+            // 保留HTML格式
+            articleContent = articleBody.html();
+            if (articleContent && articleContent.length > 500) {
+              return articleContent.trim();
             }
           }
         }
         
-        // 如果没找到，尝试从body中提取主要内容
-        if (!articleContent || articleContent.length < 500) {
-          $('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share').remove();
-          const bodyText = $('body').text().trim();
-          // 如果body文本太长，可能包含很多无关内容，只取前一部分
-          if (bodyText.length > 1000) {
-            articleContent = bodyText.substring(0, 15000);
-          } else {
-            articleContent = bodyText;
+        // 2. InfoQ网站的特殊处理
+        if (url.includes('infoq.cn') || url.includes('infoq.com')) {
+          const articleBody = $('.article-content, .article-body, .article-text, article .content, .post-content');
+          if (articleBody.length > 0) {
+            articleBody.find('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, .related-articles, .article-meta, .author-info').remove();
+            // 保留HTML格式
+            articleContent = articleBody.html();
+            if (articleContent && articleContent.length > 500) {
+              return articleContent.trim();
+            }
+          }
+          // 如果还没找到，尝试更通用的选择器
+          if (!articleContent || articleContent.length < 500) {
+            const mainContent = $('main, .main-content, #main-content, .content-wrapper');
+            if (mainContent.length > 0) {
+              mainContent.find('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, .related-articles, .article-meta, .author-info, .tags, .breadcrumb').remove();
+              articleContent = mainContent.html();
+              if (articleContent && articleContent.length > 500) {
+                return articleContent.trim();
+              }
+            }
           }
         }
         
-        // 清理文本：移除多余的空白字符
-        articleContent = articleContent.replace(/\s+/g, ' ').trim();
+        // 3. 机器之心网站的特殊处理
+        if (url.includes('jiqizhixin.com')) {
+          const articleBody = $('.article-content, .article-body, article .content, .post-content, .article-text');
+          if (articleBody.length > 0) {
+            articleBody.find('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, .related-articles').remove();
+            // 保留HTML格式
+            articleContent = articleBody.html();
+            if (articleContent && articleContent.length > 500) {
+              return articleContent.trim();
+            }
+          }
+        }
         
-        return articleContent;
+        // 4. 通用选择器（如果还没有找到内容）- 保留HTML格式
+        if (!articleContent || articleContent.length < 500) {
+          const contentSelectors = [
+            'article',
+            '[role="article"]',
+            '.article-content',
+            '.post-content',
+            '.entry-content',
+            '.content',
+            'main article',
+            '.article-body',
+            '.post-body',
+            '#article-content',
+            '#content',
+            '.article-text',
+            '.article-main',
+            '.post-text',
+            '.post',
+            'main',
+          ];
+          
+          for (const selector of contentSelectors) {
+            const elements = $(selector);
+            if (elements.length > 0) {
+              // 移除script、style、nav、header、footer等不需要的元素
+              elements.find('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, .related-articles').remove();
+              // 保留HTML格式
+              articleContent = elements.html();
+              if (articleContent && articleContent.length > 500) {
+                return articleContent.trim();
+              }
+            }
+          }
+        }
+        
+        // 5. 如果没找到，尝试从body中提取主要内容（保留HTML）
+        if (!articleContent || articleContent.length < 500) {
+          $('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, .related-articles, .related-posts, .navigation, .menu').remove();
+          // 保留HTML格式
+          articleContent = $('body').html();
+          if (articleContent) {
+            // 如果内容太长，只取前一部分
+            if (articleContent.length > 50000) {
+              // 尝试找到主要内容区域
+              const mainContent = $('main, article, .content, #content');
+              if (mainContent.length > 0) {
+                articleContent = mainContent.html();
+              } else {
+                articleContent = articleContent.substring(0, 50000);
+              }
+            }
+            return articleContent.trim();
+          }
+        }
+        
+        return articleContent || '';
       } catch (error) {
         const errorMsg = error.message || error.toString();
         console.error(`获取文章内容失败 (尝试 ${attempt}/${maxRetries}) ${url}:`, errorMsg);
@@ -884,7 +1004,48 @@ class NewsCollector {
           await this.sleep(attempt * 1000);
         }
 
-        const feed = await parser.parseURL(feedUrl);
+        // 对于InfoQ等特殊RSS源，先尝试直接获取XML内容
+        let feed;
+        try {
+          feed = await parser.parseURL(feedUrl);
+        } catch (parseError) {
+          // 如果解析失败，尝试先获取原始XML，然后手动解析
+          if (parseError.message && (parseError.message.includes('Unable to parse XML') || parseError.message.includes('parse') || parseError.message.includes('XML'))) {
+            console.log(`RSS解析失败，尝试直接获取XML内容: ${feedUrl}`);
+            try {
+              const xmlResponse = await axios.get(feedUrl, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+                  'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8',
+                },
+                timeout: 30000,
+                maxRedirects: 5,
+                responseType: 'text',
+              });
+              
+              // 清理XML内容，移除可能导致解析问题的字符
+              let xmlContent = xmlResponse.data;
+              // 移除BOM
+              if (xmlContent.charCodeAt(0) === 0xFEFF) {
+                xmlContent = xmlContent.slice(1);
+              }
+              // 确保XML声明正确
+              if (!xmlContent.trim().startsWith('<?xml')) {
+                xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlContent;
+              }
+              
+              // 使用清理后的XML重新解析
+              feed = await parser.parseString(xmlContent);
+              console.log(`成功通过直接获取XML解析RSS源: ${feedUrl}`);
+            } catch (xmlError) {
+              console.error(`直接获取XML也失败: ${xmlError.message}`);
+              throw parseError; // 抛出原始错误
+            }
+          } else {
+            throw parseError;
+          }
+        }
 
         for (const item of feed.items) {
           const url = item.link || item.guid || '';
@@ -961,35 +1122,85 @@ class NewsCollector {
 
   // 从博客收集（带用户ID）
   async collectFromBlogForUser(blogUrl, userId, sourceName, category) {
-    // 简化版：尝试从URL获取文章
-    // 实际实现可能需要根据不同的博客结构定制
+    console.log(`开始从博客 ${blogUrl} 收集文章（用户 ${userId}）...`);
+    let collectedCount = 0;
+
     try {
+      // 获取博客主页
       const response = await axios.get(blogUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
         },
-        timeout: 30000
+        timeout: 30000,
+        maxRedirects: 5,
       });
 
       const $ = cheerio.load(response.data);
-      let collectedCount = 0;
+      const articleLinks = new Set();
 
-      // 尝试找到文章链接（通用选择器）
-      $('a[href*="/blog/"], a[href*="/post/"], a[href*="/article/"]').each(async (i, elem) => {
-        if (i >= 10) return false; // 限制数量
+      // 多种方式查找文章链接
+      const linkSelectors = [
+        'article a[href]',
+        '.post a[href]',
+        '.entry a[href]',
+        '.blog-post a[href]',
+        'h2 a[href]',
+        'h3 a[href]',
+        '.post-title a[href]',
+        '.entry-title a[href]',
+        'a[href*="/blog/"]',
+        'a[href*="/post/"]',
+        'a[href*="/article/"]',
+        'a[href*="/entry/"]',
+        'a[href*="/news/"]',
+        'a[href*="/p/"]', // Medium等平台
+      ];
 
-        const href = $(elem).attr('href');
-        if (!href) return;
+      linkSelectors.forEach(selector => {
+        $(selector).each((i, elem) => {
+          const href = $(elem).attr('href');
+          if (!href) return;
 
-        let articleUrl = href;
-        if (href.startsWith('/')) {
-          const urlObj = new URL(blogUrl);
-          articleUrl = `${urlObj.protocol}//${urlObj.host}${href}`;
-        } else if (!href.startsWith('http')) {
-          articleUrl = `${blogUrl}/${href}`;
-        }
+          let articleUrl = href;
+          if (href.startsWith('/')) {
+            try {
+              const urlObj = new URL(blogUrl);
+              articleUrl = `${urlObj.protocol}//${urlObj.host}${href}`;
+            } catch (e) {
+              return;
+            }
+          } else if (!href.startsWith('http')) {
+            articleUrl = `${blogUrl.replace(/\/$/, '')}/${href.replace(/^\//, '')}`;
+          }
 
+          // 过滤掉非文章链接
+          if (articleUrl && 
+              !articleUrl.includes('#') && 
+              !articleUrl.includes('mailto:') &&
+              !articleUrl.includes('javascript:') &&
+              (articleUrl.includes('/blog/') || 
+               articleUrl.includes('/post/') || 
+               articleUrl.includes('/article/') ||
+               articleUrl.includes('/entry/') ||
+               articleUrl.includes('/news/') ||
+               articleUrl.includes('/p/') ||
+               /\/\d{4}\/\d{2}\//.test(articleUrl))) { // 日期格式的URL
+            articleLinks.add(articleUrl);
+          }
+        });
+      });
+
+      console.log(`找到 ${articleLinks.size} 个可能的文章链接`);
+
+      // 处理每篇文章（限制最多20篇）
+      const linksArray = Array.from(articleLinks).slice(0, 20);
+      for (const articleUrl of linksArray) {
         try {
+          // 检查是否已存在
           const exists = await new Promise((resolve, reject) => {
             News.exists(articleUrl, (err, res) => {
               if (err) reject(err);
@@ -997,42 +1208,251 @@ class NewsCollector {
             });
           });
 
-          if (!exists) {
-            const articleContent = await this.extractArticleFromUrl(articleUrl);
-            if (articleContent) {
-              const newsData = {
-                title: articleContent.title || '无标题',
-                content: articleContent.content || '',
-                summary: (articleContent.content || '').substring(0, 200),
-                source: sourceName || '未知来源',
-                category: category || '未分类',
-                url: articleUrl,
-                image_url: articleContent.image || '',
-                publish_date: new Date().toISOString(),
-                user_id: userId
-              };
-
-              await new Promise((resolve, reject) => {
-                News.create(newsData, (err, result) => {
-                  if (err) reject(err);
-                  else {
-                    collectedCount++;
-                    resolve(result);
-                  }
-                });
-              });
-            }
+          if (exists) {
+            continue;
           }
+
+          // 提取文章内容
+          const articleData = await this.extractArticleFromBlogUrl(articleUrl, sourceName, category, userId);
+          
+          if (articleData && articleData.title && articleData.content) {
+            await new Promise((resolve, reject) => {
+              News.create(articleData, (err, result) => {
+                if (err) {
+                  console.error(`保存文章失败 ${articleUrl}:`, err.message);
+                  reject(err);
+                } else {
+                  collectedCount++;
+                  console.log(`已收集: ${articleData.title}`);
+                  resolve(result);
+                }
+              });
+            });
+          }
+
+          // 避免请求过快
+          await this.sleep(1500);
         } catch (error) {
           console.error(`处理文章 ${articleUrl} 失败:`, error.message);
         }
-      });
+      }
 
+      console.log(`从博客 ${blogUrl} 收集完成，共收集 ${collectedCount} 条新文章`);
       return collectedCount;
     } catch (error) {
       console.error(`从博客 ${blogUrl} 收集失败:`, error.message);
       return 0;
     }
+  }
+
+  // 从博客URL提取文章标题和详细内容（增强版）
+  async extractArticleFromBlogUrl(url, sourceName, category, userId, maxRetries = 2) {
+    if (!url) return null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 1) {
+          await this.sleep(1000 * attempt);
+        }
+
+        const response = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+          },
+          timeout: 20000,
+          maxRedirects: 5,
+        });
+
+        const $ = cheerio.load(response.data);
+
+        // 提取标题 - 多种选择器
+        let title = '';
+        const titleSelectors = [
+          'article h1',
+          'article header h1',
+          '.post-title',
+          '.entry-title',
+          '.article-title',
+          '.blog-post-title',
+          'h1.post-title',
+          'h1.entry-title',
+          'h1.article-title',
+          '[role="article"] h1',
+          'main h1',
+          'article header h1',
+          'h1',
+        ];
+
+        for (const selector of titleSelectors) {
+          const titleEl = $(selector).first();
+          if (titleEl.length > 0) {
+            title = titleEl.text().trim();
+            if (title && title.length > 5) {
+              break;
+            }
+          }
+        }
+
+        // 如果还没找到，尝试从title标签提取
+        if (!title || title.length < 5) {
+          title = $('title').text().trim();
+          // 清理title（可能包含网站名称）
+          title = title.split('|')[0].split('-')[0].split('—')[0].trim();
+        }
+
+        // 提取内容 - 多种选择器
+        let content = '';
+        const contentSelectors = [
+          'article',
+          '[role="article"]',
+          '.post-content',
+          '.entry-content',
+          '.article-content',
+          '.blog-post-content',
+          '.post-body',
+          '.entry-body',
+          '.article-body',
+          'main article',
+          '.content',
+          '#content',
+          '#post-content',
+          '#article-content',
+        ];
+
+        for (const selector of contentSelectors) {
+          const contentEl = $(selector).first();
+          if (contentEl.length > 0) {
+            // 移除不需要的元素
+            contentEl.find('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, .share-buttons, .author-box, .related-posts').remove();
+            
+            // 提取文本内容
+            content = contentEl.text().trim();
+            if (content && content.length > 500) {
+              break;
+            }
+          }
+        }
+
+        // 如果还没找到足够的内容，尝试从body提取
+        if (!content || content.length < 500) {
+          $('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share, .share-buttons, .author-box, .related-posts').remove();
+          const bodyText = $('body').text().trim();
+          if (bodyText.length > 500) {
+            // 如果body文本太长，可能包含很多无关内容，只取前一部分
+            content = bodyText.substring(0, 20000);
+          } else {
+            content = bodyText;
+          }
+        }
+
+        // 清理内容：移除多余的空白字符
+        content = content.replace(/\s+/g, ' ').trim();
+
+        // 提取发布时间
+        let publishDate = new Date();
+        const dateSelectors = [
+          'time[datetime]',
+          'time[pubdate]',
+          '.published',
+          '.post-date',
+          '.entry-date',
+          '.article-date',
+          '[class*="date"]',
+        ];
+
+        for (const selector of dateSelectors) {
+          const dateEl = $(selector).first();
+          if (dateEl.length > 0) {
+            const dateStr = dateEl.attr('datetime') || dateEl.attr('pubdate') || dateEl.text().trim();
+            if (dateStr) {
+              const parsedDate = new Date(dateStr);
+              if (!isNaN(parsedDate.getTime())) {
+                publishDate = parsedDate;
+                break;
+              }
+            }
+          }
+        }
+
+        // 提取图片
+        let imageUrl = '';
+        const imageSelectors = [
+          'article img',
+          '.post-content img',
+          '.entry-content img',
+          '.article-content img',
+          'meta[property="og:image"]',
+          'meta[name="twitter:image"]',
+        ];
+
+        for (const selector of imageSelectors) {
+          const imgEl = $(selector).first();
+          if (imgEl.length > 0) {
+            if (selector.includes('meta')) {
+              imageUrl = imgEl.attr('content') || '';
+            } else {
+              imageUrl = imgEl.attr('src') || imgEl.attr('data-src') || imgEl.attr('data-lazy-src') || '';
+            }
+            if (imageUrl) {
+              // 处理相对URL
+              if (imageUrl.startsWith('/')) {
+                try {
+                  const urlObj = new URL(url);
+                  imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+                } catch (e) {
+                  imageUrl = '';
+                }
+              } else if (!imageUrl.startsWith('http')) {
+                imageUrl = `${url.replace(/\/[^/]*$/, '')}/${imageUrl}`;
+              }
+              if (imageUrl) break;
+            }
+          }
+        }
+
+        // 生成摘要
+        const summary = content.substring(0, 300).trim();
+
+        if (!title || !content || content.length < 100) {
+          console.log(`文章内容不足，跳过: ${url}`);
+          return null;
+        }
+
+        return {
+          title: title.substring(0, 500),
+          content: content.substring(0, 20000),
+          summary: summary,
+          source: sourceName || '未知来源',
+          category: category || '未分类',
+          url: url,
+          image_url: imageUrl || '',
+          publish_date: publishDate.toISOString(),
+          user_id: userId
+        };
+      } catch (error) {
+        const errorMsg = error.message || error.toString();
+        console.error(`提取文章内容失败 (尝试 ${attempt}/${maxRetries}) ${url}:`, errorMsg);
+        
+        // 如果是网络错误且还有重试机会，继续重试
+        if (attempt < maxRetries && (
+          errorMsg.includes('socket') ||
+          errorMsg.includes('TLS') ||
+          errorMsg.includes('ECONNRESET') ||
+          errorMsg.includes('ETIMEDOUT') ||
+          errorMsg.includes('timeout')
+        )) {
+          continue;
+        }
+        
+        return null;
+      }
+    }
+
+    return null;
   }
 
   sleep(ms) {

@@ -42,13 +42,148 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: '服务器运行正常' });
 });
 
-// 手动触发新闻收集（用于测试）
+// 手动触发新闻收集（按用户订阅，支持按主题过滤）
 app.post('/api/collect', async (req, res) => {
   try {
+    const User = require('./models/User');
+    const db = require('./config/database');
     const collector = new NewsCollector();
-    await collector.collectAll(); // 使用综合收集方法
-    res.json({ success: true, message: '新闻收集完成（RSS + 博客）' });
+    
+    // 尝试从请求头获取用户token
+    const token = req.headers['authorization']?.replace('Bearer ', '') || req.query.token;
+    let userId = null;
+    
+    if (token) {
+      // 验证token并获取用户ID
+      try {
+        const decoded = await new Promise((resolve, reject) => {
+          User.verifyToken(token, (err, decoded) => {
+            if (err) reject(err);
+            else resolve(decoded);
+          });
+        });
+        userId = decoded.id;
+      } catch (err) {
+        // token无效，忽略，继续为所有用户收集
+        console.log('Token验证失败，将为所有用户收集新闻');
+      }
+    }
+    
+    // 获取请求体中的主题关键词（可选）
+    const { topicKeywords } = req.body || {};
+    
+    if (userId) {
+      let subscriptionsToCollect = [];
+      
+      if (topicKeywords) {
+        // 如果指定了主题关键词，只收集该主题对应的订阅信息源
+        // 1. 获取该主题的推荐历史
+        const historyResult = await db.query(
+          'SELECT recommended_sources FROM recommendation_history WHERE user_id = $1 AND topic_keywords = $2',
+          [userId, topicKeywords]
+        );
+        
+        if (historyResult.rows.length === 0) {
+          return res.json({ 
+            success: true, 
+            message: `主题 "${topicKeywords}" 没有推荐历史，请先在订阅管理页面为该主题获取推荐信息源` 
+          });
+        }
+        
+        // 2. 解析推荐信息源
+        const history = historyResult.rows[0];
+        let recommendedSources = [];
+        if (history.recommended_sources) {
+          if (typeof history.recommended_sources === 'string') {
+            recommendedSources = JSON.parse(history.recommended_sources);
+          } else {
+            recommendedSources = history.recommended_sources;
+          }
+        }
+        
+        // 3. 获取推荐信息源的名称列表
+        const recommendedSourceNames = recommendedSources.map(s => s.sourceName || s.name).filter(Boolean);
+        
+        if (recommendedSourceNames.length === 0) {
+          return res.json({ 
+            success: true, 
+            message: `主题 "${topicKeywords}" 没有推荐信息源` 
+          });
+        }
+        
+        // 4. 从用户订阅中筛选出属于该主题的订阅
+        const allSubscriptionsResult = await db.query(
+          'SELECT * FROM user_subscriptions WHERE user_id = $1',
+          [userId]
+        );
+        
+        subscriptionsToCollect = allSubscriptionsResult.rows.filter(sub => 
+          recommendedSourceNames.includes(sub.source_name)
+        );
+        
+        if (subscriptionsToCollect.length === 0) {
+          return res.json({ 
+            success: true, 
+            message: `主题 "${topicKeywords}" 的推荐信息源尚未订阅，请先在订阅管理页面订阅这些信息源` 
+          });
+        }
+      } else {
+        // 没有指定主题，收集该用户的所有订阅
+        const subscriptionsResult = await db.query(
+          'SELECT * FROM user_subscriptions WHERE user_id = $1',
+          [userId]
+        );
+        
+        subscriptionsToCollect = subscriptionsResult.rows;
+      }
+      
+      if (subscriptionsToCollect.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: '您还没有订阅任何信息源，请先在订阅管理页面添加主题并订阅信息源' 
+        });
+      }
+      
+      await collector.collectForUser(userId, subscriptionsToCollect);
+      res.json({ 
+        success: true, 
+        message: `新闻收集完成，已从 ${subscriptionsToCollect.length} 个订阅源收集新闻${topicKeywords ? `（主题：${topicKeywords}）` : ''}` 
+      });
+    } else {
+      // 为所有用户收集其订阅的信息源
+      const usersResult = await db.query('SELECT DISTINCT user_id FROM user_subscriptions');
+      const userIds = usersResult.rows.map(row => row.user_id);
+      
+      if (userIds.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: '没有用户订阅，跳过收集' 
+        });
+      }
+      
+      let totalCollected = 0;
+      for (const uid of userIds) {
+        const subscriptionsResult = await db.query(
+          'SELECT * FROM user_subscriptions WHERE user_id = $1',
+          [uid]
+        );
+        
+        if (subscriptionsResult.rows.length === 0) continue;
+        
+        const count = await collector.collectForUser(uid, subscriptionsResult.rows).catch(err => {
+          console.error(`为用户 ${uid} 收集新闻失败:`, err);
+          return 0;
+        });
+        totalCollected += count;
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `新闻收集完成，已为 ${userIds.length} 个用户收集新闻` 
+      });
+    }
   } catch (error) {
+    console.error('收集新闻失败:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

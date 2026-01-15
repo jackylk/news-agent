@@ -13,7 +13,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-      background-color: #f5f5f5;
+      background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #ede9fe 100%);
       color: #333;
       line-height: 1.6;
       display: flex;
@@ -23,8 +23,8 @@
     /* 左侧菜单 */
     .sidebar {
       width: 240px;
-      background: white;
-      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+      background: linear-gradient(180deg, #ffffff 0%, #faf5ff 100%);
+      box-shadow: 2px 0 12px rgba(139, 92, 246, 0.15);
       display: flex;
       flex-direction: column;
       position: fixed;
@@ -39,8 +39,12 @@
 
     .sidebar-header h1 {
       font-size: 20px;
-      color: #333;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       margin-bottom: 8px;
+      font-weight: 700;
     }
 
     .user-info {
@@ -63,13 +67,13 @@
     }
 
     .menu-item:hover {
-      background-color: #f8f9fa;
+      background: linear-gradient(90deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.03) 100%);
     }
 
     .menu-item.active {
-      background-color: #f0f4ff;
-      border-left-color: #667eea;
-      color: #667eea;
+      background: linear-gradient(90deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+      border-left-color: #8B5CF6;
+      color: #8B5CF6;
     }
 
     .menu-item-icon {
@@ -143,8 +147,9 @@
       background: white;
       padding: 24px;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 12px rgba(139, 92, 246, 0.1);
       margin-bottom: 20px;
+      border: 1px solid rgba(139, 92, 246, 0.1);
     }
 
     .section h3 {
@@ -169,12 +174,13 @@
 
     .input-group input:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #8B5CF6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     }
 
     .btn-primary {
       padding: 12px 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       color: white;
       border: none;
       border-radius: 8px;
@@ -182,10 +188,12 @@
       font-size: 15px;
       font-weight: 600;
       transition: transform 0.2s;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
     }
 
     .btn-primary:disabled {
@@ -252,6 +260,25 @@
     .recommendations-table tr:hover {
       background-color: #f8f9fa;
     }
+    
+    .recommendations-table tr.invalid-row {
+      background-color: #f5f5f5;
+      opacity: 0.6;
+      color: #999;
+    }
+    
+    .recommendations-table tr.invalid-row:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .recommendations-table tr.invalid-row .source-checkbox {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .recommendations-table tr.invalid-row .source-checkbox:disabled {
+      cursor: not-allowed;
+    }
 
     .checkbox-cell {
       width: 50px;
@@ -280,13 +307,55 @@
       max-width: 100%;
     }
 
+    /* 固定地区列宽度（第4列：checkbox=1, 信息源=2, 类型=3, 地区=4） */
+    .recommendations-table th:nth-child(4),
+    .recommendations-table td:nth-child(4) {
+      width: 80px;
+      max-width: 80px;
+      min-width: 80px;
+      white-space: nowrap;
+    }
+    
+    .recommendations-table td:nth-child(4) .source-region {
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    /* 固定有效性列宽度（第6列：checkbox=1, 信息源=2, 类型=3, 地区=4, 描述=5, 有效性=6） */
+    .recommendations-table th:nth-child(6),
+    .recommendations-table td:nth-child(6) {
+      width: 100px;
+      max-width: 100px;
+      min-width: 100px;
+      white-space: nowrap;
+    }
+    
+    .recommendations-table td:nth-child(6) .source-validity {
+      white-space: nowrap;
+      display: inline-block;
+    }
+    
+    /* 固定状态列宽度（第7列：checkbox=1, 信息源=2, 类型=3, 地区=4, 描述=5, 有效性=6, 状态=7） */
+    .recommendations-table th:nth-child(7),
+    .recommendations-table td:nth-child(7) {
+      width: 80px;
+      max-width: 80px;
+      min-width: 80px;
+      white-space: nowrap;
+    }
+    
+    .recommendations-table td:nth-child(7) .source-status {
+      white-space: nowrap;
+      display: inline-block;
+    }
+
     .source-name {
       font-weight: 500;
       color: #333;
     }
 
     .source-url {
-      color: #667eea;
+      color: #8B5CF6;
       font-size: 13px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -321,6 +390,28 @@
       background-color: #f8f9fa;
       color: #666;
     }
+    
+    .source-validity {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    .source-validity.valid {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .source-validity.invalid {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    .source-validity.validating {
+      background-color: #fff3cd;
+      color: #856404;
+    }
 
     .source-region {
       padding: 4px 10px;
@@ -330,13 +421,13 @@
     }
 
     .source-region.region-domestic {
-      background-color: #e3f2fd;
-      color: #1976d2;
+      background: linear-gradient(135deg, #E9D5FF 0%, #DDD6FE 100%);
+      color: #6D28D9;
     }
 
     .source-region.region-foreign {
-      background-color: #fff3e0;
-      color: #f57c00;
+      background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%);
+      color: #BE185D;
     }
 
     /* 过滤控件样式 */
@@ -376,8 +467,8 @@
 
     .filter-group select:focus {
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: #8B5CF6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     }
 
     .recommendations-stats {
@@ -407,18 +498,18 @@
     .deepseek-process {
       background-color: #f8f9fa;
       border-radius: 8px;
-      padding: 16px;
+      padding: 10px;
       font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-      font-size: 12px;
-      line-height: 1.5;
-      max-height: 250px;
+      font-size: 11px;
+      line-height: 1.3;
+      max-height: 120px;
       overflow-y: auto;
     }
 
     .process-step {
-      margin-bottom: 8px;
-      padding: 6px 10px;
-      border-left: 3px solid #667eea;
+      margin-bottom: 6px;
+      padding: 5px 8px;
+      border-left: 3px solid #8B5CF6;
       background-color: white;
       border-radius: 4px;
     }
@@ -446,13 +537,13 @@
     }
 
     .process-data {
-      margin-top: 6px;
-      padding: 6px;
+      margin-top: 4px;
+      padding: 4px;
       background-color: #f0f0f0;
       border-radius: 4px;
-      font-size: 11px;
+      font-size: 10px;
       color: #666;
-      max-height: 120px;
+      max-height: 80px;
       overflow-y: auto;
     }
 
@@ -477,7 +568,7 @@
     }
 
     .topics-tabs-header::-webkit-scrollbar-thumb {
-      background: #667eea;
+      background: #8B5CF6;
       border-radius: 3px;
     }
 
@@ -496,13 +587,13 @@
     }
 
     .topic-tab:hover {
-      background: rgba(102, 126, 234, 0.1);
-      color: #667eea;
+      background: rgba(139, 92, 246, 0.1);
+      color: #8B5CF6;
     }
 
     .topic-tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
+      color: #8B5CF6;
+      border-bottom-color: #8B5CF6;
       background: white;
     }
 
@@ -510,7 +601,7 @@
       display: inline-block;
       margin-left: 8px;
       padding: 2px 8px;
-      background: #667eea;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       color: white;
       border-radius: 12px;
       font-size: 12px;
@@ -518,7 +609,7 @@
     }
 
     .topic-tab.active .tab-badge {
-      background: #667eea;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
     }
 
     .topics-tabs-content {
@@ -678,15 +769,25 @@
 
     /* 文章阅读页面新样式 */
     .articles-stats-bar {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       padding: 20px 24px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
       margin-bottom: 24px;
       display: flex;
       gap: 40px;
       flex-wrap: wrap;
       align-items: center;
+      justify-content: space-between;
+    }
+    
+    .stats-items-container {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+      align-items: center;
+      flex: 1;
+      justify-content: flex-end;
     }
     
     .btn-refresh-now {
@@ -782,17 +883,17 @@
     }
 
     .source-card:hover {
-      border-color: #667eea;
-      color: #667eea;
+      border-color: #8B5CF6;
+      color: #8B5CF6;
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
     }
 
     .source-card.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-color: #667eea;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      border-color: #8B5CF6;
       color: white;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
     }
 
     .articles-search-box {
@@ -817,15 +918,15 @@
 
     .articles-search-box input:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #8B5CF6;
       background: white;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     }
 
     .btn-search,
     .btn-clear-search {
       padding: 14px 28px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       color: white;
       border: none;
       border-radius: 10px;
@@ -833,7 +934,7 @@
       font-size: 14px;
       font-weight: 600;
       transition: all 0.3s;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4);
     }
 
     .btn-clear-search {
@@ -843,7 +944,7 @@
 
     .btn-search:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
     }
 
     .btn-clear-search:hover {
@@ -856,14 +957,26 @@
     }
 
     .articles-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
+    }
+
+    @media (max-width: 1200px) {
+      .articles-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .articles-list {
+        grid-template-columns: 1fr;
+      }
     }
 
     .article-card {
       background: white;
-      padding: 28px;
+      padding: 20px;
       border-radius: 16px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
       cursor: pointer;
@@ -871,6 +984,9 @@
       border: 1px solid #f0f0f0;
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
     .article-card::before {
@@ -880,15 +996,15 @@
       left: 0;
       width: 4px;
       height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       transform: scaleY(0);
       transition: transform 0.3s;
     }
 
     .article-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
-      border-color: #667eea;
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+      border-color: #8B5CF6;
     }
 
     .article-card:hover::before {
@@ -896,25 +1012,32 @@
     }
 
     .article-card-title {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 700;
       color: #1a1a1a;
-      margin-bottom: 16px;
-      line-height: 1.5;
+      margin-bottom: 12px;
+      line-height: 1.4;
       transition: color 0.3s;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex-shrink: 0;
     }
 
     .article-card:hover .article-card-title {
-      color: #667eea;
+      color: #8B5CF6;
     }
 
     .article-card-meta {
       display: flex;
-      gap: 16px;
+      gap: 12px;
       align-items: center;
-      font-size: 13px;
+      font-size: 12px;
       color: #6c757d;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
     }
 
     .article-card-source {
@@ -930,13 +1053,14 @@
 
     .article-card-summary {
       color: #495057;
-      font-size: 15px;
-      line-height: 1.7;
-      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: auto;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      flex-grow: 1;
     }
 
     /* 文章详情视图 */
@@ -1009,9 +1133,9 @@
     }
 
     .article-detail-summary {
-      background-color: #f8f9fa;
+      background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%);
       padding: 16px;
-      border-left: 4px solid #667eea;
+      border-left: 4px solid #8B5CF6;
       border-radius: 4px;
       margin-bottom: 24px;
       font-size: 15px;
@@ -1020,9 +1144,9 @@
     }
 
     .article-generated-summary {
-      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+      background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%);
       padding: 20px;
-      border-left: 4px solid #28a745;
+      border-left: 4px solid #EC4899;
       border-radius: 8px;
       margin-bottom: 24px;
     }
@@ -1030,7 +1154,7 @@
     .article-generated-summary h3 {
       font-size: 18px;
       font-weight: 600;
-      color: #2e7d32;
+      color: #BE185D;
       margin-bottom: 12px;
     }
 
@@ -1044,15 +1168,133 @@
       font-size: 16px;
       line-height: 1.8;
       color: #333;
+      max-width: 100%;
+      word-wrap: break-word;
     }
 
     .article-detail-text p {
       margin-bottom: 16px;
     }
+    
+    /* HTML内容样式优化 */
+    .article-detail-text h1,
+    .article-detail-text h2,
+    .article-detail-text h3,
+    .article-detail-text h4,
+    .article-detail-text h5,
+    .article-detail-text h6 {
+      margin-top: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #1a1a1a;
+    }
+    
+    .article-detail-text h1 { font-size: 28px; }
+    .article-detail-text h2 { font-size: 24px; }
+    .article-detail-text h3 { font-size: 20px; }
+    .article-detail-text h4 { font-size: 18px; }
+    
+    .article-detail-text ul,
+    .article-detail-text ol {
+      margin: 16px 0;
+      padding-left: 32px;
+    }
+    
+    .article-detail-text li {
+      margin-bottom: 8px;
+    }
+    
+    .article-detail-text code {
+      background-color: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 14px;
+      color: #d63384;
+    }
+    
+    .article-detail-text pre {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 16px 0;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .article-detail-text pre code {
+      background-color: transparent;
+      padding: 0;
+      color: #333;
+    }
+    
+    .article-detail-text blockquote {
+      border-left: 4px solid #8B5CF6;
+      padding-left: 16px;
+      margin: 16px 0;
+      color: #666;
+      font-style: italic;
+    }
+    
+    .article-detail-text img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin: 16px 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .article-detail-text a {
+      color: #8B5CF6;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s;
+    }
+    
+    .article-detail-text a:hover {
+      border-bottom-color: #8B5CF6;
+    }
+    
+    .article-detail-text table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    
+    .article-detail-text table th,
+    .article-detail-text table td {
+      padding: 12px;
+      border: 1px solid #e9ecef;
+      text-align: left;
+    }
+    
+    .article-detail-text table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    
+    .article-detail-text hr {
+      border: none;
+      border-top: 1px solid #e9ecef;
+      margin: 24px 0;
+    }
+    
+    .article-detail-text strong {
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    
+    .article-detail-text em {
+      font-style: italic;
+    }
 
     .btn-translate {
       padding: 10px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       color: white;
       border: none;
       border-radius: 8px;
@@ -1060,13 +1302,13 @@
       font-size: 14px;
       font-weight: 600;
       transition: all 0.3s;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4);
       white-space: nowrap;
     }
 
     .btn-translate:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
     }
 
     .btn-translate:disabled {
@@ -1078,14 +1320,14 @@
     .article-source-link {
       display: inline-block;
       margin-top: 24px;
-      color: #667eea;
+      color: #8B5CF6;
       text-decoration: none;
       font-size: 14px;
       transition: color 0.2s;
     }
 
     .article-source-link:hover {
-      color: #5568d3;
+      color: #7C3AED;
       text-decoration: underline;
     }
 
@@ -1175,56 +1417,19 @@
 
     <!-- 文章阅读页面 -->
     <div id="articlesPage" class="content-page">
-      <!-- 统计信息栏 -->
-      <div class="articles-stats-bar">
-        <div class="stat-item">
-          <span class="stat-label">最后刷新</span>
-          <span class="stat-value" id="lastRefreshTime">-</span>
+      <!-- 主题页签容器 -->
+      <div class="topics-tabs-container" id="articlesTopicsTabsContainer" style="display: none;">
+        <div class="topics-tabs-header" id="articlesTopicsTabsHeader">
+          <!-- 页签将动态生成 -->
         </div>
-        <div class="stat-item">
-          <span class="stat-label">发布时间</span>
-          <span class="stat-value" id="publishDateRange">-</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">最近刷新</span>
-          <span class="stat-value" id="recentArticlesCount">-</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">文章总数</span>
-          <span class="stat-value" id="totalArticles">-</span>
-        </div>
-        <div class="stat-item" style="margin-left: auto;">
-          <button class="btn-refresh-now" onclick="refreshNewsNow()" id="refreshNowBtn">
-            <span>🔄</span> 立即刷新
-          </button>
+        <div class="topics-tabs-content" id="articlesTopicsTabsContent">
+          <!-- 页签内容将动态生成 -->
         </div>
       </div>
 
-      <!-- 信息源过滤卡片 -->
-      <div class="source-filter-cards" id="sourceFilterCards">
-        <div class="source-card active" data-source="all" onclick="filterArticlesBySource(null)">
-          <span>全部</span>
-        </div>
-        <!-- 动态加载信息源 -->
-      </div>
-
-      <!-- 搜索框 -->
-      <div class="articles-search-box">
-        <input 
-          type="text" 
-          id="articlesSearchInput" 
-          placeholder="搜索文章关键词..."
-          onkeypress="if(event.key==='Enter') searchArticles()"
-        >
-        <button class="btn-search" onclick="searchArticles()">搜索</button>
-        <button class="btn-clear-search" onclick="clearSearch()" id="clearSearchBtn" style="display: none;">清除</button>
-      </div>
-
-      <!-- 文章列表视图 -->
-      <div id="articlesListView" class="articles-list-view">
-        <div id="articlesList" class="articles-list">
-          <div class="loading">加载中...</div>
-        </div>
+      <!-- 无主题时的提示 -->
+      <div id="articlesNoTopicsHint" class="empty-state" style="display: none;">
+        <p>暂无主题，请先在"订阅管理"页面添加主题并订阅信息源</p>
       </div>
 
       <!-- 文章详情视图 -->
@@ -1243,11 +1448,11 @@
             <span id="articleDetailDate"></span>
           </div>
           <div id="articleDetailImage" class="article-detail-image"></div>
-          <div id="articleDetailSummary" class="article-detail-summary"></div>
           <div id="articleGeneratedSummary" class="article-generated-summary" style="display: none;">
             <h3>文章总结</h3>
             <div id="articleGeneratedSummaryContent"></div>
           </div>
+          <div id="articleDetailSummary" class="article-detail-summary"></div>
           <div id="articleDetailContent" class="article-detail-text"></div>
           <a id="articleSourceLink" href="#" target="_blank" class="article-source-link" style="display: none;">查看原文链接</a>
         </div>
@@ -1276,6 +1481,9 @@
     let currentSourceFilter = null; // 当前选中的信息源
     let currentSearchKeyword = ''; // 当前搜索关键词
     let savedScrollPosition = 0; // 保存滚动位置
+    let currentTopicFilter = null; // 当前选中的主题
+    let userTopics = []; // 用户主题列表
+    let topicRecommendationHistory = {}; // 主题推荐历史 {topic_keywords: {recommended_sources: [...]}}
 
     // 检查登录状态
     if (!authToken) {
@@ -1341,20 +1549,28 @@
       } else if (page === 'articles') {
         // 如果当前在文章详情页面，先返回列表页面
         const articleDetailView = document.getElementById('articleDetailView');
-        const articlesListView = document.getElementById('articlesListView');
         if (articleDetailView && articleDetailView.style.display !== 'none') {
-          // 显示统计信息栏、信息源过滤卡片、搜索框
-          document.querySelector('.articles-stats-bar').style.display = 'flex';
-          document.querySelector('.source-filter-cards').style.display = 'flex';
-          document.querySelector('.articles-search-box').style.display = 'flex';
+          // 获取当前活动的主题页签索引（如果未设置，默认为0）
+          const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
+          
+          // 显示当前活动页签的统计信息栏、信息源过滤卡片、搜索框
+          const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
+          const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
+          const searchBox = document.querySelector(`#articlesTopicPanel-${currentTabIndex} .articles-search-box`);
+          
+          if (statsBar) statsBar.style.display = 'flex';
+          if (sourceFilterCards) sourceFilterCards.style.display = 'flex';
+          if (searchBox) searchBox.style.display = 'flex';
+          
           // 隐藏详情视图，显示列表视图
           articleDetailView.style.display = 'none';
-          articlesListView.style.display = 'block';
+          const articlesListView = document.getElementById(`articlesListView-${currentTabIndex}`);
+          if (articlesListView) articlesListView.style.display = 'block';
         }
-        loadRefreshStatus();
-        loadArticles();
-        // 确保自动刷新正在运行
-        startArticlesAutoRefresh();
+        // 加载文章主题页签（如果还没有加载）
+        if (userTopics.length > 0 && document.getElementById('articlesTopicsTabsContainer').style.display === 'none') {
+          loadArticlesTopicsTabs();
+        }
       }
     }
 
@@ -1480,6 +1696,8 @@
         addProcessLogInTab(newTabIndex, '请求参数: { keywords: "' + keywords + '" }', 'info');
 
         const startTime = Date.now();
+        
+        // 使用 fetch 获取响应，但实时显示日志
         const response = await fetch(`${API_BASE_URL}/user/topics/recommend`, {
           method: 'POST',
           headers: getHeaders(),
@@ -1492,8 +1710,9 @@
         const result = await response.json();
 
         if (result.success) {
-          // 如果有服务器返回的 processLogs，使用服务器的日志
+          // 如果有服务器返回的 processLogs，使用服务器的日志（实时显示）
           if (result.processLogs && result.processLogs.length > 0) {
+            // 实时显示所有日志
             renderProcessLogsInTab(newTabIndex, result.processLogs);
           } else {
             addProcessLogInTab(newTabIndex, `成功获取 ${result.data.length} 个推荐信息源`, 'success');
@@ -1892,9 +2111,19 @@
     }
 
     // 立即刷新新闻
-    async function refreshNewsNow() {
-      const btn = document.getElementById('refreshNowBtn');
-      if (!btn) return;
+    async function refreshNewsNow(tabIndex = null) {
+      // 如果传入了tabIndex，使用对应的按钮；否则尝试查找通用按钮
+      let btn;
+      if (tabIndex !== null) {
+        btn = document.getElementById(`refreshNowBtn-${tabIndex}`);
+      } else {
+        btn = document.getElementById('refreshNowBtn');
+      }
+      
+      if (!btn) {
+        console.error('找不到刷新按钮');
+        return;
+      }
       
       btn.disabled = true;
       btn.classList.add('refreshing');
@@ -1902,10 +2131,20 @@
       btn.innerHTML = '<span>🔄</span> 刷新中...';
       
       try {
+        // 构建请求体，如果是在主题页签中，传递主题关键词
+        const requestBody = {};
+        if (tabIndex !== null && currentTopicFilter) {
+          requestBody.topicKeywords = currentTopicFilter;
+        }
+        
         // 调用后端收集接口
         const response = await fetch(`${API_BASE_URL}/collect`, {
           method: 'POST',
-          headers: getHeaders()
+          headers: {
+            ...getHeaders(),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
         });
         
         const result = await response.json();
@@ -1915,8 +2154,18 @@
           
           // 等待几秒后重新加载文章列表（给服务器时间收集新闻）
           setTimeout(async () => {
-            await loadArticles();
-            await loadRefreshStatus();
+            if (tabIndex !== null && currentTopicFilter) {
+              // 如果是在主题页签中，重新加载该主题的文章
+              await loadArticlesForTopic(currentTopicFilter, tabIndex);
+              // 更新该页签的刷新时间
+              if (document.getElementById(`lastRefreshTime-${tabIndex}`)) {
+                document.getElementById(`lastRefreshTime-${tabIndex}`).textContent = '刚刚';
+              }
+            } else {
+              // 否则使用原有的加载方式
+              await loadArticles();
+              await loadRefreshStatus();
+            }
             showMessage('新闻刷新完成', 'success');
           }, 3000);
         } else {
@@ -1990,10 +2239,16 @@
     // 加载信息源卡片
     function loadSourceCards(sources) {
       const container = document.getElementById('sourceFilterCards');
-      const allCard = container.querySelector('[data-source="all"]');
       
-      // 清空除"全部"外的所有卡片
+      // 清空所有卡片，包括"全部"
       container.innerHTML = '';
+      
+      // 重新创建"全部"卡片
+      const allCard = document.createElement('div');
+      allCard.className = 'source-card active';
+      allCard.setAttribute('data-source', 'all');
+      allCard.innerHTML = '<span>全部</span>';
+      allCard.onclick = () => filterArticlesBySource(null);
       container.appendChild(allCard);
       
       // 添加信息源卡片
@@ -2005,6 +2260,11 @@
         card.onclick = () => filterArticlesBySource(source);
         container.appendChild(card);
       });
+      
+      // 确保"全部"卡片是激活状态（如果当前没有选择特定信息源）
+      if (currentSourceFilter === null) {
+        allCard.classList.add('active');
+      }
     }
 
     // 按信息源过滤
@@ -2102,13 +2362,23 @@
       // 保存滚动位置
       savedScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
       
-      // 隐藏统计信息栏、信息源过滤卡片、搜索框
-      document.querySelector('.articles-stats-bar').style.display = 'none';
-      document.querySelector('.source-filter-cards').style.display = 'none';
-      document.querySelector('.articles-search-box').style.display = 'none';
+      // 获取当前活动的主题页签索引（如果未设置，默认为0）
+      const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
       
-      // 隐藏列表视图，显示详情视图
-      document.getElementById('articlesListView').style.display = 'none';
+      // 隐藏当前活动页签的统计信息栏、信息源过滤卡片、搜索框
+      const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
+      const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
+      const searchBox = document.querySelector(`#articlesTopicPanel-${currentTabIndex} .articles-search-box`);
+      
+      if (statsBar) statsBar.style.display = 'none';
+      if (sourceFilterCards) sourceFilterCards.style.display = 'none';
+      if (searchBox) searchBox.style.display = 'none';
+      
+      // 隐藏当前活动页签的列表视图，隐藏主题页签容器，显示详情视图
+      const currentListView = document.getElementById(`articlesListView-${currentTabIndex}`);
+      if (currentListView) currentListView.style.display = 'none';
+      const topicsTabsContainer = document.getElementById('articlesTopicsTabsContainer');
+      if (topicsTabsContainer) topicsTabsContainer.style.display = 'none';
       document.getElementById('articleDetailView').style.display = 'block';
       
       // 滚动到顶部
@@ -2145,17 +2415,46 @@
             summaryEl.style.display = 'none';
           }
           
-          // 正文内容
+          // 正文内容 - 保留HTML格式
           const contentEl = document.getElementById('articleDetailContent');
           let originalContent = '';
           if (article.content) {
-            originalContent = article.content
-              .replace(/<[^>]*>/g, '')
-              .replace(/&nbsp;/g, ' ')
-              .trim();
+            originalContent = article.content;
             
-            const paragraphs = originalContent.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-            contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+            // 检查内容是否包含HTML标签
+            const hasHtml = /<[a-z][\s\S]*>/i.test(originalContent);
+            
+            if (hasHtml) {
+              // 包含HTML，进行安全清理后显示
+              // 移除危险标签和属性，但保留格式标签
+              let safeHtml = originalContent
+                // 移除script和style标签及其内容
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                // 移除iframe
+                .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
+                // 移除危险事件属性
+                .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
+                .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '')
+                // 移除javascript:链接
+                .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"')
+                .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
+              
+              // 使用DOMPurify或简单的清理后设置innerHTML
+              contentEl.innerHTML = safeHtml;
+            } else {
+              // 纯文本内容，转换为段落
+              const textContent = originalContent
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .trim();
+              
+              const paragraphs = textContent.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+              contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+            }
           } else {
             contentEl.textContent = '暂无详细内容';
           }
@@ -2209,14 +2508,24 @@
 
     // 返回列表
     function backToList() {
-      // 显示统计信息栏、信息源过滤卡片、搜索框
-      document.querySelector('.articles-stats-bar').style.display = 'flex';
-      document.querySelector('.source-filter-cards').style.display = 'flex';
-      document.querySelector('.articles-search-box').style.display = 'flex';
+      // 获取当前活动的主题页签索引（如果未设置，默认为0）
+      const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
       
-      // 隐藏详情视图，显示列表视图
+      // 显示当前活动页签的统计信息栏、信息源过滤卡片、搜索框
+      const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
+      const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
+      const searchBox = document.querySelector(`#articlesTopicPanel-${currentTabIndex} .articles-search-box`);
+      
+      if (statsBar) statsBar.style.display = 'flex';
+      if (sourceFilterCards) sourceFilterCards.style.display = 'flex';
+      if (searchBox) searchBox.style.display = 'flex';
+      
+      // 隐藏详情视图，显示主题页签容器和当前活动页签的列表视图
       document.getElementById('articleDetailView').style.display = 'none';
-      document.getElementById('articlesListView').style.display = 'block';
+      const topicsTabsContainer = document.getElementById('articlesTopicsTabsContainer');
+      if (topicsTabsContainer) topicsTabsContainer.style.display = 'block';
+      const currentListView = document.getElementById(`articlesListView-${currentTabIndex}`);
+      if (currentListView) currentListView.style.display = 'block';
       
       // 恢复滚动位置
       window.scrollTo(0, savedScrollPosition);
@@ -2252,8 +2561,25 @@
           summaryEl.style.display = 'none';
         }
         
-        const paragraphs = window.originalArticleData.content.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-        contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+        // 检查原文是否包含HTML
+        const originalContent = window.originalArticleData.content;
+        const hasHtml = /<[a-z][\s\S]*>/i.test(originalContent);
+        
+        if (hasHtml) {
+          // 包含HTML，进行安全清理后显示
+          let safeHtml = originalContent
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
+            .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
+            .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '')
+            .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
+          contentEl.innerHTML = safeHtml;
+        } else {
+          // 纯文本，转换为段落
+          const paragraphs = originalContent.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+          contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+        }
         
         btn.textContent = '翻译为中文';
         btn.setAttribute('data-translated', 'false');
@@ -2264,7 +2590,20 @@
         btn.textContent = '翻译中...';
         
         try {
-          const content = window.originalArticleData.content.replace(/<[^>]*>/g, '').trim();
+          // 提取纯文本用于翻译（如果包含HTML，提取文本内容）
+          const originalContent = window.originalArticleData.content;
+          const hasHtml = /<[a-z][\s\S]*>/i.test(originalContent);
+          
+          let textForTranslation = '';
+          if (hasHtml) {
+            // 创建一个临时DOM元素来提取文本
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = originalContent;
+            textForTranslation = (tempDiv.textContent || tempDiv.innerText || originalContent.replace(/<[^>]*>/g, '')).trim();
+          } else {
+            // 纯文本，直接使用
+            textForTranslation = originalContent.replace(/<[^>]*>/g, '').trim();
+          }
           
           // 使用新的翻译整篇文章API，传递文章ID以支持缓存
           const response = await fetch(`${API_BASE_URL}/news/translate/article`, {
@@ -2277,7 +2616,7 @@
               articleId: window.currentArticleId,
               title: window.originalArticleData.title,
               summary: window.originalArticleData.summary || '',
-              content: content.substring(0, 4000),
+              content: textForTranslation.substring(0, 4000),
               source: 'en',
               target: 'zh'
             })
@@ -2303,13 +2642,24 @@
           }
           
           if (result.translatedContent) {
-            // 保持段落格式
+            // 翻译后的内容是纯文本，转换为段落格式
             const paragraphs = result.translatedContent.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
             contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
           } else {
-            // 如果翻译失败，显示原文
-            const paragraphs = content.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-            contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+            // 如果翻译失败，显示原文（保持HTML格式）
+            if (hasHtml) {
+              let safeHtml = originalContent
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
+                .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
+                .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '')
+                .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
+              contentEl.innerHTML = safeHtml;
+            } else {
+              const paragraphs = textForTranslation.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+              contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+            }
           }
           
           // 保存翻译结果到 window 对象，以便切换时使用
@@ -2530,6 +2880,7 @@
                   <th>类型</th>
                   <th>地区</th>
                   <th>描述</th>
+                  <th>有效性</th>
                   <th>状态</th>
                 </tr>
               </thead>
@@ -2585,12 +2936,15 @@
       const processEl = document.getElementById(`process-${tabIndex}`);
       if (!processEl) return;
       
+      // 清空现有内容
       processEl.innerHTML = '';
-      logs.forEach(log => {
+      
+      // 按时间顺序渲染所有日志
+      logs.forEach((log, index) => {
         const stepEl = document.createElement('div');
         stepEl.className = `process-step ${log.type || 'info'}`;
         
-        const time = log.timestamp ? new Date(log.timestamp).toLocaleTimeString('zh-CN') : '';
+        const time = log.timestamp ? new Date(log.timestamp).toLocaleTimeString('zh-CN') : new Date().toLocaleTimeString('zh-CN');
         let html = `<div class="process-message">${escapeHtml(log.message || '')}<span class="process-time">${time}</span></div>`;
         
         if (log.data) {
@@ -2600,6 +2954,8 @@
         stepEl.innerHTML = html;
         processEl.appendChild(stepEl);
       });
+      
+      // 滚动到底部，显示最新日志
       processEl.scrollTop = processEl.scrollHeight;
     }
 
@@ -2627,10 +2983,31 @@
         const isSubscribed = userSubscriptions.includes(source.sourceName);
         const region = source.region || '国外';
         const regionClass = region === '国内' ? 'region-domestic' : 'region-foreign';
+        
+        // 检查是否验证不通过
+        const isValid = source.isValid !== false; // 如果 isValid 是 false，则为无效
+        const isInvalid = source.isValid === false;
+        
+        // 处理验证结果
+        let validityHtml = '';
+        if (source.isValid === true) {
+          validityHtml = '<span class="source-validity valid" title="已验证有效">✓ 有效</span>';
+        } else if (source.isValid === false) {
+          const errorMsg = source.validationError ? ` title="${escapeHtml(source.validationError)}"` : '';
+          validityHtml = `<span class="source-validity invalid"${errorMsg}>✗ 无效</span>`;
+        } else {
+          validityHtml = '<span class="source-validity validating">验证中...</span>';
+        }
+        
+        // 如果验证不通过，添加 invalid-row 类并禁用复选框
+        const rowClass = isInvalid ? 'invalid-row' : '';
+        const checkboxDisabled = isInvalid ? 'disabled' : '';
+        const checkboxChecked = isInvalid ? '' : (isSubscribed ? 'checked' : '');
+        
         return `
-          <tr>
+          <tr class="${rowClass}">
             <td class="checkbox-cell">
-              <input type="checkbox" class="source-checkbox" data-index="${idx}" data-tab="${tabIndex}" ${isSubscribed ? 'checked' : ''}>
+              <input type="checkbox" class="source-checkbox" data-index="${idx}" data-tab="${tabIndex}" ${checkboxChecked} ${checkboxDisabled}>
             </td>
             <td>
               <div class="source-name">${escapeHtml(source.sourceName)}</div>
@@ -2643,6 +3020,9 @@
               <span class="source-region ${regionClass}">${escapeHtml(region)}</span>
             </td>
             <td class="source-description">${escapeHtml(source.description || '')}</td>
+            <td>
+              ${validityHtml}
+            </td>
             <td>
               <span class="source-status ${isSubscribed ? 'subscribed' : 'not-subscribed'}">
                 ${isSubscribed ? '已订阅' : '未订阅'}
@@ -2671,7 +3051,7 @@
 
     // 在指定页签中全选/取消全选
     function toggleSelectAllInTab(tabIndex, checkbox) {
-      const checkboxes = document.querySelectorAll(`#recommendationsBody-${tabIndex} .source-checkbox`);
+      const checkboxes = document.querySelectorAll(`#recommendationsBody-${tabIndex} .source-checkbox:not(:disabled)`);
       checkboxes.forEach(cb => {
         cb.checked = checkbox.checked;
       });
@@ -2679,9 +3059,10 @@
 
     // 在指定页签中订阅选中的信息源
     async function subscribeSelectedInTab(tabIndex) {
-      const checkboxes = document.querySelectorAll(`#recommendationsBody-${tabIndex} .source-checkbox:checked`);
+      // 只选择未禁用的复选框（即有效的信息源）
+      const checkboxes = document.querySelectorAll(`#recommendationsBody-${tabIndex} .source-checkbox:checked:not(:disabled)`);
       if (checkboxes.length === 0) {
-        showMessage('请至少选择一个信息源', 'error');
+        showMessage('请至少选择一个有效的信息源', 'error');
         return;
       }
 
@@ -2691,10 +3072,13 @@
       const history = JSON.parse(panel.dataset.history || '{}');
       if (!history.recommended_sources) return;
       
-      const sources = Array.from(checkboxes).map(cb => {
-        const idx = parseInt(cb.dataset.index);
-        return history.recommended_sources[idx];
-      });
+      // 过滤掉无效的信息源
+      const sources = Array.from(checkboxes)
+        .map(cb => {
+          const idx = parseInt(cb.dataset.index);
+          return history.recommended_sources[idx];
+        })
+        .filter(source => source.isValid !== false); // 只保留有效的或未验证的信息源
 
       try {
         const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
@@ -2757,13 +3141,389 @@
       }
     }
 
+    // 加载文章阅读页面的主题页签
+    async function loadArticlesTopicsTabs() {
+      try {
+        // 加载用户主题列表
+        const topicsResponse = await fetch(`${API_BASE_URL}/user/topics`, {
+          headers: getHeaders()
+        });
+        const topicsResult = await topicsResponse.json();
+        
+        if (!topicsResult.success || !topicsResult.data || topicsResult.data.length === 0) {
+          document.getElementById('articlesTopicsTabsContainer').style.display = 'none';
+          document.getElementById('articlesNoTopicsHint').style.display = 'block';
+          return;
+        }
+        
+        userTopics = topicsResult.data;
+        document.getElementById('articlesTopicsTabsContainer').style.display = 'block';
+        document.getElementById('articlesNoTopicsHint').style.display = 'none';
+        
+        // 加载所有推荐历史
+        const historyResponse = await fetch(`${API_BASE_URL}/user/topics/recommend/history/all`, {
+          headers: getHeaders()
+        });
+        const historyResult = await historyResponse.json();
+        
+        if (historyResult.success && historyResult.data) {
+          historyResult.data.forEach(history => {
+            if (history.recommended_sources) {
+              topicRecommendationHistory[history.topic_keywords] = {
+                recommended_sources: Array.isArray(history.recommended_sources) 
+                  ? history.recommended_sources 
+                  : (typeof history.recommended_sources === 'string' 
+                      ? JSON.parse(history.recommended_sources) 
+                      : [])
+              };
+            }
+          });
+        }
+        
+        // 渲染主题页签
+        renderArticlesTopicsTabs();
+        
+        // 初始化当前活动页签索引
+        if (userTopics.length > 0) {
+          window.currentArticlesTopicIndex = 0;
+        }
+      } catch (error) {
+        console.error('加载文章主题页签失败:', error);
+        document.getElementById('articlesTopicsTabsContainer').style.display = 'none';
+        document.getElementById('articlesNoTopicsHint').style.display = 'block';
+      }
+    }
+    
+    // 渲染文章阅读页面的主题页签
+    function renderArticlesTopicsTabs() {
+      const tabsHeader = document.getElementById('articlesTopicsTabsHeader');
+      const tabsContent = document.getElementById('articlesTopicsTabsContent');
+      
+      if (!tabsHeader || !tabsContent) return;
+      
+      // 清空现有内容
+      tabsHeader.innerHTML = '';
+      tabsContent.innerHTML = '';
+      
+      // 为每个主题创建页签和内容面板
+      userTopics.forEach((topic, index) => {
+        const topicKeywords = topic.topic_keywords;
+        
+        // 创建页签
+        const tab = document.createElement('button');
+        tab.className = 'topic-tab' + (index === 0 ? ' active' : '');
+        tab.textContent = topicKeywords;
+        tab.onclick = () => switchArticlesTopicTab(index);
+        tabsHeader.appendChild(tab);
+        
+        // 创建内容面板
+        const panel = document.createElement('div');
+        panel.className = 'topic-tab-panel' + (index === 0 ? ' active' : '');
+        panel.id = `articlesTopicPanel-${index}`;
+        panel.innerHTML = `
+          <!-- 统计信息栏 -->
+          <div class="articles-stats-bar" id="articlesStatsBar-${index}">
+            <button class="btn-refresh-now" onclick="refreshNewsNow(${index})" id="refreshNowBtn-${index}">
+              <span>🔄</span> 立即刷新
+            </button>
+            <div class="stats-items-container">
+              <div class="stat-item">
+                <span class="stat-label">最后刷新</span>
+                <span class="stat-value" id="lastRefreshTime-${index}">-</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">发布时间</span>
+                <span class="stat-value" id="publishDateRange-${index}">-</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">最近刷新</span>
+                <span class="stat-value" id="recentArticlesCount-${index}">-</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">文章总数</span>
+                <span class="stat-value" id="totalArticles-${index}">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 信息源过滤卡片 -->
+          <div class="source-filter-cards" id="sourceFilterCards-${index}">
+            <div class="source-card active" data-source="all" onclick="filterArticlesBySourceInTab(${index}, null)">
+              <span>全部</span>
+            </div>
+            <!-- 动态加载信息源 -->
+          </div>
+
+          <!-- 搜索框 -->
+          <div class="articles-search-box">
+            <input 
+              type="text" 
+              id="articlesSearchInput-${index}" 
+              placeholder="搜索文章关键词..."
+              onkeypress="if(event.key==='Enter') searchArticlesInTab(${index})"
+            >
+            <button class="btn-search" onclick="searchArticlesInTab(${index})">搜索</button>
+            <button class="btn-clear-search" onclick="clearSearchInTab(${index})" id="clearSearchBtn-${index}" style="display: none;">清除</button>
+          </div>
+
+          <!-- 文章列表视图 -->
+          <div id="articlesListView-${index}" class="articles-list-view">
+            <div id="articlesList-${index}" class="articles-list">
+              <div class="loading">加载中...</div>
+            </div>
+          </div>
+        `;
+        tabsContent.appendChild(panel);
+      });
+      
+      // 默认选中第一个主题
+      if (userTopics.length > 0) {
+        currentTopicFilter = userTopics[0].topic_keywords;
+        switchArticlesTopicTab(0);
+      }
+    }
+    
+    // 切换文章主题页签
+    function switchArticlesTopicTab(index) {
+      const tabsHeader = document.getElementById('articlesTopicsTabsHeader');
+      const tabsContent = document.getElementById('articlesTopicsTabsContent');
+      
+      if (!tabsHeader || !tabsContent) return;
+      
+      // 更新页签状态
+      Array.from(tabsHeader.children).forEach((tab, i) => {
+        if (i === index) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+      
+      // 更新内容面板状态
+      Array.from(tabsContent.children).forEach((panel, i) => {
+        if (i === index) {
+          panel.classList.add('active');
+        } else {
+          panel.classList.remove('active');
+        }
+      });
+      
+      // 更新当前主题过滤和活动页签索引
+      if (userTopics[index]) {
+        currentTopicFilter = userTopics[index].topic_keywords;
+        window.currentArticlesTopicIndex = index; // 保存当前活动页签索引
+        // 重新加载该主题的文章
+        loadArticlesForTopic(currentTopicFilter, index);
+      }
+    }
+    
+    // 为特定主题加载文章
+    async function loadArticlesForTopic(topicKeywords, tabIndex) {
+      const articlesListEl = document.getElementById(`articlesList-${tabIndex}`);
+      if (!articlesListEl) return;
+      
+      articlesListEl.innerHTML = '<div class="loading">加载中...</div>';
+      
+      try {
+        // 获取该主题的推荐信息源
+        const recommendedSources = topicRecommendationHistory[topicKeywords]?.recommended_sources || [];
+        const sourceNames = recommendedSources.map(s => s.sourceName || s.name).filter(Boolean);
+        
+        // 加载所有文章
+        const response = await fetch(`${API_BASE_URL}/news/list`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          const data = result.data;
+          
+          // 将所有文章展平到一个数组中
+          let topicArticles = [];
+          data.forEach(day => {
+            day.news.forEach(news => {
+              // 只包含属于该主题推荐信息源的文章
+              if (sourceNames.length === 0 || sourceNames.includes(news.source)) {
+                topicArticles.push({
+                  ...news,
+                  date: day.date
+                });
+              }
+            });
+          });
+          
+          // 更新统计信息
+          updateStatsForTab(topicArticles, tabIndex);
+          
+          // 加载信息源卡片（只显示该主题相关的信息源）
+          const sources = [...new Set(topicArticles.map(a => a.source))];
+          loadSourceCardsForTab(sources, tabIndex);
+          
+          // 存储该主题的文章数据
+          if (!window.topicArticlesData) {
+            window.topicArticlesData = {};
+          }
+          window.topicArticlesData[topicKeywords] = topicArticles;
+          
+          // 应用当前过滤和搜索
+          applyFiltersForTab(topicKeywords, tabIndex);
+        } else {
+          articlesListEl.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
+        }
+      } catch (error) {
+        articlesListEl.innerHTML = '<div class="empty-state"><p>加载失败: ' + error.message + '</p></div>';
+      }
+    }
+    
+    // 更新特定页签的统计信息
+    function updateStatsForTab(articles, tabIndex) {
+      document.getElementById(`totalArticles-${tabIndex}`).textContent = articles.length;
+      document.getElementById(`publishDateRange-${tabIndex}`).textContent = calculatePublishDateRange(articles);
+      document.getElementById(`recentArticlesCount-${tabIndex}`).textContent = calculateRecentArticlesCount(articles);
+    }
+    
+    // 为特定页签加载信息源卡片
+    function loadSourceCardsForTab(sources, tabIndex) {
+      const container = document.getElementById(`sourceFilterCards-${tabIndex}`);
+      if (!container) return;
+      
+      // 清空所有卡片，包括"全部"
+      container.innerHTML = '';
+      
+      // 重新创建"全部"卡片
+      const allCard = document.createElement('div');
+      allCard.className = 'source-card active';
+      allCard.setAttribute('data-source', 'all');
+      allCard.innerHTML = '<span>全部</span>';
+      allCard.onclick = () => filterArticlesBySourceInTab(tabIndex, null);
+      container.appendChild(allCard);
+      
+      // 添加信息源卡片
+      sources.forEach(source => {
+        const card = document.createElement('div');
+        card.className = 'source-card';
+        card.setAttribute('data-source', source);
+        card.textContent = source;
+        card.onclick = () => filterArticlesBySourceInTab(tabIndex, source);
+        container.appendChild(card);
+      });
+    }
+    
+    // 在特定页签中按信息源过滤
+    function filterArticlesBySourceInTab(tabIndex, source) {
+      const container = document.getElementById(`sourceFilterCards-${tabIndex}`);
+      if (!container) return;
+      
+      // 更新卡片状态
+      container.querySelectorAll('.source-card').forEach(card => {
+        card.classList.remove('active');
+        if ((source === null && card.getAttribute('data-source') === 'all') ||
+            (source !== null && card.getAttribute('data-source') === source)) {
+          card.classList.add('active');
+        }
+      });
+      
+      // 应用过滤
+      if (currentTopicFilter) {
+        applyFiltersForTab(currentTopicFilter, tabIndex, source);
+      }
+    }
+    
+    // 在特定页签中搜索文章
+    function searchArticlesInTab(tabIndex) {
+      const keyword = document.getElementById(`articlesSearchInput-${tabIndex}`)?.value.trim() || '';
+      const clearBtn = document.getElementById(`clearSearchBtn-${tabIndex}`);
+      
+      if (keyword) {
+        if (clearBtn) clearBtn.style.display = 'inline-block';
+      } else {
+        if (clearBtn) clearBtn.style.display = 'none';
+      }
+      
+      if (currentTopicFilter) {
+        applyFiltersForTab(currentTopicFilter, tabIndex);
+      }
+    }
+    
+    // 在特定页签中清除搜索
+    function clearSearchInTab(tabIndex) {
+      const input = document.getElementById(`articlesSearchInput-${tabIndex}`);
+      const clearBtn = document.getElementById(`clearSearchBtn-${tabIndex}`);
+      if (input) input.value = '';
+      if (clearBtn) clearBtn.style.display = 'none';
+      
+      if (currentTopicFilter) {
+        applyFiltersForTab(currentTopicFilter, tabIndex);
+      }
+    }
+    
+    // 为特定页签应用过滤和搜索
+    function applyFiltersForTab(topicKeywords, tabIndex, sourceFilter = null) {
+      const articlesListEl = document.getElementById(`articlesList-${tabIndex}`);
+      if (!articlesListEl) return;
+      
+      // 获取该主题的文章数据
+      const topicArticles = window.topicArticlesData?.[topicKeywords] || [];
+      let filtered = [...topicArticles];
+      
+      // 按信息源过滤
+      const sourceInput = document.querySelector(`#sourceFilterCards-${tabIndex} .source-card.active`);
+      const activeSource = sourceInput?.getAttribute('data-source');
+      if (sourceFilter !== null) {
+        // 使用传入的sourceFilter
+        if (sourceFilter !== 'all') {
+          filtered = filtered.filter(a => a.source === sourceFilter);
+        }
+      } else if (activeSource && activeSource !== 'all') {
+        filtered = filtered.filter(a => a.source === activeSource);
+      }
+      
+      // 按关键词搜索
+      const searchInput = document.getElementById(`articlesSearchInput-${tabIndex}`);
+      const keyword = searchInput?.value.trim() || '';
+      if (keyword) {
+        const keywordLower = keyword.toLowerCase();
+        filtered = filtered.filter(a => 
+          a.title.toLowerCase().includes(keywordLower) ||
+          (a.summary && a.summary.toLowerCase().includes(keywordLower)) ||
+          (a.content && a.content.toLowerCase().includes(keywordLower))
+        );
+      }
+      
+      // 渲染文章列表
+      renderArticlesForTab(filtered, tabIndex);
+    }
+    
+    // 为特定页签渲染文章列表
+    function renderArticlesForTab(articles, tabIndex) {
+      const articlesListEl = document.getElementById(`articlesList-${tabIndex}`);
+      if (!articlesListEl) return;
+      
+      if (articles.length === 0) {
+        articlesListEl.innerHTML = '<div class="empty-state"><p>暂无文章</p></div>';
+        return;
+      }
+      
+      articlesListEl.innerHTML = articles.map(article => `
+        <div class="article-card" onclick="viewArticle(${article.id})">
+          <div class="article-card-title">${escapeHtml(article.title)}</div>
+          <div class="article-card-meta">
+            <span class="article-card-source">${escapeHtml(article.source || '未知')}</span>
+            <span>${formatDate(article.publish_date)}</span>
+          </div>
+          ${article.summary ? `<div class="article-card-summary">${escapeHtml(article.summary.substring(0, 150))}${article.summary.length > 150 ? '...' : ''}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
     // 页面加载时
     window.onload = async function() {
       await initUser();
       await loadTopics();
       await loadUserSubscriptions(); // 加载用户订阅列表
       await loadAllRecommendationHistory(); // 加载所有推荐历史
-      await loadArticles();
+      await loadArticlesTopicsTabs(); // 加载文章阅读页面的主题页签
+      await loadArticles(); // 保留原有的loadArticles用于兼容
       await loadRefreshStatus();
       startArticlesAutoRefresh();
     };

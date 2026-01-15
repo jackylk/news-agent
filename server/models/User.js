@@ -203,24 +203,109 @@ class User {
   
   // 删除用户主题
   static removeTopic(userId, keywords, callback) {
-    // 先删除推荐历史
-    const deleteHistorySql = 'DELETE FROM recommendation_history WHERE user_id = $1 AND topic_keywords = $2';
-    db.query(deleteHistorySql, [userId, keywords])
+    let deletedSubscriptionCount = 0;
+    
+    // 1. 先获取该主题的推荐历史，找出推荐的信息源
+    const getHistorySql = 'SELECT recommended_sources FROM recommendation_history WHERE user_id = $1 AND topic_keywords = $2';
+    db.query(getHistorySql, [userId, keywords])
+      .then(result => {
+        if (result.rows.length === 0) {
+          // 没有推荐历史，直接删除主题
+          return Promise.resolve([]);
+        }
+        
+        const history = result.rows[0];
+        let recommendedSources = [];
+        
+        // 解析推荐信息源
+        if (history.recommended_sources) {
+          if (typeof history.recommended_sources === 'string') {
+            recommendedSources = JSON.parse(history.recommended_sources);
+          } else {
+            recommendedSources = history.recommended_sources;
+          }
+        }
+        
+        // 获取推荐信息源的名称列表
+        const sourceNames = recommendedSources.map(s => s.sourceName || s.name).filter(Boolean);
+        
+        if (sourceNames.length === 0) {
+          return Promise.resolve([]);
+        }
+        
+        // 2. 检查这些信息源是否还属于其他主题
+        // 获取该用户所有其他主题的推荐历史
+        const getOtherHistoriesSql = `
+          SELECT recommended_sources 
+          FROM recommendation_history 
+          WHERE user_id = $1 AND topic_keywords != $2
+        `;
+        return db.query(getOtherHistoriesSql, [userId, keywords])
+          .then(otherHistories => {
+            // 收集所有其他主题推荐的信息源名称
+            const otherTopicSourceNames = new Set();
+            otherHistories.rows.forEach(row => {
+              if (row.recommended_sources) {
+                let sources = [];
+                if (typeof row.recommended_sources === 'string') {
+                  sources = JSON.parse(row.recommended_sources);
+                } else {
+                  sources = row.recommended_sources;
+                }
+                sources.forEach(s => {
+                  const name = s.sourceName || s.name;
+                  if (name) {
+                    otherTopicSourceNames.add(name);
+                  }
+                });
+              }
+            });
+            
+            // 找出只属于当前主题的信息源（不在其他主题中）
+            const sourcesToDelete = sourceNames.filter(name => !otherTopicSourceNames.has(name));
+            
+            // 3. 删除这些只属于当前主题的订阅
+            if (sourcesToDelete.length > 0) {
+              const placeholders = sourcesToDelete.map((_, i) => `$${i + 3}`).join(', ');
+              const deleteSubscriptionsSql = `
+                DELETE FROM user_subscriptions 
+                WHERE user_id = $1 AND source_name IN (${placeholders})
+              `;
+              return db.query(deleteSubscriptionsSql, [userId, ...sourcesToDelete])
+                .then(deleteResult => {
+                  deletedSubscriptionCount = deleteResult.rowCount;
+                  return sourcesToDelete;
+                });
+            }
+            
+            return Promise.resolve([]);
+          });
+      })
       .then(() => {
-        // 再删除主题
+        // 4. 删除推荐历史
+        const deleteHistorySql = 'DELETE FROM recommendation_history WHERE user_id = $1 AND topic_keywords = $2';
+        return db.query(deleteHistorySql, [userId, keywords]);
+      })
+      .then(() => {
+        // 5. 删除主题
         const sql = 'DELETE FROM user_topics WHERE user_id = $1 AND topic_keywords = $2';
         return db.query(sql, [userId, keywords]);
       })
       .then(result => {
-        callback(null, { deleted: result.rowCount > 0 });
+        callback(null, { 
+          deleted: result.rowCount > 0,
+          deletedSubscriptionCount: deletedSubscriptionCount
+        });
       })
       .catch(err => callback(err, null));
   }
 
   // 删除用户主题（管理员用，可选择是否删除相关文章）
   static removeTopicByAdmin(userId, keywords, deleteArticles, callback) {
-    // 先获取要删除的文章数量（如果选择删除文章）
+    let deletedSubscriptionCount = 0;
     let articleCount = 0;
+    
+    // 1. 先获取要删除的文章数量（如果选择删除文章）
     const getArticleCountPromise = deleteArticles 
       ? db.query('SELECT COUNT(*) as count FROM news WHERE user_id = $1', [userId])
           .then(result => {
@@ -230,26 +315,105 @@ class User {
     
     getArticleCountPromise
       .then(() => {
-        // 如果选择删除文章，先删除该用户的所有文章
+        // 2. 如果选择删除文章，先删除该用户的所有文章
         if (deleteArticles && articleCount > 0) {
           return db.query('DELETE FROM news WHERE user_id = $1', [userId]);
         }
         return Promise.resolve({ rowCount: 0 });
       })
       .then(() => {
-        // 删除推荐历史
+        // 3. 获取该主题的推荐历史，找出推荐的信息源
+        const getHistorySql = 'SELECT recommended_sources FROM recommendation_history WHERE user_id = $1 AND topic_keywords = $2';
+        return db.query(getHistorySql, [userId, keywords]);
+      })
+      .then(result => {
+        if (result.rows.length === 0) {
+          // 没有推荐历史，直接删除主题
+          return Promise.resolve([]);
+        }
+        
+        const history = result.rows[0];
+        let recommendedSources = [];
+        
+        // 解析推荐信息源
+        if (history.recommended_sources) {
+          if (typeof history.recommended_sources === 'string') {
+            recommendedSources = JSON.parse(history.recommended_sources);
+          } else {
+            recommendedSources = history.recommended_sources;
+          }
+        }
+        
+        // 获取推荐信息源的名称列表
+        const sourceNames = recommendedSources.map(s => s.sourceName || s.name).filter(Boolean);
+        
+        if (sourceNames.length === 0) {
+          return Promise.resolve([]);
+        }
+        
+        // 4. 检查这些信息源是否还属于其他主题
+        // 获取该用户所有其他主题的推荐历史
+        const getOtherHistoriesSql = `
+          SELECT recommended_sources 
+          FROM recommendation_history 
+          WHERE user_id = $1 AND topic_keywords != $2
+        `;
+        return db.query(getOtherHistoriesSql, [userId, keywords])
+          .then(otherHistories => {
+            // 收集所有其他主题推荐的信息源名称
+            const otherTopicSourceNames = new Set();
+            otherHistories.rows.forEach(row => {
+              if (row.recommended_sources) {
+                let sources = [];
+                if (typeof row.recommended_sources === 'string') {
+                  sources = JSON.parse(row.recommended_sources);
+                } else {
+                  sources = row.recommended_sources;
+                }
+                sources.forEach(s => {
+                  const name = s.sourceName || s.name;
+                  if (name) {
+                    otherTopicSourceNames.add(name);
+                  }
+                });
+              }
+            });
+            
+            // 找出只属于当前主题的信息源（不在其他主题中）
+            const sourcesToDelete = sourceNames.filter(name => !otherTopicSourceNames.has(name));
+            
+            // 5. 删除这些只属于当前主题的订阅
+            if (sourcesToDelete.length > 0) {
+              const placeholders = sourcesToDelete.map((_, i) => `$${i + 3}`).join(', ');
+              const deleteSubscriptionsSql = `
+                DELETE FROM user_subscriptions 
+                WHERE user_id = $1 AND source_name IN (${placeholders})
+              `;
+              return db.query(deleteSubscriptionsSql, [userId, ...sourcesToDelete])
+                .then(deleteResult => {
+                  deletedSubscriptionCount = deleteResult.rowCount;
+                  return sourcesToDelete;
+                });
+            }
+            
+            return Promise.resolve([]);
+          });
+      })
+      .then(() => {
+        // 6. 删除推荐历史
         const deleteHistorySql = 'DELETE FROM recommendation_history WHERE user_id = $1 AND topic_keywords = $2';
         return db.query(deleteHistorySql, [userId, keywords]);
       })
       .then(() => {
-        // 删除主题
+        // 7. 删除主题
         const sql = 'DELETE FROM user_topics WHERE user_id = $1 AND topic_keywords = $2';
         return db.query(sql, [userId, keywords]);
       })
       .then(result => {
         callback(null, { 
           deleted: result.rowCount > 0,
-          deletedArticleCount: deleteArticles ? articleCount : 0
+          deletedArticleCount: deleteArticles ? articleCount : 0,
+          deletedSubscriptionCount: deletedSubscriptionCount
         });
       })
       .catch(err => callback(err, null));
@@ -327,8 +491,35 @@ class User {
       .catch(err => callback(err, null));
   }
   
+  // 获取所有用户的订阅列表（管理员用）
+  static getAllSubscriptions(callback) {
+    const sql = `
+      SELECT 
+        us.id, us.user_id, us.source_name, us.source_url, us.source_type, us.category, us.created_at,
+        u.username, u.email
+      FROM user_subscriptions us
+      JOIN users u ON us.user_id = u.id
+      ORDER BY us.created_at DESC
+    `;
+    db.query(sql, [])
+      .then(result => {
+        callback(null, result.rows);
+      })
+      .catch(err => callback(err, null));
+  }
+  
   // 删除用户订阅
   static removeSubscription(userId, sourceName, callback) {
+    const sql = 'DELETE FROM user_subscriptions WHERE user_id = $1 AND source_name = $2';
+    db.query(sql, [userId, sourceName])
+      .then(result => {
+        callback(null, { deleted: result.rowCount > 0 });
+      })
+      .catch(err => callback(err, null));
+  }
+  
+  // 删除用户订阅（管理员用，可以指定用户ID）
+  static removeSubscriptionByAdmin(userId, sourceName, callback) {
     const sql = 'DELETE FROM user_subscriptions WHERE user_id = $1 AND source_name = $2';
     db.query(sql, [userId, sourceName])
       .then(result => {

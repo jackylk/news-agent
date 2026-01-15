@@ -182,11 +182,80 @@ router.delete('/topics/:userId/:keywords', authenticateAdmin, (req, res) => {
     });
   }
   
-  User.removeTopicByAdmin(userId, keywords, deleteArticles, (err, result) => {
+    User.removeTopicByAdmin(userId, keywords, deleteArticles, (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: '删除主题词失败',
+          error: err.message
+        });
+      }
+      
+      if (!result.deleted) {
+        return res.status(404).json({
+          success: false,
+          message: '主题词不存在'
+        });
+      }
+      
+      let message = '主题词删除成功';
+      if (deleteArticles && result.deletedArticleCount > 0) {
+        message += `，已删除 ${result.deletedArticleCount} 篇相关文章`;
+      }
+      if (result.deletedSubscriptionCount > 0) {
+        message += `，已删除 ${result.deletedSubscriptionCount} 个相关订阅信息源`;
+      }
+      
+      res.json({
+        success: true,
+        message: message,
+        deletedArticleCount: result.deletedArticleCount || 0,
+        deletedSubscriptionCount: result.deletedSubscriptionCount || 0
+      });
+    });
+});
+
+// 获取所有用户的订阅信息源列表（管理员用）
+router.get('/subscriptions', authenticateAdmin, (req, res) => {
+  User.getAllSubscriptions((err, subscriptions) => {
     if (err) {
       return res.status(500).json({
         success: false,
-        message: '删除主题词失败',
+        message: '获取订阅列表失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      data: subscriptions || []
+    });
+  });
+});
+
+// 删除用户订阅信息源（管理员用）
+router.delete('/subscriptions/:userId/:sourceName', authenticateAdmin, (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const sourceName = decodeURIComponent(req.params.sourceName);
+  
+  if (isNaN(userId)) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的用户ID'
+    });
+  }
+  
+  if (!sourceName || sourceName.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: '信息源名称不能为空'
+    });
+  }
+  
+  User.removeSubscriptionByAdmin(userId, sourceName, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '删除订阅失败',
         error: err.message
       });
     }
@@ -194,19 +263,13 @@ router.delete('/topics/:userId/:keywords', authenticateAdmin, (req, res) => {
     if (!result.deleted) {
       return res.status(404).json({
         success: false,
-        message: '主题词不存在'
+        message: '订阅不存在'
       });
-    }
-    
-    let message = '主题词删除成功';
-    if (deleteArticles && result.deletedArticleCount > 0) {
-      message += `，已删除 ${result.deletedArticleCount} 篇相关文章`;
     }
     
     res.json({
       success: true,
-      message: message,
-      deletedArticleCount: result.deletedArticleCount || 0
+      message: `已删除用户订阅信息源 "${sourceName}"`
     });
   });
 });

@@ -96,9 +96,15 @@ router.delete('/topics/:keywords', (req, res) => {
       });
     }
     
+    let message = '主题删除成功';
+    if (result.deletedSubscriptionCount > 0) {
+      message += `，已删除 ${result.deletedSubscriptionCount} 个相关订阅信息源`;
+    }
+    
     res.json({
       success: true,
-      message: '主题删除成功'
+      message: message,
+      deletedSubscriptionCount: result.deletedSubscriptionCount || 0
     });
   });
 });
@@ -118,70 +124,143 @@ router.post('/topics/recommend', async (req, res) => {
   const processLogs = [];
   const startTime = Date.now();
   
+  // 后台日志：开始推荐
+  console.log(`\n[推荐信息源] 用户 ${req.user.id} (${req.user.username}) 开始为关键词 "${trimmedKeywords}" 获取推荐信息源...`);
+  
   try {
     // 记录开始
-    processLogs.push({
+    const startLog = {
       message: `开始为关键词 "${trimmedKeywords}" 获取推荐信息源...`,
       type: 'loading',
       timestamp: new Date().toISOString()
-    });
+    };
+    processLogs.push(startLog);
+    console.log(`[推荐信息源] ${startLog.message}`);
     
-    processLogs.push({
+    const apiCallLog = {
       message: '正在调用 DeepSeek API...',
       type: 'loading',
       timestamp: new Date().toISOString()
-    });
+    };
+    processLogs.push(apiCallLog);
+    console.log(`[推荐信息源] ${apiCallLog.message}`);
     
-    processLogs.push({
+    const paramsLog = {
       message: `请求参数: { keywords: "${trimmedKeywords}" }`,
       type: 'info',
       timestamp: new Date().toISOString()
-    });
+    };
+    processLogs.push(paramsLog);
+    console.log(`[推荐信息源] ${paramsLog.message}`);
     
     const recommender = new TopicRecommender();
+    console.log(`[推荐信息源] 调用 DeepSeek API 获取推荐...`);
     const sources = await recommender.recommendSources(trimmedKeywords);
+    console.log(`[推荐信息源] DeepSeek API 返回 ${sources.length} 个推荐信息源`);
     
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    processLogs.push({
+    const apiCompleteLog = {
       message: `API 调用完成，耗时 ${elapsedTime} 秒`,
       type: 'success',
       timestamp: new Date().toISOString()
-    });
+    };
+    processLogs.push(apiCompleteLog);
+    console.log(`[推荐信息源] ${apiCompleteLog.message}`);
     
-    processLogs.push({
+    const successLog = {
       message: `成功获取 ${sources.length} 个推荐信息源`,
       type: 'success',
       timestamp: new Date().toISOString()
+    };
+    processLogs.push(successLog);
+    console.log(`[推荐信息源] ${successLog.message}`);
+    
+    // 开始验证信息源
+    const validateStartLog = {
+      message: `开始验证 ${sources.length} 个信息源的有效性...`,
+      type: 'loading',
+      timestamp: new Date().toISOString()
+    };
+    processLogs.push(validateStartLog);
+    console.log(`[推荐信息源] ${validateStartLog.message}`);
+    
+    // 验证信息源，带进度回调
+    const validatedSources = await recommender.validateSources(sources, (sourceName, sourceUrl, result) => {
+      if (result.validating) {
+        const validatingLog = {
+          message: `正在验证: ${sourceName} (${sourceUrl})...`,
+          type: 'loading',
+          timestamp: new Date().toISOString()
+        };
+        processLogs.push(validatingLog);
+        console.log(`[推荐信息源] ${validatingLog.message}`);
+      } else if (result.valid) {
+        const validLog = {
+          message: `✓ ${sourceName} 验证通过`,
+          type: 'success',
+          timestamp: new Date().toISOString()
+        };
+        processLogs.push(validLog);
+        console.log(`[推荐信息源] ${validLog.message}`);
+      } else {
+        const invalidLog = {
+          message: `✗ ${sourceName} 验证失败: ${result.error || '无效的RSS源'}`,
+          type: 'error',
+          timestamp: new Date().toISOString()
+        };
+        processLogs.push(invalidLog);
+        console.log(`[推荐信息源] ${invalidLog.message}`);
+      }
     });
     
-    // 保存推荐历史到数据库
+    // 统计验证结果
+    const validCount = validatedSources.filter(s => s.isValid).length;
+    const invalidCount = validatedSources.filter(s => !s.isValid).length;
+    
+    const validateCompleteLog = {
+      message: `验证完成: ${validCount} 个有效，${invalidCount} 个无效`,
+      type: validCount > 0 ? 'success' : 'warning',
+      timestamp: new Date().toISOString()
+    };
+    processLogs.push(validateCompleteLog);
+    console.log(`[推荐信息源] ${validateCompleteLog.message}`);
+    console.log(`[推荐信息源] 推荐完成，共 ${validatedSources.length} 个信息源，其中 ${validCount} 个有效，${invalidCount} 个无效\n`);
+    
+    // 保存推荐历史到数据库（包含验证结果）
+    console.log(`[推荐信息源] 正在保存推荐历史到数据库...`);
     User.saveRecommendationHistory(
       req.user.id,
       trimmedKeywords,
       processLogs,
-      sources,
+      validatedSources,
       (err, result) => {
         if (err) {
-          console.error('保存推荐历史失败:', err);
+          console.error('[推荐信息源] 保存推荐历史失败:', err);
           // 即使保存失败，也返回推荐结果
+        } else {
+          console.log(`[推荐信息源] 推荐历史已保存到数据库`);
         }
       }
     );
     
     res.json({
       success: true,
-      data: sources,
+      data: validatedSources,
       processLogs: processLogs,
-      message: `已找到 ${sources.length} 个推荐信息源`
+      message: `已找到 ${sources.length} 个推荐信息源，其中 ${validCount} 个有效，${invalidCount} 个无效`
     });
   } catch (error) {
-    processLogs.push({
+    const errorLog = {
       message: `API 调用异常: ${error.message}`,
       type: 'error',
       timestamp: new Date().toISOString()
-    });
+    };
+    processLogs.push(errorLog);
+    console.error(`[推荐信息源] ${errorLog.message}`);
+    console.error(`[推荐信息源] 错误详情:`, error);
     
     // 即使失败也保存错误日志
+    console.log(`[推荐信息源] 正在保存错误日志到数据库...`);
     User.saveRecommendationHistory(
       req.user.id,
       trimmedKeywords,
@@ -189,7 +268,9 @@ router.post('/topics/recommend', async (req, res) => {
       [],
       (err, result) => {
         if (err) {
-          console.error('保存推荐历史失败:', err);
+          console.error('[推荐信息源] 保存推荐历史失败:', err);
+        } else {
+          console.log(`[推荐信息源] 错误日志已保存到数据库`);
         }
       }
     );
