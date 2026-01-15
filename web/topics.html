@@ -296,10 +296,12 @@
   <script>
     // API 基础地址
     const API_BASE_URL = (() => {
+      // 自动检测：如果是本地开发，使用本地API；否则使用当前域名的API
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return `${window.location.protocol}//${window.location.host}/api`;
       }
-      return 'https://news-agent-production-c5db.up.railway.app/api';
+      // 生产环境：使用当前域名（Railway会自动提供域名）
+      return `${window.location.protocol}//${window.location.host}/api`;
     })();
 
     let authToken = localStorage.getItem('authToken');

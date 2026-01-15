@@ -740,10 +740,12 @@
       // 验证 token 是否有效（异步，但不等待结果，先跳转）
       // 如果 token 无效，login.html 会处理
       const API_BASE_URL = (() => {
+        // 自动检测：如果是本地开发，使用本地API；否则使用当前域名的API
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
           return `${window.location.protocol}//${window.location.host}/api`;
         }
-        return 'https://news-agent-production-c5db.up.railway.app/api';
+        // 生产环境：使用当前域名（Railway会自动提供域名）
+        return `${window.location.protocol}//${window.location.host}/api`;
       })();
       
       fetch(`${API_BASE_URL}/auth/me`, {
