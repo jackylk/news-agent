@@ -152,12 +152,14 @@
       background-color: #218838;
     }
 
-    .btn-delete {
+    .btn-delete,
+    .btn-clear {
       background-color: #dc3545;
       color: white;
     }
 
-    .btn-delete:hover {
+    .btn-delete:hover,
+    .btn-clear:hover {
       background-color: #c82333;
     }
 
@@ -206,7 +208,7 @@
 
     <div class="auth-section" id="authSection">
       <h3>管理员认证</h3>
-      <input type="password" id="adminToken" placeholder="请输入管理员令牌" />
+      <input type="password" id="adminToken" placeholder="请输入管理员令牌" onkeypress="handleKeyPress(event)" />
       <button onclick="authenticate()">登录</button>
     </div>
 
@@ -268,6 +270,12 @@
       loadSources();
     }
 
+    function handleKeyPress(event) {
+      if (event.key === 'Enter' || event.keyCode === 13) {
+        authenticate();
+      }
+    }
+
     function getHeaders() {
       return {
         'Content-Type': 'application/json',
@@ -323,7 +331,7 @@
               <td>
                 <div class="action-buttons">
                   <button class="btn btn-refresh" onclick="refreshSource('${escapeHtml(source.source)}')">刷新</button>
-                  <button class="btn btn-delete" onclick="deleteSource('${escapeHtml(source.source)}')">删除</button>
+                  <button class="btn btn-delete" onclick="clearSource('${escapeHtml(source.source)}')">清空</button>
                 </div>
               </td>
             `;
@@ -367,12 +375,12 @@
       }
     }
 
-    async function deleteSource(source) {
-      if (!confirm(`确定要删除来源 "${source}" 的所有数据吗？此操作不可恢复！`)) {
+    async function clearSource(source) {
+      if (!confirm(`确定要清空来源 "${source}" 的所有数据吗？此操作不可恢复！`)) {
         return;
       }
       
-      if (!confirm('再次确认：此操作将永久删除该来源的所有新闻数据！')) {
+      if (!confirm('再次确认：此操作将永久清空该来源的所有新闻数据！')) {
         return;
       }
       
@@ -384,14 +392,14 @@
         const result = await response.json();
         
         if (result.success) {
-          showMessage(result.message || `已删除 ${result.deletedCount} 条数据`, 'success');
+          showMessage(result.message || `已清空 ${result.deletedCount} 条数据`, 'success');
           loadSources();
           loadStats();
         } else {
-          showMessage(result.message || '删除失败', 'error');
+          showMessage(result.message || '清空失败', 'error');
         }
       } catch (error) {
-        showMessage('删除失败: ' + error.message, 'error');
+        showMessage('清空失败: ' + error.message, 'error');
       }
     }
 
