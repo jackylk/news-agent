@@ -461,6 +461,52 @@ class News {
       }
     });
   }
+
+  // 删除某个来源的所有新闻
+  static deleteBySource(source, callback) {
+    const sql = `DELETE FROM news WHERE TRIM(source) = TRIM($1)`;
+    
+    db.query(sql, [source])
+      .then(result => {
+        const deletedCount = result.rowCount || 0;
+        console.log(`已删除来源 "${source}" 的 ${deletedCount} 条新闻`);
+        callback(null, deletedCount);
+      })
+      .catch(err => {
+        console.error('删除来源新闻失败:', err);
+        callback(err, null);
+      });
+  }
+
+  // 获取来源的详细信息（包括新闻数量、最新更新时间等）
+  static getSourceDetails(callback) {
+    const sql = `
+      SELECT 
+        source,
+        COUNT(*) as count,
+        MAX(created_at) as last_updated,
+        MIN(created_at) as first_added,
+        MAX(publish_date) as latest_publish_date
+      FROM news
+      GROUP BY source
+      ORDER BY count DESC
+    `;
+    
+    db.query(sql, [])
+      .then(result => {
+        const sources = result.rows.map(row => ({
+          source: row.source,
+          count: parseInt(row.count, 10),
+          lastUpdated: serializeDate(row.last_updated),
+          firstAdded: serializeDate(row.first_added),
+          latestPublishDate: serializeDate(row.latest_publish_date)
+        }));
+        callback(null, sources);
+      })
+      .catch(err => {
+        callback(err, null);
+      });
+  }
 }
 
 module.exports = News;

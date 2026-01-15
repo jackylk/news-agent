@@ -11,6 +11,7 @@ if (majorVersion < 20) {
 const express = require('express');
 const cors = require('cors');
 const newsRoutes = require('./routes/news');
+const adminRoutes = require('./routes/admin');
 const NewsCollector = require('./services/newsCollector');
 const cron = require('node-cron');
 
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // 路由
 app.use('/api/news', newsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 健康检查
 app.get('/health', (req, res) => {
@@ -59,6 +61,11 @@ app.listen(PORT, () => {
   console.log(`  GET  /api/news/list - 获取新闻列表`);
   console.log(`  GET  /api/news/:id - 获取新闻详情`);
   console.log(`  POST /api/collect - 手动触发新闻收集`);
+  console.log(`管理接口:`);
+  console.log(`  GET    /api/admin/sources - 获取所有来源列表（需要管理员令牌）`);
+  console.log(`  DELETE /api/admin/source/:source - 删除某个来源的数据（需要管理员令牌）`);
+  console.log(`  POST   /api/admin/source/:source/refresh - 刷新某个来源的数据（需要管理员令牌）`);
+  console.log(`  GET    /api/admin/stats - 获取系统统计信息（需要管理员令牌）`);
   console.log(`数据库已持久化，启动时不再自动收集新闻`);
   console.log(`新闻收集方式：`);
   console.log(`  - 定时任务：每30分钟自动收集`);

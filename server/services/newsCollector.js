@@ -446,6 +446,187 @@ class NewsCollector {
     }
   }
 
+  // 从指定来源收集新闻
+  async collectFromSource(sourceName) {
+    console.log(`开始从来源 "${sourceName}" 收集新闻...`);
+    
+    // 检查是否是RSS源
+    for (const feedUrl of RSS_FEEDS) {
+      try {
+        const feed = await parser.parseURL(feedUrl);
+        const sourceNameFromFeed = SOURCE_NAME_MAP[feed.title] || feed.title || '未知来源';
+        
+        if (sourceNameFromFeed === sourceName || feed.title === sourceName) {
+          // 找到匹配的RSS源，收集该源
+          return await this.collectFromRSSFeed(feedUrl);
+        }
+      } catch (error) {
+        // 继续检查下一个
+      }
+    }
+    
+    // 检查是否是博客源
+    for (const blogConfig of BLOG_SOURCES) {
+      if (blogConfig.name === sourceName) {
+        // 找到匹配的博客源，收集该博客
+        return await this.collectFromBlog(blogConfig);
+      }
+    }
+    
+    throw new Error(`未找到来源 "${sourceName}"`);
+  }
+
+  // 从单个RSS源收集
+  async collectFromRSSFeed(feedUrl) {
+    console.log(`正在处理RSS源: ${feedUrl}`);
+    let collectedCount = 0;
+
+    try {
+      const feed = await parser.parseURL(feedUrl);
+      const sourceName = SOURCE_NAME_MAP[feed.title] || feed.title || '未知来源';
+      const category = getCategoryBySource(sourceName);
+      
+      for (const item of feed.items) {
+        const exists = await new Promise((resolve, reject) => {
+          News.exists(item.link || item.guid, (err, exists) => {
+            if (err) reject(err);
+            else resolve(exists);
+          });
+        });
+
+        if (!exists) {
+          const content = this.extractContent(item);
+          const summary = this.extractSummary(item, content);
+          
+          const newsData = {
+            title: item.title || '无标题',
+            content: content,
+            summary: summary,
+            source: sourceName,
+            category: category,
+            url: item.link || item.guid || '',
+            image_url: this.extractImage(item),
+            publish_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()
+          };
+
+          await new Promise((resolve, reject) => {
+            News.create(newsData, (err, result) => {
+              if (err) reject(err);
+              else {
+                collectedCount++;
+                console.log(`已收集: ${newsData.title}`);
+                resolve(result);
+              }
+            });
+          });
+        }
+      }
+
+      console.log(`从RSS源 "${sourceName}" 收集完成，共收集 ${collectedCount} 条新新闻`);
+      return collectedCount;
+    } catch (error) {
+      console.error(`处理RSS源 ${feedUrl} 时出错:`, error.message);
+      throw error;
+    }
+  }
+
+  // 从单个博客收集
+  async collectFromBlog(blogConfig) {
+    console.log(`正在处理博客: ${blogConfig.name}`);
+    let collectedCount = 0;
+
+    try {
+      const listResponse = await axios.get(blogConfig.listUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        timeout: 30000,
+      });
+
+      const $ = cheerio.load(listResponse.data);
+      const articleLinks = [];
+
+      $(blogConfig.listSelector).each((i, elem) => {
+        if (i >= blogConfig.maxArticles) return false;
+        const href = $(elem).attr('href');
+        if (href) {
+          let fullUrl = href;
+          if (href.startsWith('/')) {
+            fullUrl = blogConfig.baseUrl + href;
+          } else if (!href.startsWith('http')) {
+            fullUrl = blogConfig.listUrl + '/' + href;
+          }
+          if (fullUrl.includes('/blog/') || fullUrl.includes('/post/') || fullUrl.includes('/news/')) {
+            articleLinks.push(fullUrl);
+          }
+        }
+      });
+
+      const uniqueLinks = [...new Set(articleLinks)];
+
+      for (const articleUrl of uniqueLinks.slice(0, blogConfig.maxArticles)) {
+        try {
+          const exists = await new Promise((resolve, reject) => {
+            News.exists(articleUrl, (err, exists) => {
+              if (err) reject(err);
+              else resolve(exists);
+            });
+          });
+
+          if (exists) continue;
+
+          const articleData = await new Promise((resolve, reject) => {
+            this.extractArticleFromUrl(articleUrl, blogConfig, (err, data) => {
+              if (err) reject(err);
+              else resolve(data);
+            });
+          });
+
+          if (articleData) {
+            await new Promise((resolve, reject) => {
+              News.create(articleData, (err, result) => {
+                if (err) reject(err);
+                else {
+                  collectedCount++;
+                  console.log(`已收集: ${articleData.title}`);
+                  resolve(result);
+                }
+              });
+            });
+          }
+
+          await this.sleep(2000);
+        } catch (error) {
+          console.error(`处理文章 ${articleUrl} 时出错:`, error.message);
+        }
+      }
+
+      console.log(`从博客 "${blogConfig.name}" 收集完成，共收集 ${collectedCount} 条新新闻`);
+      return collectedCount;
+    } catch (error) {
+      console.error(`处理博客 ${blogConfig.name} 时出错:`, error.message);
+      throw error;
+    }
+  }
+
+  // 综合收集：同时从RSS和博客收集
+  async collectAll() {
+    console.log('开始综合收集新闻（RSS + 博客）...');
+    
+    // 并行收集RSS和博客
+    await Promise.all([
+      this.collectFromRSS().catch(err => {
+        console.error('RSS收集失败:', err);
+      }),
+      this.collectFromBlogs().catch(err => {
+        console.error('博客收集失败:', err);
+      }),
+    ]);
+    
+    console.log('综合收集完成');
+  }
+
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
