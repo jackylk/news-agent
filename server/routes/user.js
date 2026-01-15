@@ -145,14 +145,6 @@ router.post('/topics/recommend', async (req, res) => {
     processLogs.push(apiCallLog);
     console.log(`[推荐信息源] ${apiCallLog.message}`);
     
-    const paramsLog = {
-      message: `请求参数: { keywords: "${trimmedKeywords}" }`,
-      type: 'info',
-      timestamp: new Date().toISOString()
-    };
-    processLogs.push(paramsLog);
-    console.log(`[推荐信息源] ${paramsLog.message}`);
-    
     const recommender = new TopicRecommender();
     console.log(`[推荐信息源] 调用 DeepSeek API 获取推荐...`);
     const sources = await recommender.recommendSources(trimmedKeywords);
