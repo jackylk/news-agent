@@ -49,6 +49,17 @@ app.post('/api/collect', async (req, res) => {
     const db = require('./config/database');
     const collector = new NewsCollector();
     
+    // 设置流式响应头
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    
+    // 发送初始消息
+    const sendProgress = (data) => {
+      res.write(JSON.stringify(data) + '\n');
+    };
+    
     // 尝试从请求头获取用户token
     const token = req.headers['authorization']?.replace('Bearer ', '') || req.query.token;
     let userId = null;
@@ -84,10 +95,12 @@ app.post('/api/collect', async (req, res) => {
         );
         
         if (historyResult.rows.length === 0) {
-          return res.json({ 
-            success: true, 
+          sendProgress({ 
+            type: 'error',
+            success: false, 
             message: `主题 "${topicKeywords}" 没有推荐历史，请先在订阅管理页面为该主题获取推荐信息源` 
           });
+          return res.end();
         }
         
         // 2. 解析推荐信息源
@@ -105,10 +118,12 @@ app.post('/api/collect', async (req, res) => {
         const recommendedSourceNames = recommendedSources.map(s => s.sourceName || s.name).filter(Boolean);
         
         if (recommendedSourceNames.length === 0) {
-          return res.json({ 
-            success: true, 
+          sendProgress({ 
+            type: 'error',
+            success: false, 
             message: `主题 "${topicKeywords}" 没有推荐信息源` 
           });
+          return res.end();
         }
         
         // 4. 从用户订阅中筛选出属于该主题的订阅
@@ -122,10 +137,12 @@ app.post('/api/collect', async (req, res) => {
         );
         
         if (subscriptionsToCollect.length === 0) {
-          return res.json({ 
-            success: true, 
+          sendProgress({ 
+            type: 'error',
+            success: false, 
             message: `主题 "${topicKeywords}" 的推荐信息源尚未订阅，请先在订阅管理页面订阅这些信息源` 
           });
+          return res.end();
         }
       } else {
         // 没有指定主题，收集该用户的所有订阅
@@ -138,28 +155,53 @@ app.post('/api/collect', async (req, res) => {
       }
       
       if (subscriptionsToCollect.length === 0) {
-        return res.json({ 
-          success: true, 
+        sendProgress({ 
+          type: 'error',
+          success: false, 
           message: '您还没有订阅任何信息源，请先在订阅管理页面添加主题并订阅信息源' 
         });
+        return res.end();
       }
       
-      await collector.collectForUser(userId, subscriptionsToCollect);
-      res.json({ 
+      // 发送开始消息
+      sendProgress({
+        type: 'start',
+        message: `开始收集新闻，共 ${subscriptionsToCollect.length} 个订阅源${topicKeywords ? `（主题：${topicKeywords}）` : ''}`,
+        total: subscriptionsToCollect.length
+      });
+      
+      // 收集新闻，传入进度回调
+      await collector.collectForUser(userId, subscriptionsToCollect, (progress) => {
+        sendProgress(progress);
+      });
+      
+      // 发送完成消息
+      sendProgress({ 
+        type: 'final',
         success: true, 
         message: `新闻收集完成，已从 ${subscriptionsToCollect.length} 个订阅源收集新闻${topicKeywords ? `（主题：${topicKeywords}）` : ''}` 
       });
+      
+      res.end();
     } else {
-      // 为所有用户收集其订阅的信息源
+      // 为所有用户收集其订阅的信息源（不支持进度显示，因为涉及多个用户）
       const usersResult = await db.query('SELECT DISTINCT user_id FROM user_subscriptions');
       const userIds = usersResult.rows.map(row => row.user_id);
       
       if (userIds.length === 0) {
-        return res.json({ 
-          success: true, 
+        sendProgress({ 
+          type: 'error',
+          success: false, 
           message: '没有用户订阅，跳过收集' 
         });
+        return res.end();
       }
+      
+      sendProgress({
+        type: 'start',
+        message: `开始为 ${userIds.length} 个用户收集新闻`,
+        total: userIds.length
+      });
       
       let totalCollected = 0;
       for (const uid of userIds) {
@@ -177,14 +219,22 @@ app.post('/api/collect', async (req, res) => {
         totalCollected += count;
       }
       
-      res.json({ 
+      sendProgress({ 
+        type: 'final',
         success: true, 
         message: `新闻收集完成，已为 ${userIds.length} 个用户收集新闻` 
       });
+      
+      res.end();
     }
   } catch (error) {
     console.error('收集新闻失败:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.write(JSON.stringify({ 
+      type: 'error',
+      success: false, 
+      message: error.message 
+    }) + '\n');
+    res.end();
   }
 });
 

@@ -961,32 +961,84 @@ class NewsCollector {
   }
 
   // 按用户订阅收集新闻
-  async collectForUser(userId, subscriptions) {
+  async collectForUser(userId, subscriptions, onProgress = null) {
     console.log(`开始为用户 ${userId} 收集新闻，共 ${subscriptions.length} 个订阅源...`);
     let totalCollected = 0;
+    const totalSources = subscriptions.length;
 
-    for (const subscription of subscriptions) {
+    for (let index = 0; index < subscriptions.length; index++) {
+      const subscription = subscriptions[index];
       try {
         const { source_url, source_type, source_name, category } = subscription;
         
+        // 报告进度：开始处理某个源
+        if (onProgress) {
+          onProgress({
+            type: 'progress',
+            current: index + 1,
+            total: totalSources,
+            sourceName: source_name,
+            status: 'collecting',
+            message: `正在收集: ${source_name} (${index + 1}/${totalSources})`
+          });
+        }
+        
+        let count = 0;
         if (source_type === 'rss' || source_url.includes('/rss') || source_url.includes('/feed')) {
           // RSS源
-          const count = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category);
+          count = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category);
           totalCollected += count;
         } else {
           // 博客或其他类型，尝试作为博客处理
-          const count = await this.collectFromBlogForUser(source_url, userId, source_name, category);
+          count = await this.collectFromBlogForUser(source_url, userId, source_name, category);
           totalCollected += count;
+        }
+        
+        // 报告进度：完成某个源
+        if (onProgress) {
+          onProgress({
+            type: 'progress',
+            current: index + 1,
+            total: totalSources,
+            sourceName: source_name,
+            status: 'completed',
+            collected: count,
+            message: `完成: ${source_name}，收集 ${count} 条新闻 (${index + 1}/${totalSources})`
+          });
         }
         
         // 避免请求过快
         await this.sleep(1000);
       } catch (error) {
         console.error(`为用户 ${userId} 收集订阅源 "${subscription.source_name}" 失败:`, error.message);
+        
+        // 报告进度：错误
+        if (onProgress) {
+          onProgress({
+            type: 'progress',
+            current: index + 1,
+            total: totalSources,
+            sourceName: subscription.source_name,
+            status: 'error',
+            error: error.message,
+            message: `失败: ${subscription.source_name} - ${error.message} (${index + 1}/${totalSources})`
+          });
+        }
       }
     }
 
     console.log(`为用户 ${userId} 收集完成，共收集 ${totalCollected} 条新新闻`);
+    
+    // 报告最终结果
+    if (onProgress) {
+      onProgress({
+        type: 'complete',
+        totalCollected: totalCollected,
+        totalSources: totalSources,
+        message: `收集完成！共从 ${totalSources} 个源收集 ${totalCollected} 条新闻`
+      });
+    }
+    
     return totalCollected;
   }
 
