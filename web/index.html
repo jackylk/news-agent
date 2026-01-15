@@ -726,6 +726,52 @@
       }
     }
   </style>
+  <script>
+    // 页面加载前立即检查认证状态
+    (function() {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        // 没有 token，立即跳转到登录页
+        window.location.href = '/login.html';
+        return;
+      }
+      
+      // 验证 token 是否有效（异步，但不等待结果，先跳转）
+      // 如果 token 无效，login.html 会处理
+      const API_BASE_URL = (() => {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          return `${window.location.protocol}//${window.location.host}/api`;
+        }
+        return 'https://news-agent-production-c5db.up.railway.app/api';
+      })();
+      
+      fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (result.success) {
+            // token 有效，跳转到用户中心
+            window.location.href = '/dashboard.html';
+          } else {
+            // token 无效，清除并跳转到登录页
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userInfo');
+            window.location.href = '/login.html';
+          }
+        })
+        .catch(error => {
+          // 验证失败，清除并跳转到登录页
+          console.error('验证用户失败:', error);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userInfo');
+          window.location.href = '/login.html';
+        });
+    })();
+  </script>
 </head>
 <body>
   <div class="container">
@@ -1968,8 +2014,60 @@
       return summaryParagraphs.join('\n\n');
     }
 
-    // 页面加载时自动加载新闻和新闻源
+    // 检查认证状态并决定跳转
+    async function checkAuthAndRedirect() {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        // 没有 token，跳转到登录页
+        window.location.href = '/login.html';
+        return false;
+      }
+      
+      // 验证 token 是否有效
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // token 有效，跳转到用户中心
+          window.location.href = '/dashboard.html';
+          return true;
+        } else {
+          // token 无效，清除并跳转到登录页
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userInfo');
+          window.location.href = '/login.html';
+          return false;
+        }
+      } catch (error) {
+        // 验证失败，清除并跳转到登录页
+        console.error('验证用户失败:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login.html';
+        return false;
+      }
+    }
+
+    // 页面加载时先检查认证状态
     window.onload = async function() {
+      // 先检查认证状态，如果有有效 token 会跳转到 dashboard
+      const isAuthenticated = await checkAuthAndRedirect();
+      
+      // 如果没有认证（会跳转到 login），下面的代码不会执行
+      // 如果认证了（会跳转到 dashboard），下面的代码也不会执行
+      // 但为了安全，我们还是检查一下
+      if (!isAuthenticated) {
+        return; // 已跳转到登录页，停止执行
+      }
+      
+      // 如果用户仍然在这个页面（理论上不应该），继续加载内容
       await loadUpdateInfo(); // 先加载更新信息
       await loadSources();
       await loadCategories();
