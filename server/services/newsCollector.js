@@ -986,11 +986,11 @@ class NewsCollector {
         let count = 0;
         if (source_type === 'rss' || source_url.includes('/rss') || source_url.includes('/feed')) {
           // RSS源
-          count = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category);
+          count = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category, 3, onProgress);
           totalCollected += count;
         } else {
           // 博客或其他类型，尝试作为博客处理
-          count = await this.collectFromBlogForUser(source_url, userId, source_name, category);
+          count = await this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress);
           totalCollected += count;
         }
         
@@ -1043,7 +1043,7 @@ class NewsCollector {
   }
 
   // 从单个RSS源收集（带用户ID，带重试机制）
-  async collectFromRSSFeedForUser(feedUrl, userId, sourceName, category, maxRetries = 3) {
+  async collectFromRSSFeedForUser(feedUrl, userId, sourceName, category, maxRetries = 3, onProgress = null) {
     let lastError = null;
     let collectedCount = 0;
 
@@ -1132,6 +1132,19 @@ class NewsCollector {
                 else {
                   collectedCount++;
                   console.log(`[用户${userId}] 已收集: ${newsData.title}`);
+                  
+                  // 实时发送收集到的文章
+                  if (onProgress && result) {
+                    onProgress({
+                      type: 'articleCollected',
+                      article: {
+                        id: result.id,
+                        ...newsData,
+                        date: newsData.publish_date
+                      }
+                    });
+                  }
+                  
                   resolve(result);
                 }
               });
@@ -1173,7 +1186,7 @@ class NewsCollector {
   }
 
   // 从博客收集（带用户ID）
-  async collectFromBlogForUser(blogUrl, userId, sourceName, category) {
+  async collectFromBlogForUser(blogUrl, userId, sourceName, category, onProgress = null) {
     console.log(`开始从博客 ${blogUrl} 收集文章（用户 ${userId}）...`);
     let collectedCount = 0;
 
@@ -1276,6 +1289,19 @@ class NewsCollector {
                 } else {
                   collectedCount++;
                   console.log(`已收集: ${articleData.title}`);
+                  
+                  // 实时发送收集到的文章
+                  if (onProgress && result) {
+                    onProgress({
+                      type: 'articleCollected',
+                      article: {
+                        id: result.id,
+                        ...articleData,
+                        date: articleData.publish_date
+                      }
+                    });
+                  }
+                  
                   resolve(result);
                 }
               });

@@ -208,7 +208,7 @@ class TopicRecommender {
   /**
    * 验证多个信息源URL
    * @param {Array} sources - 信息源列表
-   * @param {Function} onProgress - 进度回调函数 (sourceName, url, result) => void
+   * @param {Function} onProgress - 进度回调函数 (sourceName, url, result, sourceData) => void
    * @returns {Promise<Array>} 带验证结果的信息源列表
    */
   async validateSources(sources, onProgress = null) {
@@ -220,7 +220,7 @@ class TopicRecommender {
       
       // 调用进度回调
       if (onProgress) {
-        onProgress(sourceName, sourceUrl, { validating: true });
+        onProgress(sourceName, sourceUrl, { validating: true }, source);
       }
       
       // 验证URL
@@ -235,9 +235,9 @@ class TopicRecommender {
       
       validatedSources.push(validatedSource);
       
-      // 调用进度回调
+      // 调用进度回调，传入完整的源数据
       if (onProgress) {
-        onProgress(sourceName, sourceUrl, validationResult);
+        onProgress(sourceName, sourceUrl, validationResult, source);
       }
       
       // 避免请求过快，每个请求间隔500ms

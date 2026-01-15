@@ -198,7 +198,8 @@ router.post('/topics/recommend', async (req, res) => {
     console.log(`[推荐信息源] ${validateStartLog.message}`);
     
     // 验证信息源，带进度回调（实时推送）
-    const validatedSources = await recommender.validateSources(sources, (sourceName, sourceUrl, result) => {
+    const validatedSources = [];
+    await recommender.validateSources(sources, (sourceName, sourceUrl, result, sourceData) => {
       if (result.validating) {
         const validatingLog = {
           type: 'progress',
@@ -209,26 +210,42 @@ router.post('/topics/recommend', async (req, res) => {
         processLogs.push(validatingLog);
         sendProgress(validatingLog);
         console.log(`[推荐信息源] ${validatingLog.message}`);
-      } else if (result.valid) {
-        const validLog = {
-          type: 'progress',
-          message: `✓ ${sourceName} 验证通过`,
-          logType: 'success',
-          timestamp: new Date().toISOString()
-        };
-        processLogs.push(validLog);
-        sendProgress(validLog);
-        console.log(`[推荐信息源] ${validLog.message}`);
       } else {
-        const invalidLog = {
-          type: 'progress',
-          message: `✗ ${sourceName} 验证失败: ${result.error || '无效的RSS源'}`,
-          logType: 'error',
-          timestamp: new Date().toISOString()
+        // 验证完成，构建验证后的信息源对象
+        const validatedSource = {
+          ...sourceData,
+          isValid: result.valid,
+          validationError: result.error || null
         };
-        processLogs.push(invalidLog);
-        sendProgress(invalidLog);
-        console.log(`[推荐信息源] ${invalidLog.message}`);
+        validatedSources.push(validatedSource);
+        
+        if (result.valid) {
+          const validLog = {
+            type: 'progress',
+            message: `✓ ${sourceName} 验证通过`,
+            logType: 'success',
+            timestamp: new Date().toISOString()
+          };
+          processLogs.push(validLog);
+          sendProgress(validLog);
+          
+          // 实时发送验证通过的信息源
+          sendProgress({
+            type: 'sourceValidated',
+            source: validatedSource
+          });
+          console.log(`[推荐信息源] ${validLog.message}`);
+        } else {
+          const invalidLog = {
+            type: 'progress',
+            message: `✗ ${sourceName} 验证失败: ${result.error || '无效的RSS源'}`,
+            logType: 'error',
+            timestamp: new Date().toISOString()
+          };
+          processLogs.push(invalidLog);
+          sendProgress(invalidLog);
+          console.log(`[推荐信息源] ${invalidLog.message}`);
+        }
       }
     });
     
