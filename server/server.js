@@ -27,8 +27,8 @@ app.get('/health', (req, res) => {
 app.post('/api/collect', async (req, res) => {
   try {
     const collector = new NewsCollector();
-    await collector.collectFromRSS();
-    res.json({ success: true, message: '新闻收集完成' });
+    await collector.collectAll(); // 使用综合收集方法
+    res.json({ success: true, message: '新闻收集完成（RSS + 博客）' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -36,9 +36,9 @@ app.post('/api/collect', async (req, res) => {
 
 // 定时任务：每30分钟收集一次新闻
 cron.schedule('*/30 * * * *', () => {
-  console.log('开始定时收集新闻...');
+  console.log('开始定时收集新闻（RSS + 博客）...');
   const collector = new NewsCollector();
-  collector.collectFromRSS().catch(err => {
+  collector.collectAll().catch(err => {
     console.error('定时收集新闻失败:', err);
   });
 });
