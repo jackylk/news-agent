@@ -186,6 +186,16 @@ router.post('/topics/recommend', async (req, res) => {
     sendProgress(successLog);
     console.log(`[推荐信息源] ${successLog.message}`);
     
+    // 先发送所有推荐的信息源（未验证状态），让前端先显示表格
+    sendProgress({
+      type: 'sourcesReceived',
+      sources: sources.map(s => ({
+        ...s,
+        isValid: undefined, // 未验证状态
+        validationError: null
+      }))
+    });
+    
     // 开始验证信息源
     const validateStartLog = {
       type: 'progress',
@@ -228,12 +238,6 @@ router.post('/topics/recommend', async (req, res) => {
           };
           processLogs.push(validLog);
           sendProgress(validLog);
-          
-          // 实时发送验证通过的信息源
-          sendProgress({
-            type: 'sourceValidated',
-            source: validatedSource
-          });
           console.log(`[推荐信息源] ${validLog.message}`);
         } else {
           const invalidLog = {
@@ -246,6 +250,12 @@ router.post('/topics/recommend', async (req, res) => {
           sendProgress(invalidLog);
           console.log(`[推荐信息源] ${invalidLog.message}`);
         }
+        
+        // 实时发送验证结果（无论有效还是无效）
+        sendProgress({
+          type: 'sourceValidated',
+          source: validatedSource
+        });
       }
     });
     
