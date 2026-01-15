@@ -1,4 +1,13 @@
 require('dotenv').config();
+
+// Check Node.js version
+const nodeVersion = process.version;
+const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0]);
+if (majorVersion < 20) {
+  console.error(`❌ 错误: 需要 Node.js 20+，当前版本: ${nodeVersion}`);
+  console.error('   请升级 Node.js 版本或使用 Node.js 20+ 的 Docker 镜像');
+  process.exit(1);
+}
 const express = require('express');
 const cors = require('cors');
 const newsRoutes = require('./routes/news');
