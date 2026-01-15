@@ -318,6 +318,42 @@
           body: JSON.stringify({ username, password })
         });
         
+        // 检查响应状态
+        if (!response.ok) {
+          // 如果响应不是 200-299，尝试获取错误信息
+          const errorText = await response.text();
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          
+          // 尝试解析为 JSON
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorMessage;
+          } catch (e) {
+            // 如果不是 JSON，使用原始文本（可能是 HTML 错误页面）
+            if (errorText.includes('The page') || errorText.includes('404') || errorText.includes('Not Found')) {
+              errorMessage = 'API 地址配置错误，请检查后端服务是否正常运行';
+            } else if (errorText.length < 200) {
+              errorMessage = errorText;
+            }
+          }
+          
+          showMessage('登录失败: ' + errorMessage, 'error');
+          loginBtn.disabled = false;
+          loginBtn.textContent = '登录';
+          return;
+        }
+        
+        // 检查 Content-Type 是否为 JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          showMessage('登录失败: 服务器返回了非 JSON 响应，请检查 API 地址配置', 'error');
+          console.error('非 JSON 响应:', text.substring(0, 200));
+          loginBtn.disabled = false;
+          loginBtn.textContent = '登录';
+          return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
@@ -337,7 +373,13 @@
           loginBtn.textContent = '登录';
         }
       } catch (error) {
-        showMessage('登录失败: ' + error.message, 'error');
+        // 网络错误或 JSON 解析错误
+        let errorMessage = error.message;
+        if (error.message.includes('JSON') || error.message.includes('Unexpected token')) {
+          errorMessage = 'API 地址配置错误或后端服务未运行。请检查：\n1. 后端服务是否已部署\n2. API 地址是否正确\n3. 后端服务是否正常运行';
+        }
+        showMessage('登录失败: ' + errorMessage, 'error');
+        console.error('登录错误详情:', error);
         loginBtn.disabled = false;
         loginBtn.textContent = '登录';
       }
@@ -379,6 +421,39 @@
           body: JSON.stringify({ username, email, password })
         });
         
+        // 检查响应状态
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorMessage;
+          } catch (e) {
+            if (errorText.includes('The page') || errorText.includes('404') || errorText.includes('Not Found')) {
+              errorMessage = 'API 地址配置错误，请检查后端服务是否正常运行';
+            } else if (errorText.length < 200) {
+              errorMessage = errorText;
+            }
+          }
+          
+          showMessage('注册失败: ' + errorMessage, 'error');
+          registerBtn.disabled = false;
+          registerBtn.textContent = '注册';
+          return;
+        }
+        
+        // 检查 Content-Type 是否为 JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          showMessage('注册失败: 服务器返回了非 JSON 响应，请检查 API 地址配置', 'error');
+          console.error('非 JSON 响应:', text.substring(0, 200));
+          registerBtn.disabled = false;
+          registerBtn.textContent = '注册';
+          return;
+        }
+        
         const result = await response.json();
         
         if (result.success) {
@@ -397,7 +472,12 @@
           registerBtn.textContent = '注册';
         }
       } catch (error) {
-        showMessage('注册失败: ' + error.message, 'error');
+        let errorMessage = error.message;
+        if (error.message.includes('JSON') || error.message.includes('Unexpected token')) {
+          errorMessage = 'API 地址配置错误或后端服务未运行。请检查：\n1. 后端服务是否已部署\n2. API 地址是否正确\n3. 后端服务是否正常运行';
+        }
+        showMessage('注册失败: ' + errorMessage, 'error');
+        console.error('注册错误详情:', error);
         registerBtn.disabled = false;
         registerBtn.textContent = '注册';
       }
@@ -412,15 +492,32 @@
           'Authorization': `Bearer ${token}`
         }
       })
-        .then(res => res.json())
+        .then(async res => {
+          // 检查响应状态和 Content-Type
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('服务器返回了非 JSON 响应');
+          }
+          
+          return res.json();
+        })
         .then(result => {
           if (result.success) {
             // 已登录，跳转到仪表盘
             window.location.href = '/dashboard.html';
+          } else {
+            // token 无效，清除
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userInfo');
           }
         })
-        .catch(() => {
-          // token 无效，清除
+        .catch(error => {
+          // token 无效或 API 错误，清除
+          console.error('验证 token 失败:', error);
           localStorage.removeItem('authToken');
           localStorage.removeItem('userInfo');
         });
