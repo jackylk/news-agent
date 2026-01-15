@@ -12,6 +12,8 @@ const express = require('express');
 const cors = require('cors');
 const newsRoutes = require('./routes/news');
 const adminRoutes = require('./routes/admin');
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
 const NewsCollector = require('./services/newsCollector');
 const cron = require('node-cron');
 
@@ -25,7 +27,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 静态文件服务（提供 web 目录下的前端页面）
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../web')));
+
 // 路由
+app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/admin', adminRoutes);
 
@@ -45,13 +53,43 @@ app.post('/api/collect', async (req, res) => {
   }
 });
 
-// 定时任务：每30分钟收集一次新闻
-cron.schedule('*/30 * * * *', () => {
-  console.log('开始定时收集新闻（RSS + 博客）...');
-  const collector = new NewsCollector();
-  collector.collectAll().catch(err => {
-    console.error('定时收集新闻失败:', err);
-  });
+// 定时任务：每10分钟收集一次新闻（按用户订阅）
+cron.schedule('*/10 * * * *', async () => {
+  console.log('开始定时收集新闻（按用户订阅）...');
+  try {
+    const User = require('./models/User');
+    const db = require('./config/database');
+    
+    // 获取所有用户的订阅
+    const usersResult = await db.query('SELECT DISTINCT user_id FROM user_subscriptions');
+    const userIds = usersResult.rows.map(row => row.user_id);
+    
+    if (userIds.length === 0) {
+      console.log('没有用户订阅，跳过收集');
+      return;
+    }
+    
+    // 为每个用户收集其订阅的信息源
+    for (const userId of userIds) {
+      const subscriptionsResult = await db.query(
+        'SELECT * FROM user_subscriptions WHERE user_id = $1',
+        [userId]
+      );
+      
+      if (subscriptionsResult.rows.length === 0) continue;
+      
+      const collector = new NewsCollector();
+      // 这里需要修改 NewsCollector 支持按订阅收集
+      // 暂时使用 collectAll，后续会优化
+      await collector.collectForUser(userId, subscriptionsResult.rows).catch(err => {
+        console.error(`为用户 ${userId} 收集新闻失败:`, err);
+      });
+    }
+    
+    console.log(`已为 ${userIds.length} 个用户收集新闻`);
+  } catch (error) {
+    console.error('定时收集新闻失败:', error);
+  }
 });
 
 // 启动服务器

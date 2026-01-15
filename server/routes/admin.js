@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const News = require('../models/News');
 const NewsCollector = require('../services/newsCollector');
+const User = require('../models/User');
 
 // 简单的身份验证中间件（可以通过环境变量配置）
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'admin123'; // 默认token，生产环境应该使用强密码
@@ -95,6 +96,23 @@ router.post('/source/:source/refresh', authenticateAdmin, async (req, res) => {
   }
 });
 
+// 获取所有用户列表
+router.get('/users', authenticateAdmin, (req, res) => {
+  User.getAll((err, users) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '获取用户列表失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      data: users
+    });
+  });
+});
+
 // 获取系统统计信息
 router.get('/stats', authenticateAdmin, (req, res) => {
   News.getLastUpdateInfo((err, info) => {
@@ -123,6 +141,72 @@ router.get('/stats', authenticateAdmin, (req, res) => {
           totalCountFromInfo: info.totalCount
         }
       });
+    });
+  });
+});
+
+// 获取所有用户的主题词列表（管理员用）
+router.get('/topics', authenticateAdmin, (req, res) => {
+  User.getAllTopics((err, topics) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '获取主题词列表失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      data: topics || []
+    });
+  });
+});
+
+// 删除用户主题词（管理员用）
+router.delete('/topics/:userId/:keywords', authenticateAdmin, (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const keywords = decodeURIComponent(req.params.keywords);
+  const deleteArticles = req.query.deleteArticles === 'true';
+  
+  if (isNaN(userId)) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的用户ID'
+    });
+  }
+  
+  if (!keywords || keywords.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: '主题词不能为空'
+    });
+  }
+  
+  User.removeTopicByAdmin(userId, keywords, deleteArticles, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '删除主题词失败',
+        error: err.message
+      });
+    }
+    
+    if (!result.deleted) {
+      return res.status(404).json({
+        success: false,
+        message: '主题词不存在'
+      });
+    }
+    
+    let message = '主题词删除成功';
+    if (deleteArticles && result.deletedArticleCount > 0) {
+      message += `，已删除 ${result.deletedArticleCount} 篇相关文章`;
+    }
+    
+    res.json({
+      success: true,
+      message: message,
+      deletedArticleCount: result.deletedArticleCount || 0
     });
   });
 });

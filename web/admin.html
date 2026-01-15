@@ -231,6 +231,44 @@
       </div>
 
       <div class="sources-section">
+        <h2>用户管理</h2>
+        <div id="usersLoading" class="loading">加载中...</div>
+        <table class="sources-table" id="usersTable" style="display: none;">
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>邮箱</th>
+              <th>主题数</th>
+              <th>订阅数</th>
+              <th>注册时间</th>
+              <th>管理员</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody">
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sources-section">
+        <h2>用户主题词管理</h2>
+        <div id="topicsLoading" class="loading">加载中...</div>
+        <table class="sources-table" id="topicsTable" style="display: none;">
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>邮箱</th>
+              <th>主题词</th>
+              <th>文章数</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="topicsBody">
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sources-section">
         <h2>新闻来源列表</h2>
         <div id="loading" class="loading">加载中...</div>
         <table class="sources-table" id="sourcesTable" style="display: none;">
@@ -252,7 +290,14 @@
   </div>
 
   <script>
-    const API_BASE_URL = 'https://news-agent-production-c5db.up.railway.app/api';
+    // API 基础地址 - 本地开发时自动使用当前域名和端口
+    const API_BASE_URL = (() => {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return `${window.location.protocol}//${window.location.host}/api`;
+      }
+      // 生产环境使用 Railway 后端地址
+      return 'https://news-agent-production-c5db.up.railway.app/api';
+    })();
     let adminToken = '';
 
     function authenticate() {
@@ -268,6 +313,8 @@
       
       loadStats();
       loadSources();
+      loadUsers();
+      loadTopics();
     }
 
     function handleKeyPress(event) {
@@ -331,7 +378,8 @@
               <td>
                 <div class="action-buttons">
                   <button class="btn btn-refresh" onclick="refreshSource('${escapeHtml(source.source)}')">刷新</button>
-                  <button class="btn btn-delete" onclick="clearSource('${escapeHtml(source.source)}')">清空</button>
+                  <button class="btn btn-clear" onclick="clearSource('${escapeHtml(source.source)}')">清空</button>
+                  <button class="btn btn-delete" onclick="deleteSource('${escapeHtml(source.source)}')">删除</button>
                 </div>
               </td>
             `;
@@ -403,6 +451,34 @@
       }
     }
 
+    async function deleteSource(source) {
+      if (!confirm(`⚠️ 确定要删除新闻源 "${source}" 吗？\n\n此操作将：\n- 永久删除该新闻源的所有数据\n- 该操作不可恢复！`)) {
+        return;
+      }
+      
+      if (!confirm(`🚨 最后确认：\n\n您即将删除新闻源 "${source}" 及其所有数据。\n\n此操作不可恢复，请再次确认！`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/source/${encodeURIComponent(source)}`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(result.message || `已删除新闻源 "${source}" 的 ${result.deletedCount} 条数据`, 'success');
+          loadSources();
+          loadStats();
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+
     function showMessage(text, type) {
       const messageEl = document.getElementById('message');
       messageEl.textContent = text;
@@ -426,6 +502,138 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    async function loadUsers() {
+      document.getElementById('usersLoading').style.display = 'block';
+      document.getElementById('usersTable').style.display = 'none';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/users`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        
+        document.getElementById('usersLoading').style.display = 'none';
+        
+        if (result.success) {
+          const users = result.data;
+          const tbody = document.getElementById('usersBody');
+          tbody.innerHTML = '';
+          
+          users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${escapeHtml(user.username)}</td>
+              <td>${escapeHtml(user.email)}</td>
+              <td>${user.topic_count || 0}</td>
+              <td>${user.subscription_count || 0}</td>
+              <td>${formatDate(user.created_at)}</td>
+              <td>${user.is_admin ? '是' : '否'}</td>
+            `;
+            tbody.appendChild(row);
+          });
+          
+          document.getElementById('usersTable').style.display = 'table';
+        } else {
+          showMessage(result.message || '加载用户列表失败', 'error');
+        }
+      } catch (error) {
+        document.getElementById('usersLoading').style.display = 'none';
+        showMessage('加载用户列表失败: ' + error.message, 'error');
+      }
+    }
+
+    async function loadTopics() {
+      document.getElementById('topicsLoading').style.display = 'block';
+      document.getElementById('topicsTable').style.display = 'none';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/topics`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        
+        document.getElementById('topicsLoading').style.display = 'none';
+        
+        if (result.success) {
+          const topics = result.data;
+          const tbody = document.getElementById('topicsBody');
+          tbody.innerHTML = '';
+          
+          if (topics.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">暂无主题词</td></tr>';
+          } else {
+            topics.forEach(topic => {
+              const row = document.createElement('tr');
+              const createdDate = topic.created_at 
+                ? new Date(topic.created_at).toLocaleString('zh-CN')
+                : '-';
+              row.innerHTML = `
+                <td>${escapeHtml(topic.username)}</td>
+                <td>${escapeHtml(topic.email)}</td>
+                <td><strong>${escapeHtml(topic.topic_keywords)}</strong></td>
+                <td>${topic.article_count || 0}</td>
+                <td>${createdDate}</td>
+                <td>
+                  <button class="btn-delete" onclick="deleteTopic(${topic.user_id}, '${escapeHtml(topic.topic_keywords).replace(/'/g, "\\'")}', ${topic.article_count || 0})" title="删除主题词">
+                    删除
+                  </button>
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
+          
+          document.getElementById('topicsTable').style.display = 'table';
+        } else {
+          showMessage(result.message || '加载主题词列表失败', 'error');
+        }
+      } catch (error) {
+        document.getElementById('topicsLoading').style.display = 'none';
+        showMessage('加载主题词列表失败: ' + error.message, 'error');
+      }
+    }
+
+    async function deleteTopic(userId, keywords, articleCount) {
+      // 显示确认对话框，询问是否删除相关文章
+      const deleteArticles = confirm(
+        `确定要删除用户 "${keywords}" 这个主题词吗？\n\n` +
+        `该用户当前有 ${articleCount} 篇文章。\n\n` +
+        `点击"确定"将同时删除所有相关文章，\n` +
+        `点击"取消"只删除主题词，保留文章。`
+      );
+      
+      const confirmMessage = deleteArticles 
+        ? `确定要删除主题词 "${keywords}" 及其所有 ${articleCount} 篇相关文章吗？此操作不可恢复！`
+        : `确定要删除主题词 "${keywords}" 吗？文章将保留。`;
+      
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/admin/topics/${userId}/${encodeURIComponent(keywords)}?deleteArticles=${deleteArticles}`,
+          {
+            method: 'DELETE',
+            headers: getHeaders()
+          }
+        );
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(result.message || '删除成功', 'success');
+          loadTopics(); // 重新加载主题词列表
+          loadUsers(); // 重新加载用户列表（更新主题数）
+          loadStats(); // 重新加载统计信息（更新文章总数）
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        showMessage('删除失败: ' + error.message, 'error');
+      }
     }
   </script>
 </body>

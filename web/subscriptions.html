@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>订阅管理 - 个人信息整理</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: #333;
+    }
+
+    .back-btn {
+      padding: 8px 16px;
+      background-color: #f5f5f5;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    .back-btn:hover {
+      background-color: #e0e0e0;
+    }
+
+    .section {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+    }
+
+    .section h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    .subscriptions-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .subscriptions-table th,
+    .subscriptions-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    .subscriptions-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .subscriptions-table tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .source-name {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .source-url {
+      color: #667eea;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .source-type {
+      padding: 4px 8px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .btn-delete {
+      padding: 6px 12px;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background-color 0.3s;
+    }
+
+    .btn-delete:hover {
+      background-color: #c82333;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.error {
+      background-color: #fee;
+      color: #c33;
+      border: 1px solid #fcc;
+    }
+
+    .message.success {
+      background-color: #efe;
+      color: #3c3;
+      border: 1px solid #cfc;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state p {
+      margin-bottom: 16px;
+    }
+
+    .btn-primary {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>订阅管理</h1>
+      <a href="/" class="back-btn">← 返回首页</a>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="section">
+      <h2>我的订阅</h2>
+      <div id="subscriptionsList">
+        <div class="loading">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // API 基础地址
+    const API_BASE_URL = (() => {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return `${window.location.protocol}//${window.location.host}/api`;
+      }
+      return 'https://news-agent-production-c5db.up.railway.app/api';
+    })();
+
+    let authToken = localStorage.getItem('authToken');
+
+    // 检查登录状态
+    if (!authToken) {
+      alert('请先登录');
+      window.location.href = '/login.html';
+    }
+
+    function getHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      };
+    }
+
+    function showMessage(text, type) {
+      const messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = `message ${type} show`;
+      setTimeout(() => {
+        messageEl.classList.remove('show');
+      }, 5000);
+    }
+
+    // 加载订阅列表
+    async function loadSubscriptions() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+
+        const listEl = document.getElementById('subscriptionsList');
+
+        if (result.success) {
+          if (result.data.length === 0) {
+            listEl.innerHTML = `
+              <div class="empty-state">
+                <p>您还没有订阅任何信息源</p>
+                <a href="/topics.html" class="btn-primary">去添加主题</a>
+              </div>
+            `;
+          } else {
+            listEl.innerHTML = `
+              <table class="subscriptions-table">
+                <thead>
+                  <tr>
+                    <th>信息源名称</th>
+                    <th>类型</th>
+                    <th>分类</th>
+                    <th>订阅时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${result.data.map(sub => `
+                    <tr>
+                      <td>
+                        <div class="source-name">${escapeHtml(sub.source_name)}</div>
+                        <div class="source-url">${escapeHtml(sub.source_url)}</div>
+                      </td>
+                      <td>
+                        <span class="source-type">${escapeHtml(sub.source_type)}</span>
+                      </td>
+                      <td>${escapeHtml(sub.category || '未分类')}</td>
+                      <td>${formatDate(sub.created_at)}</td>
+                      <td>
+                        <button class="btn-delete" onclick="removeSubscription('${escapeHtml(sub.source_name)}')">
+                          取消订阅
+                        </button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `;
+          }
+        } else {
+          listEl.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
+        }
+      } catch (error) {
+        document.getElementById('subscriptionsList').innerHTML = 
+          '<div class="empty-state"><p>加载失败: ' + error.message + '</p></div>';
+      }
+    }
+
+    // 取消订阅
+    async function removeSubscription(sourceName) {
+      if (!confirm(`确定要取消订阅 "${sourceName}" 吗？`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/user/subscriptions/${encodeURIComponent(sourceName)}`,
+          {
+            method: 'DELETE',
+            headers: getHeaders()
+          }
+        );
+
+        const result = await response.json();
+
+        if (result.success) {
+          showMessage('已取消订阅', 'success');
+          await loadSubscriptions();
+        } else {
+          showMessage(result.message || '取消订阅失败', 'error');
+        }
+      } catch (error) {
+        showMessage('取消订阅失败: ' + error.message, 'error');
+      }
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleString('zh-CN');
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 页面加载时
+    window.onload = async function() {
+      await loadSubscriptions();
+    };
+  </script>
+</body>
+</html>

@@ -15,14 +15,14 @@ function serializeDate(dateValue) {
 class News {
   // 插入新闻
   static create(newsData, callback) {
-    const { title, content, summary, source, category, url, image_url, publish_date } = newsData;
+    const { title, content, summary, source, category, url, image_url, publish_date, user_id } = newsData;
     const sql = `
-      INSERT INTO news (title, content, summary, source, category, url, image_url, publish_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO news (title, content, summary, source, category, url, image_url, publish_date, user_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id
     `;
     
-    db.query(sql, [title, content, summary, source, category || '科技', url, image_url, publish_date])
+    db.query(sql, [title, content, summary, source, category || '科技', url, image_url, publish_date, user_id || null])
       .then(result => {
         callback(null, { id: result.rows[0].id, ...newsData });
       })
@@ -43,22 +43,36 @@ class News {
       });
   }
 
-  // 获取新闻列表（按日期分组）
-  static getListByDate(callback) {
-    const sql = `
+  // 获取新闻列表（按日期分组，支持按用户过滤）
+  static getListByDate(userId, callback) {
+    // 如果callback是第一个参数，说明是旧调用方式（无userId）
+    if (typeof userId === 'function') {
+      callback = userId;
+      userId = null;
+    }
+    
+    let sql = `
       SELECT 
         DATE(publish_date) as date,
         id,
         title,
         summary,
         source,
+        category,
         image_url,
         publish_date
       FROM news
-      ORDER BY publish_date DESC
     `;
     
-    db.query(sql, [])
+    const params = [];
+    if (userId) {
+      sql += ' WHERE user_id = $1';
+      params.push(userId);
+    }
+    
+    sql += ' ORDER BY publish_date DESC';
+    
+    db.query(sql, params)
       .then(result => {
         // 按日期分组
         const grouped = {};
@@ -92,6 +106,53 @@ class News {
       .catch(err => {
         callback(err, null);
       });
+  }
+
+  // 获取翻译缓存
+  static getTranslationCache(id, callback) {
+    const sql = `
+      SELECT title_translated, summary_translated, content_translated
+      FROM news
+      WHERE id = $1
+    `;
+    
+    db.query(sql, [id])
+      .then(result => {
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          // 如果所有翻译字段都有值，返回缓存
+          if (row.title_translated && row.content_translated) {
+            callback(null, {
+              titleTranslated: row.title_translated,
+              summaryTranslated: row.summary_translated,
+              contentTranslated: row.content_translated
+            });
+          } else {
+            callback(null, null);
+          }
+        } else {
+          callback(null, null);
+        }
+      })
+      .catch(err => callback(err, null));
+  }
+
+  // 保存翻译缓存
+  static saveTranslationCache(id, titleTranslated, summaryTranslated, contentTranslated, callback) {
+    const sql = `
+      UPDATE news
+      SET title_translated = $2,
+          summary_translated = $3,
+          content_translated = $4
+      WHERE id = $1
+      RETURNING id
+    `;
+    
+    db.query(sql, [id, titleTranslated || null, summaryTranslated || null, contentTranslated || null])
+      .then(result => {
+        callback(null, result.rows[0]);
+      })
+      .catch(err => callback(err, null));
   }
 
   // 根据ID获取新闻详情

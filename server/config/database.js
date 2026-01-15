@@ -24,7 +24,7 @@ if (process.env.DATABASE_URL) {
     // 连接池配置：针对 Neon Serverless 优化
     max: 20, // 最大连接数
     idleTimeoutMillis: 30000, // 空闲连接超时
-    connectionTimeoutMillis: 10000, // 连接超时
+    connectionTimeoutMillis: 60000, // 连接超时（60秒，给足够时间建立连接）
   };
   console.log('📦 使用 DATABASE_URL 连接数据库');
 } else {
@@ -99,6 +99,21 @@ async function initDatabase() {
     } catch (err) {
       // 字段可能已存在，忽略错误
     }
+    
+    // 添加翻译缓存字段
+    try {
+      await client.query(`
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS title_translated TEXT
+      `);
+      await client.query(`
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS summary_translated TEXT
+      `);
+      await client.query(`
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS content_translated TEXT
+      `);
+    } catch (err) {
+      // 字段可能已存在，忽略错误
+    }
 
     // 创建索引以提高查询性能
     await client.query(`
@@ -115,6 +130,88 @@ async function initDatabase() {
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_category ON news(category)
+    `);
+
+    // 创建用户表
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        is_admin BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 创建用户主题表
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_topics (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        topic_keywords TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, topic_keywords)
+      )
+    `);
+
+    // 创建用户订阅表
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        source_name VARCHAR(255) NOT NULL,
+        source_url TEXT NOT NULL,
+        source_type VARCHAR(50) NOT NULL,
+        category VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, source_name)
+      )
+    `);
+
+    // 修改新闻表，添加 user_id 字段
+    try {
+      await client.query(`
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+      `);
+    } catch (err) {
+      // 字段可能已存在，忽略错误
+    }
+
+    // 创建索引
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_id ON news(user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_topics_user_id ON user_topics(user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON user_subscriptions(user_id)
+    `);
+
+    // 创建推荐历史表（存储推荐过程和推荐的信息源列表）
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS recommendation_history (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        topic_keywords TEXT NOT NULL,
+        process_logs JSONB,
+        recommended_sources JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, topic_keywords)
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_recommendation_history_user_id ON recommendation_history(user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_recommendation_history_created_at ON recommendation_history(created_at DESC)
     `);
 
     console.log('数据库表初始化完成');

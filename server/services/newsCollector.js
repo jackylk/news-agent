@@ -3,7 +3,22 @@ const RSSParser = require('rss-parser');
 const cheerio = require('cheerio');
 const News = require('../models/News');
 
-const parser = new RSSParser();
+// 配置RSS解析器，添加超时和重试机制
+const parser = new RSSParser({
+  timeout: 30000, // 30秒超时
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+  },
+  maxRedirects: 5,
+  requestOptions: {
+    timeout: 30000,
+    rejectUnauthorized: true,
+  }
+});
 
 // 新闻源名称映射（将RSS源的标题映射为更友好的名称）
 const SOURCE_NAME_MAP = {
@@ -63,21 +78,37 @@ class NewsCollector {
     let collectedCount = 0;
 
     for (const feedUrl of RSS_FEEDS) {
-      try {
-        console.log(`正在处理: ${feedUrl}`);
-        const feed = await parser.parseURL(feedUrl);
-        
-        for (const item of feed.items) {
-          // 检查是否已存在
-          News.exists(item.link || item.guid, async (err, exists) => {
-            if (err) {
-              console.error('检查新闻是否存在时出错:', err);
-              return;
-            }
+      let lastError = null;
+      let success = false;
+      
+      // 重试逻辑
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          if (attempt > 1) {
+            console.log(`第 ${attempt} 次尝试连接 ${feedUrl}...`);
+            await this.sleep(attempt * 1000);
+          }
+          
+          console.log(`正在处理: ${feedUrl}`);
+          const feed = await parser.parseURL(feedUrl);
+          success = true;
+          
+          // 使用Promise处理所有items，但限制并发数
+          const items = feed.items || [];
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            
+            // 检查是否已存在
+            const exists = await new Promise((resolve, reject) => {
+              News.exists(item.link || item.guid, (err, exists) => {
+                if (err) reject(err);
+                else resolve(exists);
+              });
+            });
 
             if (!exists) {
-              // 提取内容
-              const content = this.extractContent(item);
+              // 提取内容（异步获取完整内容）
+              const content = await this.extractContent(item, item.link || item.guid);
               const summary = this.extractSummary(item, content);
               
               // 处理来源名称，使用映射表或原始名称
@@ -98,22 +129,56 @@ class NewsCollector {
               };
 
               // 保存到数据库
-              News.create(newsData, (err, result) => {
-                if (err) {
-                  console.error('保存新闻失败:', err);
-                } else {
-                  collectedCount++;
-                  console.log(`已收集: ${newsData.title}`);
-                }
+              await new Promise((resolve, reject) => {
+                News.create(newsData, (err, result) => {
+                  if (err) {
+                    console.error('保存新闻失败:', err);
+                    reject(err);
+                  } else {
+                    collectedCount++;
+                    console.log(`已收集: ${newsData.title}`);
+                    resolve(result);
+                  }
+                });
               });
+              
+              // 避免请求过快，每处理3篇文章等待一下
+              if ((i + 1) % 3 === 0) {
+                await this.sleep(1000);
+              }
             }
-          });
-        }
+          }
 
-        // 等待一下避免请求过快
-        await this.sleep(1000);
-      } catch (error) {
-        console.error(`处理RSS源 ${feedUrl} 时出错:`, error.message);
+          // 等待一下避免请求过快
+          await this.sleep(1000);
+          break; // 成功，跳出重试循环
+        } catch (error) {
+          lastError = error;
+          const errorMsg = error.message || error.toString();
+          console.error(`处理RSS源 ${feedUrl} 时出错 (尝试 ${attempt}/3):`, errorMsg);
+          
+          // 如果是网络相关错误且还有重试机会，继续重试
+          if (attempt < 3 && (
+            errorMsg.includes('socket') ||
+            errorMsg.includes('TLS') ||
+            errorMsg.includes('ECONNRESET') ||
+            errorMsg.includes('ETIMEDOUT') ||
+            errorMsg.includes('ENOTFOUND') ||
+            errorMsg.includes('timeout') ||
+            errorMsg.includes('disconnected')
+          )) {
+            continue;
+          }
+          
+          // 如果不是网络错误或已达到最大重试次数，跳过该源
+          if (attempt === 3) {
+            console.error(`处理RSS源 ${feedUrl} 失败，已重试 3 次，跳过该源`);
+          }
+        }
+      }
+      
+      if (!success) {
+        console.error(`跳过RSS源 ${feedUrl}，继续处理下一个源`);
       }
     }
 
@@ -189,18 +254,133 @@ class NewsCollector {
     }
   }
 
-  // 提取内容
-  extractContent(item) {
+  // 提取内容（从RSS item或文章URL获取完整内容）
+  async extractContent(item, articleUrl = null) {
+    // 首先尝试从RSS item中获取内容
+    let content = '';
     if (item.content) {
-      // 移除HTML标签
-      return item.content.replace(/<[^>]*>/g, '').substring(0, 5000);
+      content = item.content;
+    } else if (item['content:encoded']) {
+      content = item['content:encoded'];
+    } else if (item.contentSnippet) {
+      content = item.contentSnippet;
+    } else if (item.description) {
+      content = item.description;
     }
-    if (item.contentSnippet) {
-      return item.contentSnippet.substring(0, 5000);
+    
+    // 移除HTML标签，获取纯文本
+    if (content) {
+      content = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     }
-    if (item.description) {
-      return item.description.replace(/<[^>]*>/g, '').substring(0, 5000);
+    
+    // 如果内容太短（少于500字符），尝试从文章URL获取完整内容
+    const url = articleUrl || item.link || item.guid || '';
+    if (url && (!content || content.length < 500)) {
+      try {
+        console.log(`从文章URL获取完整内容: ${url}`);
+        const fullContent = await this.fetchArticleContent(url);
+        if (fullContent && fullContent.length > content.length) {
+          content = fullContent;
+        }
+      } catch (error) {
+        console.error(`获取文章完整内容失败 ${url}:`, error.message);
+        // 如果获取失败，继续使用RSS中的内容
+      }
     }
+    
+    // 限制长度，但保留更多内容（增加到20000字符）
+    return content ? content.substring(0, 20000) : '';
+  }
+
+  // 从文章URL获取完整内容
+  async fetchArticleContent(url, maxRetries = 2) {
+    if (!url) return '';
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 1) {
+          await this.sleep(1000 * attempt);
+        }
+        
+        const response = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+          },
+          timeout: 20000,
+          maxRedirects: 5,
+        });
+
+        const $ = cheerio.load(response.data);
+        
+        // 尝试多种常见的内容选择器
+        const contentSelectors = [
+          'article',
+          '[role="article"]',
+          '.article-content',
+          '.post-content',
+          '.entry-content',
+          '.content',
+          'main article',
+          '.article-body',
+          '.post-body',
+          '#article-content',
+          '#content',
+        ];
+        
+        let articleContent = '';
+        for (const selector of contentSelectors) {
+          const elements = $(selector);
+          if (elements.length > 0) {
+            // 移除script、style、nav、header、footer等不需要的元素
+            elements.find('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share').remove();
+            articleContent = elements.text().trim();
+            if (articleContent.length > 500) {
+              break;
+            }
+          }
+        }
+        
+        // 如果没找到，尝试从body中提取主要内容
+        if (!articleContent || articleContent.length < 500) {
+          $('script, style, nav, header, footer, .ad, .advertisement, .sidebar, .comments, .social-share').remove();
+          const bodyText = $('body').text().trim();
+          // 如果body文本太长，可能包含很多无关内容，只取前一部分
+          if (bodyText.length > 1000) {
+            articleContent = bodyText.substring(0, 15000);
+          } else {
+            articleContent = bodyText;
+          }
+        }
+        
+        // 清理文本：移除多余的空白字符
+        articleContent = articleContent.replace(/\s+/g, ' ').trim();
+        
+        return articleContent;
+      } catch (error) {
+        const errorMsg = error.message || error.toString();
+        console.error(`获取文章内容失败 (尝试 ${attempt}/${maxRetries}) ${url}:`, errorMsg);
+        
+        // 如果是网络错误且还有重试机会，继续重试
+        if (attempt < maxRetries && (
+          errorMsg.includes('socket') ||
+          errorMsg.includes('TLS') ||
+          errorMsg.includes('ECONNRESET') ||
+          errorMsg.includes('ETIMEDOUT') ||
+          errorMsg.includes('timeout')
+        )) {
+          continue;
+        }
+        
+        // 如果失败，返回空字符串
+        return '';
+      }
+    }
+    
     return '';
   }
 
@@ -476,58 +656,91 @@ class NewsCollector {
     throw new Error(`未找到来源 "${sourceName}"`);
   }
 
-  // 从单个RSS源收集
-  async collectFromRSSFeed(feedUrl) {
+  // 从单个RSS源收集（带重试机制）
+  async collectFromRSSFeed(feedUrl, maxRetries = 3) {
     console.log(`正在处理RSS源: ${feedUrl}`);
     let collectedCount = 0;
+    let lastError = null;
 
-    try {
-      const feed = await parser.parseURL(feedUrl);
-      const sourceName = SOURCE_NAME_MAP[feed.title] || feed.title || '未知来源';
-      const category = getCategoryBySource(sourceName);
-      
-      for (const item of feed.items) {
-        const exists = await new Promise((resolve, reject) => {
-          News.exists(item.link || item.guid, (err, exists) => {
-            if (err) reject(err);
-            else resolve(exists);
-          });
-        });
+    // 重试逻辑
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 1) {
+          console.log(`第 ${attempt} 次尝试连接 ${feedUrl}...`);
+          // 每次重试前等待递增的时间（1秒、2秒、3秒）
+          await this.sleep(attempt * 1000);
+        }
 
-        if (!exists) {
-          const content = this.extractContent(item);
-          const summary = this.extractSummary(item, content);
-          
-          const newsData = {
-            title: item.title || '无标题',
-            content: content,
-            summary: summary,
-            source: sourceName,
-            category: category,
-            url: item.link || item.guid || '',
-            image_url: this.extractImage(item),
-            publish_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()
-          };
-
-          await new Promise((resolve, reject) => {
-            News.create(newsData, (err, result) => {
+        const feed = await parser.parseURL(feedUrl);
+        const sourceName = SOURCE_NAME_MAP[feed.title] || feed.title || '未知来源';
+        const category = getCategoryBySource(sourceName);
+        
+        for (const item of feed.items) {
+          const exists = await new Promise((resolve, reject) => {
+            News.exists(item.link || item.guid, (err, exists) => {
               if (err) reject(err);
-              else {
-                collectedCount++;
-                console.log(`已收集: ${newsData.title}`);
-                resolve(result);
-              }
+              else resolve(exists);
             });
           });
+
+          if (!exists) {
+            const content = await this.extractContent(item, item.link || item.guid);
+            const summary = this.extractSummary(item, content);
+            
+            const newsData = {
+              title: item.title || '无标题',
+              content: content,
+              summary: summary,
+              source: sourceName,
+              category: category,
+              url: item.link || item.guid || '',
+              image_url: this.extractImage(item),
+              publish_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()
+            };
+
+            await new Promise((resolve, reject) => {
+              News.create(newsData, (err, result) => {
+                if (err) reject(err);
+                else {
+                  collectedCount++;
+                  console.log(`已收集: ${newsData.title}`);
+                  resolve(result);
+                }
+              });
+            });
+          }
+        }
+
+        console.log(`从RSS源 "${sourceName}" 收集完成，共收集 ${collectedCount} 条新新闻`);
+        return collectedCount;
+      } catch (error) {
+        lastError = error;
+        const errorMsg = error.message || error.toString();
+        console.error(`处理RSS源 ${feedUrl} 时出错 (尝试 ${attempt}/${maxRetries}):`, errorMsg);
+        
+        // 如果是网络相关错误且还有重试机会，继续重试
+        if (attempt < maxRetries && (
+          errorMsg.includes('socket') ||
+          errorMsg.includes('TLS') ||
+          errorMsg.includes('ECONNRESET') ||
+          errorMsg.includes('ETIMEDOUT') ||
+          errorMsg.includes('ENOTFOUND') ||
+          errorMsg.includes('timeout') ||
+          errorMsg.includes('disconnected')
+        )) {
+          continue;
+        }
+        
+        // 如果不是网络错误或已达到最大重试次数，抛出错误
+        if (attempt === maxRetries) {
+          console.error(`从RSS源 ${feedUrl} 收集失败，已重试 ${maxRetries} 次`);
+          throw lastError;
         }
       }
-
-      console.log(`从RSS源 "${sourceName}" 收集完成，共收集 ${collectedCount} 条新新闻`);
-      return collectedCount;
-    } catch (error) {
-      console.error(`处理RSS源 ${feedUrl} 时出错:`, error.message);
-      throw error;
     }
+    
+    // 如果所有重试都失败
+    throw lastError || new Error(`从RSS源 ${feedUrl} 收集失败`);
   }
 
   // 从单个博客收集
@@ -625,6 +838,201 @@ class NewsCollector {
     ]);
     
     console.log('综合收集完成');
+  }
+
+  // 按用户订阅收集新闻
+  async collectForUser(userId, subscriptions) {
+    console.log(`开始为用户 ${userId} 收集新闻，共 ${subscriptions.length} 个订阅源...`);
+    let totalCollected = 0;
+
+    for (const subscription of subscriptions) {
+      try {
+        const { source_url, source_type, source_name, category } = subscription;
+        
+        if (source_type === 'rss' || source_url.includes('/rss') || source_url.includes('/feed')) {
+          // RSS源
+          const count = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category);
+          totalCollected += count;
+        } else {
+          // 博客或其他类型，尝试作为博客处理
+          const count = await this.collectFromBlogForUser(source_url, userId, source_name, category);
+          totalCollected += count;
+        }
+        
+        // 避免请求过快
+        await this.sleep(1000);
+      } catch (error) {
+        console.error(`为用户 ${userId} 收集订阅源 "${subscription.source_name}" 失败:`, error.message);
+      }
+    }
+
+    console.log(`为用户 ${userId} 收集完成，共收集 ${totalCollected} 条新新闻`);
+    return totalCollected;
+  }
+
+  // 从单个RSS源收集（带用户ID，带重试机制）
+  async collectFromRSSFeedForUser(feedUrl, userId, sourceName, category, maxRetries = 3) {
+    let lastError = null;
+    let collectedCount = 0;
+
+    // 重试逻辑
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 1) {
+          console.log(`第 ${attempt} 次尝试连接 ${feedUrl}...`);
+          // 每次重试前等待递增的时间
+          await this.sleep(attempt * 1000);
+        }
+
+        const feed = await parser.parseURL(feedUrl);
+
+        for (const item of feed.items) {
+          const url = item.link || item.guid || '';
+          if (!url) continue;
+
+          const exists = await new Promise((resolve, reject) => {
+            News.exists(url, (err, res) => {
+              if (err) reject(err);
+              else resolve(res);
+            });
+          });
+
+          if (!exists) {
+            const content = await this.extractContent(item, url);
+            const summary = this.extractSummary(item, content);
+
+            const newsData = {
+              title: item.title || '无标题',
+              content: content,
+              summary: summary,
+              source: sourceName || feed.title || '未知来源',
+              category: category || '未分类',
+              url: url,
+              image_url: this.extractImage(item),
+              publish_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+              user_id: userId
+            };
+
+            await new Promise((resolve, reject) => {
+              News.create(newsData, (err, result) => {
+                if (err) reject(err);
+                else {
+                  collectedCount++;
+                  console.log(`[用户${userId}] 已收集: ${newsData.title}`);
+                  resolve(result);
+                }
+              });
+            });
+          }
+        }
+
+        console.log(`从RSS源 ${feedUrl} 收集完成，共收集 ${collectedCount} 条新新闻`);
+        return collectedCount;
+      } catch (error) {
+        lastError = error;
+        const errorMsg = error.message || error.toString();
+        console.error(`从RSS源 ${feedUrl} 收集失败 (尝试 ${attempt}/${maxRetries}):`, errorMsg);
+        
+        // 如果是网络相关错误且还有重试机会，继续重试
+        if (attempt < maxRetries && (
+          errorMsg.includes('socket') ||
+          errorMsg.includes('TLS') ||
+          errorMsg.includes('ECONNRESET') ||
+          errorMsg.includes('ETIMEDOUT') ||
+          errorMsg.includes('ENOTFOUND') ||
+          errorMsg.includes('timeout') ||
+          errorMsg.includes('disconnected')
+        )) {
+          continue;
+        }
+        
+        // 如果不是网络错误或已达到最大重试次数，返回0
+        if (attempt === maxRetries) {
+          console.error(`从RSS源 ${feedUrl} 收集失败，已重试 ${maxRetries} 次，跳过该源`);
+          return 0;
+        }
+      }
+    }
+    
+    // 如果所有重试都失败
+    console.error(`从RSS源 ${feedUrl} 收集失败，已重试 ${maxRetries} 次`);
+    return 0;
+  }
+
+  // 从博客收集（带用户ID）
+  async collectFromBlogForUser(blogUrl, userId, sourceName, category) {
+    // 简化版：尝试从URL获取文章
+    // 实际实现可能需要根据不同的博客结构定制
+    try {
+      const response = await axios.get(blogUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        timeout: 30000
+      });
+
+      const $ = cheerio.load(response.data);
+      let collectedCount = 0;
+
+      // 尝试找到文章链接（通用选择器）
+      $('a[href*="/blog/"], a[href*="/post/"], a[href*="/article/"]').each(async (i, elem) => {
+        if (i >= 10) return false; // 限制数量
+
+        const href = $(elem).attr('href');
+        if (!href) return;
+
+        let articleUrl = href;
+        if (href.startsWith('/')) {
+          const urlObj = new URL(blogUrl);
+          articleUrl = `${urlObj.protocol}//${urlObj.host}${href}`;
+        } else if (!href.startsWith('http')) {
+          articleUrl = `${blogUrl}/${href}`;
+        }
+
+        try {
+          const exists = await new Promise((resolve, reject) => {
+            News.exists(articleUrl, (err, res) => {
+              if (err) reject(err);
+              else resolve(res);
+            });
+          });
+
+          if (!exists) {
+            const articleContent = await this.extractArticleFromUrl(articleUrl);
+            if (articleContent) {
+              const newsData = {
+                title: articleContent.title || '无标题',
+                content: articleContent.content || '',
+                summary: (articleContent.content || '').substring(0, 200),
+                source: sourceName || '未知来源',
+                category: category || '未分类',
+                url: articleUrl,
+                image_url: articleContent.image || '',
+                publish_date: new Date().toISOString(),
+                user_id: userId
+              };
+
+              await new Promise((resolve, reject) => {
+                News.create(newsData, (err, result) => {
+                  if (err) reject(err);
+                  else {
+                    collectedCount++;
+                    resolve(result);
+                  }
+                });
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`处理文章 ${articleUrl} 失败:`, error.message);
+        }
+      });
+
+      return collectedCount;
+    } catch (error) {
+      console.error(`从博客 ${blogUrl} 收集失败:`, error.message);
+      return 0;
+    }
   }
 
   sleep(ms) {

@@ -1,10 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const News = require('../models/News');
+const User = require('../models/User');
 
-// 获取新闻列表（按日期分组）
-router.get('/list', (req, res) => {
-  News.getListByDate((err, data) => {
+// 认证中间件（可选）
+function optionalAuth(req, res, next) {
+  const token = req.headers['authorization']?.replace('Bearer ', '') || req.query.token;
+  
+  if (token) {
+    User.verifyToken(token, (err, decoded) => {
+      if (!err) {
+        req.user = decoded;
+      }
+      next();
+    });
+  } else {
+    next();
+  }
+}
+
+// 获取新闻列表（按日期分组，支持按用户过滤）
+router.get('/list', optionalAuth, (req, res) => {
+  const userId = req.user ? req.user.id : null;
+  
+  News.getListByDate(userId, (err, data) => {
     if (err) {
       return res.status(500).json({
         success: false,
@@ -192,6 +211,286 @@ router.post('/summarize', async (req, res) => {
       success: false,
       message: '生成摘要失败',
       error: error.message
+    });
+  }
+});
+
+// 翻译文章（使用 DeepSeek API，带缓存）
+router.post('/translate', async (req, res) => {
+  const { articleId, text, source = 'en', target = 'zh', field = 'content' } = req.body;
+  
+  if (!text || text.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: '文本内容不能为空'
+    });
+  }
+  
+  // 如果有 articleId，先检查缓存
+  if (articleId) {
+    try {
+      await new Promise((resolve, reject) => {
+        News.getTranslationCache(articleId, (err, cache) => {
+          if (err) {
+            console.error('获取翻译缓存失败:', err);
+            resolve(null);
+            return;
+          }
+          
+          if (cache) {
+            // 根据字段返回对应的翻译
+            let translatedText = null;
+            if (field === 'title' && cache.titleTranslated) {
+              translatedText = cache.titleTranslated;
+            } else if (field === 'summary' && cache.summaryTranslated) {
+              translatedText = cache.summaryTranslated;
+            } else if (field === 'content' && cache.contentTranslated) {
+              translatedText = cache.contentTranslated;
+            }
+            
+            if (translatedText) {
+              res.json({
+                success: true,
+                translatedText: translatedText,
+                fromCache: true
+              });
+              reject(new Error('CACHE_HIT')); // 使用错误来中断后续流程
+              return;
+            }
+          }
+          resolve(null);
+        });
+      });
+    } catch (err) {
+      if (err.message === 'CACHE_HIT') {
+        return; // 已返回缓存结果，直接返回
+      }
+    }
+  }
+  
+  if (!process.env.DEEPSEEK_API_KEY) {
+    return res.status(500).json({
+      success: false,
+      message: 'DeepSeek API Key 未配置'
+    });
+  }
+  
+  try {
+    const axios = require('axios');
+    const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+      model: 'deepseek-chat',
+      messages: [
+        {
+          role: 'system',
+          content: `你是一个专业的翻译助手。请将用户提供的文本从${source === 'en' ? '英文' : '中文'}翻译为${target === 'zh' ? '中文' : '英文'}。只返回翻译结果，不要添加任何其他说明。`
+        },
+        {
+          role: 'user',
+          content: text.substring(0, 4000) // 限制长度
+        }
+      ],
+      max_tokens: 2000,
+      temperature: 0.3
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.data && response.data.choices && response.data.choices[0]) {
+      const translatedText = response.data.choices[0].message.content.trim();
+      
+      // 注意：单个字段的翻译不保存到缓存，只有整篇文章翻译才保存
+      res.json({
+        success: true,
+        translatedText: translatedText,
+        fromCache: false
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: '翻译失败：API返回格式错误'
+      });
+    }
+  } catch (error) {
+    console.error('DeepSeek 翻译API错误:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      message: '翻译失败',
+      error: error.response?.data?.error?.message || error.message
+    });
+  }
+});
+
+// 翻译整篇文章（标题、摘要、正文）
+router.post('/translate/article', async (req, res) => {
+  const { articleId, title, summary, content, source = 'en', target = 'zh' } = req.body;
+  
+  if (!articleId) {
+    return res.status(400).json({
+      success: false,
+      message: '文章ID不能为空'
+    });
+  }
+  
+  // 先检查缓存
+  try {
+    await new Promise((resolve, reject) => {
+      News.getTranslationCache(articleId, (err, cache) => {
+        if (err) {
+          console.error('获取翻译缓存失败:', err);
+          resolve(null);
+          return;
+        }
+        
+        if (cache && cache.titleTranslated && cache.contentTranslated) {
+          res.json({
+            success: true,
+            translatedTitle: cache.titleTranslated,
+            translatedSummary: cache.summaryTranslated || null,
+            translatedContent: cache.contentTranslated,
+            fromCache: true
+          });
+          reject(new Error('CACHE_HIT'));
+          return;
+        }
+        resolve(null);
+      });
+    });
+  } catch (err) {
+    if (err.message === 'CACHE_HIT') {
+      return; // 已返回缓存结果
+    }
+  }
+  
+  if (!process.env.DEEPSEEK_API_KEY) {
+    return res.status(500).json({
+      success: false,
+      message: 'DeepSeek API Key 未配置'
+    });
+  }
+  
+  try {
+    const axios = require('axios');
+    const translatedResults = {};
+    
+    // 翻译标题
+    if (title) {
+      const titleResponse = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: `你是一个专业的翻译助手。请将用户提供的文本从${source === 'en' ? '英文' : '中文'}翻译为${target === 'zh' ? '中文' : '英文'}。只返回翻译结果，不要添加任何其他说明。`
+          },
+          {
+            role: 'user',
+            content: title.substring(0, 500)
+          }
+        ],
+        max_tokens: 200,
+        temperature: 0.3
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (titleResponse.data && titleResponse.data.choices && titleResponse.data.choices[0]) {
+        translatedResults.title = titleResponse.data.choices[0].message.content.trim();
+      }
+    }
+    
+    // 翻译摘要
+    if (summary) {
+      try {
+        const summaryResponse = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `你是一个专业的翻译助手。请将用户提供的文本从${source === 'en' ? '英文' : '中文'}翻译为${target === 'zh' ? '中文' : '英文'}。只返回翻译结果，不要添加任何其他说明。`
+            },
+            {
+              role: 'user',
+              content: summary.substring(0, 2000)
+            }
+          ],
+          max_tokens: 500,
+          temperature: 0.3
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (summaryResponse.data && summaryResponse.data.choices && summaryResponse.data.choices[0]) {
+          translatedResults.summary = summaryResponse.data.choices[0].message.content.trim();
+        }
+      } catch (e) {
+        console.error('翻译摘要失败:', e);
+      }
+    }
+    
+    // 翻译正文
+    if (content) {
+      const contentResponse = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: `你是一个专业的翻译助手。请将用户提供的文本从${source === 'en' ? '英文' : '中文'}翻译为${target === 'zh' ? '中文' : '英文'}。只返回翻译结果，不要添加任何其他说明。`
+          },
+          {
+            role: 'user',
+            content: content.substring(0, 4000)
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (contentResponse.data && contentResponse.data.choices && contentResponse.data.choices[0]) {
+        translatedResults.content = contentResponse.data.choices[0].message.content.trim();
+      }
+    }
+    
+    // 保存到缓存
+    if (translatedResults.title && translatedResults.content) {
+      News.saveTranslationCache(
+        articleId,
+        translatedResults.title,
+        translatedResults.summary || null,
+        translatedResults.content,
+        (err) => {
+          if (err) {
+            console.error('保存翻译缓存失败:', err);
+          }
+        }
+      );
+    }
+    
+    res.json({
+      success: true,
+      translatedTitle: translatedResults.title || null,
+      translatedSummary: translatedResults.summary || null,
+      translatedContent: translatedResults.content || null,
+      fromCache: false
+    });
+  } catch (error) {
+    console.error('DeepSeek 翻译API错误:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      message: '翻译失败',
+      error: error.response?.data?.error?.message || error.message
     });
   }
 });

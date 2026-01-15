@@ -57,6 +57,64 @@
       margin: 0 4px;
     }
 
+    /* 用户状态栏 */
+    .user-status-bar,
+    .guest-status-bar {
+      max-width: 1200px;
+      margin: 0 auto 20px auto;
+      background: white;
+      padding: 16px 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .user-status-content,
+    .guest-status-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-manage,
+    .btn-login {
+      padding: 8px 16px;
+      background-color: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      transition: background-color 0.3s;
+    }
+
+    .btn-manage:hover,
+    .btn-login:hover {
+      background-color: #5568d3;
+    }
+
+    .btn-logout {
+      padding: 8px 16px;
+      background-color: #f5f5f5;
+      color: #666;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    .btn-logout:hover {
+      background-color: #e0e0e0;
+    }
+
     /* 新闻源过滤卡片 */
     .source-filter {
       max-width: 1200px;
@@ -671,6 +729,27 @@
 </head>
 <body>
   <div class="container">
+    <!-- 用户状态栏 -->
+    <div id="userStatusBar" class="user-status-bar" style="display: none;">
+      <div class="user-status-content">
+        <span id="userWelcomeText"></span>
+        <div class="user-actions">
+          <button class="btn-manage" onclick="showTopicManagement()">管理主题</button>
+          <button class="btn-manage" onclick="showSubscriptionManagement()">管理订阅</button>
+          <button class="btn-logout" onclick="handleLogout()">退出</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="guestStatusBar" class="guest-status-bar">
+      <div class="guest-status-content">
+        <span>欢迎使用个人信息整理网站</span>
+        <a href="/login.html" class="btn-login">登录/注册</a>
+        <span style="margin: 0 8px;">|</span>
+        <a href="/dashboard.html" class="btn-login">用户中心</a>
+      </div>
+    </div>
+
     <!-- 更新信息显示 -->
     <div class="update-info">
       <div class="update-info-content">
@@ -774,6 +853,10 @@
       if (typeof window !== 'undefined' && window.API_BASE_URL) {
         return window.API_BASE_URL;
       }
+      // 本地开发：使用当前域名和端口
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return `${window.location.protocol}//${window.location.host}/api`;
+      }
       // 默认使用 Railway 后端地址
       return 'https://news-agent-production-c5db.up.railway.app/api';
     })();
@@ -782,6 +865,8 @@
     let currentSource = null; // 当前选中的新闻源
     let sources = []; // 新闻源列表
     let savedScrollPosition = 0; // 保存进入详情页前的滚动位置
+    let currentUser = null; // 当前登录用户
+    let authToken = null; // 认证token
     
     // 格式化日期
     function formatDate(dateStr) {
@@ -963,6 +1048,102 @@
       }
     }
 
+    // 检查用户登录状态
+    async function checkUserAuth() {
+      authToken = localStorage.getItem('authToken');
+      const userInfoStr = localStorage.getItem('userInfo');
+      
+      if (authToken && userInfoStr) {
+        try {
+          // 验证token是否有效
+          const response = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            currentUser = result.user;
+            updateUserUI();
+            return true;
+          } else {
+            // token无效，清除
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userInfo');
+            authToken = null;
+            currentUser = null;
+            updateUserUI();
+            return false;
+          }
+        } catch (error) {
+          console.error('验证用户失败:', error);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userInfo');
+          authToken = null;
+          currentUser = null;
+          updateUserUI();
+          return false;
+        }
+      } else {
+        currentUser = null;
+        authToken = null;
+        updateUserUI();
+        return false;
+      }
+    }
+
+    // 更新用户UI
+    function updateUserUI() {
+      const userStatusBar = document.getElementById('userStatusBar');
+      const guestStatusBar = document.getElementById('guestStatusBar');
+      
+      if (currentUser) {
+        if (userStatusBar) userStatusBar.style.display = 'block';
+        if (guestStatusBar) guestStatusBar.style.display = 'none';
+        const welcomeText = document.getElementById('userWelcomeText');
+        if (welcomeText) welcomeText.textContent = `欢迎，${currentUser.username}`;
+      } else {
+        if (userStatusBar) userStatusBar.style.display = 'none';
+        if (guestStatusBar) guestStatusBar.style.display = 'block';
+      }
+    }
+
+    // 退出登录
+    function handleLogout() {
+      if (confirm('确定要退出登录吗？')) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+        currentUser = null;
+        authToken = null;
+        updateUserUI();
+        // 重新加载新闻（显示所有新闻）
+        loadNewsAll();
+      }
+    }
+
+    // 显示主题管理
+    function showTopicManagement() {
+      window.location.href = '/topics.html';
+    }
+
+    // 显示订阅管理
+    function showSubscriptionManagement() {
+      window.location.href = '/subscriptions.html';
+    }
+
+    // 获取请求头（包含认证信息）
+    function getHeaders() {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      return headers;
+    }
+
     // 按新闻源过滤
     async function filterBySource(source) {
       // 无论当前在什么状态，都先回到列表视图
@@ -1137,7 +1318,9 @@
       newsListEl.innerHTML = '';
 
       try {
-        const response = await fetch(`${apiUrl}/news/list`);
+        const response = await fetch(`${apiUrl}/news/list`, {
+          headers: getHeaders()
+        });
         const result = await response.json();
 
         if (!result.success) {
