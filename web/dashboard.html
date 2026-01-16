@@ -3740,6 +3740,13 @@
                 await renderRecommendationsInTab(tabIndex, history.recommended_sources);
               }
             }
+            
+            // 如果文章阅读页面的主题页签已加载，刷新它们以显示新创建的主题
+            const articlesTopicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+            if (articlesTopicsTabsHeader && articlesTopicsTabsHeader.children.length > 0) {
+              console.log('📚 批量订阅信息源后，刷新文章阅读页面的主题页签...');
+              await loadArticlesTopicsTabs();
+            }
           } else {
             console.error('❌ 批量订阅失败:', result.message);
             showMessage(result.message || '批量订阅失败', 'error');
@@ -3806,6 +3813,13 @@
             if (history.recommended_sources) {
               await renderRecommendationsInTab(tabIndex, history.recommended_sources);
             }
+          }
+          
+          // 如果文章阅读页面的主题页签已加载，刷新它们
+          const articlesTopicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+          if (articlesTopicsTabsHeader && articlesTopicsTabsHeader.children.length > 0) {
+            console.log('📚 批量取消订阅后，刷新文章阅读页面的主题页签...');
+            await loadArticlesTopicsTabs();
           }
         } else {
           console.error('❌ 取消订阅失败');
@@ -3908,6 +3922,13 @@
             if (history.recommended_sources) {
               await renderRecommendationsInTab(tabIndex, history.recommended_sources);
             }
+            
+            // 如果文章阅读页面的主题页签已加载，刷新它们以显示新创建的主题
+            const articlesTopicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+            if (articlesTopicsTabsHeader && articlesTopicsTabsHeader.children.length > 0) {
+              console.log('📚 订阅信息源后，刷新文章阅读页面的主题页签...');
+              await loadArticlesTopicsTabs();
+            }
           } else {
             checkbox.checked = false; // 恢复状态
             showMessage(result.message || '订阅失败', 'error');
@@ -3927,6 +3948,13 @@
             // 重新渲染该页签的推荐信息源
             if (history.recommended_sources) {
               await renderRecommendationsInTab(tabIndex, history.recommended_sources);
+            }
+            
+            // 如果文章阅读页面的主题页签已加载，刷新它们
+            const articlesTopicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+            if (articlesTopicsTabsHeader && articlesTopicsTabsHeader.children.length > 0) {
+              console.log('📚 取消订阅后，刷新文章阅读页面的主题页签...');
+              await loadArticlesTopicsTabs();
             }
           } else {
             checkbox.checked = true; // 恢复状态
