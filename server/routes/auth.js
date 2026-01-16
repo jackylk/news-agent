@@ -71,16 +71,43 @@ router.post('/register', (req, res) => {
 });
 
 // 用户登录
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+  
+  console.log(`[${timestamp}] 🔐 收到登录请求`);
+  console.log(`[${timestamp}]   来源 IP: ${clientIP}`);
+  console.log(`[${timestamp}]   用户名/邮箱: ${req.body.username || '(空)'}`);
+  console.log(`[${timestamp}]   密码长度: ${req.body.password ? req.body.password.length : 0}`);
+  
   const { username, password } = req.body;
   
-  User.login({ username, password }, (err, result) => {
-    if (err) {
-      return res.status(401).json({
-        success: false,
-        message: err.message
+  // 验证输入
+  if (!username || !password) {
+    const errorMsg = '用户名和密码都是必填项';
+    console.log(`[${timestamp}] ❌ 登录失败: ${errorMsg}`);
+    return res.status(400).json({
+      success: false,
+      message: errorMsg
+    });
+  }
+  
+  try {
+    // 使用 Promise 包装回调函数，使代码更清晰
+    const result = await new Promise((resolve, reject) => {
+      User.login({ username, password }, (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
       });
-    }
+    });
+    
+    console.log(`[${timestamp}] ✅ 登录成功`);
+    console.log(`[${timestamp}]   用户 ID: ${result.user.id}`);
+    console.log(`[${timestamp}]   用户名: ${result.user.username}`);
+    console.log(`[${timestamp}]   邮箱: ${result.user.email}`);
     
     res.json({
       success: true,
@@ -88,7 +115,18 @@ router.post('/login', (req, res) => {
       token: result.token,
       user: result.user
     });
-  });
+  } catch (error) {
+    console.error(`[${timestamp}] ❌ 登录失败:`, error.message);
+    console.error(`[${timestamp}]   错误堆栈:`, error.stack);
+    
+    // 统一错误消息，不泄露具体错误信息
+    const errorMessage = error.message || '登录失败，请检查用户名和密码';
+    
+    res.status(401).json({
+      success: false,
+      message: errorMessage
+    });
+  }
 });
 
 // 验证token（获取当前用户信息）

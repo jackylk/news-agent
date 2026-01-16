@@ -309,19 +309,29 @@
       loginBtn.disabled = true;
       loginBtn.innerHTML = '<span class="loading"></span>登录中...';
       
+      // 记录请求信息
+      console.log('🔐 开始登录请求');
+      console.log('   API地址:', `${API_BASE_URL}/auth/login`);
+      console.log('   用户名:', username);
+      
       try {
+        const requestBody = { username, password };
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify(requestBody)
         });
+        
+        console.log('   响应状态:', response.status, response.statusText);
+        console.log('   响应头:', Object.fromEntries(response.headers.entries()));
         
         // 检查响应状态
         if (!response.ok) {
-          // 如果响应不是 200-299，尝试获取错误信息
           const errorText = await response.text();
+          console.error('   错误响应内容:', errorText.substring(0, 500));
+          
           let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
           
           // 尝试解析为 JSON
@@ -334,6 +344,8 @@
               errorMessage = 'API 地址配置错误，请检查后端服务是否正常运行';
             } else if (errorText.length < 200) {
               errorMessage = errorText;
+            } else {
+              errorMessage = `服务器错误 (${response.status})，请检查后端日志`;
             }
           }
           
@@ -347,16 +359,19 @@
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
           const text = await response.text();
+          console.error('   非 JSON 响应:', text.substring(0, 500));
           showMessage('登录失败: 服务器返回了非 JSON 响应，请检查 API 地址配置', 'error');
-          console.error('非 JSON 响应:', text.substring(0, 200));
           loginBtn.disabled = false;
           loginBtn.textContent = '登录';
           return;
         }
         
         const result = await response.json();
+        console.log('   响应结果:', { success: result.success, hasToken: !!result.token, hasUser: !!result.user });
         
-        if (result.success) {
+        if (result.success && result.token) {
+          console.log('✅ 登录成功');
+          
           // 保存 token 和用户信息
           localStorage.setItem('authToken', result.token);
           localStorage.setItem('userInfo', JSON.stringify(result.user));
@@ -368,18 +383,30 @@
             window.location.href = '/dashboard.html';
           }, 1000);
         } else {
+          console.error('❌ 登录失败:', result.message || '响应格式不正确');
           showMessage(result.message || '登录失败', 'error');
           loginBtn.disabled = false;
           loginBtn.textContent = '登录';
         }
       } catch (error) {
+        console.error('❌ 登录请求异常:', error);
+        console.error('   错误类型:', error.name);
+        console.error('   错误消息:', error.message);
+        console.error('   错误堆栈:', error.stack);
+        
         // 网络错误或 JSON 解析错误
         let errorMessage = error.message;
-        if (error.message.includes('JSON') || error.message.includes('Unexpected token')) {
+        
+        // 处理不同类型的错误
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          errorMessage = '无法连接到服务器。请检查：\n1. 网络连接是否正常\n2. API 地址是否正确 (' + API_BASE_URL + ')\n3. 后端服务是否正在运行\n4. 是否存在 CORS 跨域问题';
+        } else if (error.message.includes('JSON') || error.message.includes('Unexpected token')) {
           errorMessage = 'API 地址配置错误或后端服务未运行。请检查：\n1. 后端服务是否已部署\n2. API 地址是否正确\n3. 后端服务是否正常运行';
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMessage = '网络请求失败。可能的原因：\n1. 后端服务未运行或无法访问\n2. API 地址配置错误\n3. 网络连接问题\n4. CORS 跨域限制\n\n当前 API 地址: ' + API_BASE_URL;
         }
+        
         showMessage('登录失败: ' + errorMessage, 'error');
-        console.error('登录错误详情:', error);
         loginBtn.disabled = false;
         loginBtn.textContent = '登录';
       }

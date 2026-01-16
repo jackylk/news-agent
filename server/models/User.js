@@ -2,7 +2,14 @@ const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+// JWT 密钥：生产环境必须设置，否则会导致 token 验证失败
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// 检查 JWT_SECRET 是否使用默认值（生产环境警告）
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.warn('⚠️  警告: JWT_SECRET 使用默认值，这在生产环境中不安全！');
+  console.warn('   请设置环境变量 JWT_SECRET 为强随机字符串');
+}
 
 class User {
   // 创建用户（注册）
@@ -81,56 +88,84 @@ class User {
   
   // 用户登录
   static login(credentials, callback) {
+    const timestamp = new Date().toISOString();
     const { username, password } = credentials;
     
+    console.log(`[${timestamp}] [User.login] 开始登录验证`);
+    
     if (!username || !password) {
-      return callback(new Error('用户名和密码都是必填项'), null);
+      const error = new Error('用户名和密码都是必填项');
+      console.error(`[${timestamp}] [User.login] ❌ 验证失败: ${error.message}`);
+      return callback(error, null);
     }
+    
+    console.log(`[${timestamp}] [User.login] 🔍 查询用户: ${username}`);
     
     // 查找用户（支持用户名或邮箱登录）
     const sql = 'SELECT * FROM users WHERE username = $1 OR email = $1';
     db.query(sql, [username])
       .then(result => {
         if (result.rows.length === 0) {
-          return callback(new Error('用户名或密码错误'), null);
+          const error = new Error('用户名或密码错误');
+          console.error(`[${timestamp}] [User.login] ❌ 用户不存在: ${username}`);
+          return callback(error, null);
         }
         
         const user = result.rows[0];
+        console.log(`[${timestamp}] [User.login] ✅ 找到用户: ID=${user.id}, username=${user.username}`);
+        console.log(`[${timestamp}] [User.login] 🔐 开始验证密码...`);
         
         // 验证密码
         bcrypt.compare(password, user.password_hash, (err, isMatch) => {
           if (err) {
+            console.error(`[${timestamp}] [User.login] ❌ 密码验证出错:`, err.message);
             return callback(err, null);
           }
           
           if (!isMatch) {
-            return callback(new Error('用户名或密码错误'), null);
+            const error = new Error('用户名或密码错误');
+            console.error(`[${timestamp}] [User.login] ❌ 密码不匹配`);
+            return callback(error, null);
           }
           
-          // 生成 JWT token
-          const token = jwt.sign(
-            {
-              id: user.id,
-              username: user.username,
-              email: user.email,
-              isAdmin: user.is_admin
-            },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-          );
+          console.log(`[${timestamp}] [User.login] ✅ 密码验证通过`);
+          console.log(`[${timestamp}] [User.login] 🎫 生成 JWT token...`);
           
-          callback(null, {
-            token,
-            user: {
-              id: user.id,
-              username: user.username,
-              email: user.email,
-              isAdmin: user.is_admin
-            }
-          });
+          // 生成 JWT token
+          try {
+            const token = jwt.sign(
+              {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                isAdmin: user.is_admin
+              },
+              JWT_SECRET,
+              { expiresIn: '7d' }
+            );
+            
+            console.log(`[${timestamp}] [User.login] ✅ Token 生成成功`);
+            
+            callback(null, {
+              token,
+              user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                isAdmin: user.is_admin
+              }
+            });
+          } catch (tokenError) {
+            console.error(`[${timestamp}] [User.login] ❌ Token 生成失败:`, tokenError.message);
+            return callback(tokenError, null);
+          }
         });
       })
-      .catch(err => callback(err, null));
+      .catch(err => {
+        console.error(`[${timestamp}] [User.login] ❌ 数据库查询失败:`, err.message);
+        console.error(`[${timestamp}] [User.login]   错误堆栈:`, err.stack);
+        callback(err, null);
+      });
   }
   
   // 根据 ID 获取用户
@@ -170,12 +205,27 @@ class User {
   
   // 验证 JWT token
   static verifyToken(token, callback) {
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return callback(new Error('无效的token'), null);
-      }
-      callback(null, decoded);
-    });
+    const timestamp = new Date().toISOString();
+    
+    if (!token) {
+      const error = new Error('未提供token');
+      console.error(`[${timestamp}] [User.verifyToken] ❌ ${error.message}`);
+      return callback(error, null);
+    }
+    
+    try {
+      jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) {
+          console.error(`[${timestamp}] [User.verifyToken] ❌ Token 验证失败:`, err.message);
+          return callback(new Error('无效的token'), null);
+        }
+        console.log(`[${timestamp}] [User.verifyToken] ✅ Token 验证成功: user_id=${decoded.id}`);
+        callback(null, decoded);
+      });
+    } catch (error) {
+      console.error(`[${timestamp}] [User.verifyToken] ❌ Token 验证异常:`, error.message);
+      callback(new Error('无效的token'), null);
+    }
   }
   
   // 添加用户主题
