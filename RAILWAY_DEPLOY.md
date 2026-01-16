@@ -53,12 +53,21 @@
    ADMIN_TOKEN=你的管理员令牌（生产环境请使用强密码）
    ```
 
-3. **使用 Railway PostgreSQL（替代方案）**
+3. **使用 Railway PostgreSQL（推荐，更稳定）**
    
-   如果不想使用 Neon，可以在 Railway 项目中：
+   Railway PostgreSQL 支持数据持久化，重新部署不会丢失数据：
    - 点击 "New" → "Database" → "Add PostgreSQL"
    - Railway 会自动创建数据库并设置 `DATABASE_URL` 环境变量
-   - 无需手动配置
+   - 数据存储在持久化卷中，容器重启或应用重新部署都不会丢失数据
+   - 无需手动配置，Railway 会自动处理连接
+   
+   **数据持久化说明：**
+   - ✅ Railway PostgreSQL 使用持久化卷存储数据
+   - ✅ 重新部署后端应用时，数据库数据**不会丢失**
+   - ✅ 数据与容器分离，即使容器重启数据也会保留
+   - ✅ 只有明确删除数据库服务才会删除数据
+   
+   详细说明请参考：`RAILWAY_POSTGRESQL_SETUP.md`
 
 4. **部署配置**
    

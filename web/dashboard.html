@@ -3683,11 +3683,138 @@
     }
 
     // 在指定页签中全选/取消全选
-    function toggleSelectAllInTab(tabIndex, checkbox) {
+    async function toggleSelectAllInTab(tabIndex, checkbox) {
       const checkboxes = document.querySelectorAll(`#recommendationsBody-${tabIndex} .source-checkbox:not(:disabled)`);
+      const isChecked = checkbox.checked;
+      
+      // 先更新所有 checkbox 的状态
       checkboxes.forEach(cb => {
-        cb.checked = checkbox.checked;
+        cb.checked = isChecked;
       });
+      
+      // 如果全选，自动订阅所有信息源
+      if (isChecked) {
+        console.log(`📋 全选：开始订阅 ${checkboxes.length} 个信息源...`);
+        
+        // 收集所有要订阅的信息源
+        const sourcesToSubscribe = [];
+        for (const cb of checkboxes) {
+          const sourceJson = cb.dataset.source;
+          if (sourceJson) {
+            try {
+              const source = JSON.parse(sourceJson);
+              sourcesToSubscribe.push(source);
+            } catch (e) {
+              console.error('解析信息源数据失败:', e);
+            }
+          }
+        }
+        
+        if (sourcesToSubscribe.length === 0) {
+          console.warn('⚠️  没有可订阅的信息源');
+          return;
+        }
+        
+        // 批量订阅所有信息源
+        try {
+          const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ subscriptions: sourcesToSubscribe })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            console.log(`✅ 成功订阅 ${sourcesToSubscribe.length} 个信息源`);
+            showMessage(`已订阅 ${sourcesToSubscribe.length} 个信息源`, 'success');
+            
+            // 重新加载订阅列表和推荐信息源，更新状态
+            await loadUserSubscriptions();
+            
+            // 重新渲染该页签的推荐信息源（已订阅的会自动选中）
+            const panel = document.getElementById(`panel-${tabIndex}`);
+            if (panel) {
+              const history = JSON.parse(panel.dataset.history || '{}');
+              if (history.recommended_sources) {
+                await renderRecommendationsInTab(tabIndex, history.recommended_sources);
+              }
+            }
+          } else {
+            console.error('❌ 批量订阅失败:', result.message);
+            showMessage(result.message || '批量订阅失败', 'error');
+            // 恢复 checkbox 状态
+            checkboxes.forEach(cb => cb.checked = false);
+            checkbox.checked = false;
+          }
+        } catch (error) {
+          console.error('❌ 批量订阅异常:', error);
+          showMessage('批量订阅失败: ' + error.message, 'error');
+          // 恢复 checkbox 状态
+          checkboxes.forEach(cb => cb.checked = false);
+          checkbox.checked = false;
+        }
+      } else {
+        // 如果取消全选，取消订阅所有信息源
+        console.log(`📋 取消全选：开始取消订阅 ${checkboxes.length} 个信息源...`);
+        
+        // 逐个取消订阅（因为 DELETE API 一次只能删除一个）
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const cb of checkboxes) {
+          const sourceJson = cb.dataset.source;
+          if (sourceJson) {
+            try {
+              const source = JSON.parse(sourceJson);
+              const sourceName = encodeURIComponent(source.sourceName);
+              
+              const response = await fetch(`${API_BASE_URL}/user/subscriptions/${sourceName}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+              });
+              
+              const result = await response.json();
+              
+              if (result.success) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            } catch (e) {
+              console.error('取消订阅失败:', e);
+              failCount++;
+            }
+          }
+        }
+        
+        if (successCount > 0) {
+          console.log(`✅ 成功取消订阅 ${successCount} 个信息源`);
+          if (failCount > 0) {
+            showMessage(`已取消订阅 ${successCount} 个信息源，${failCount} 个失败`, 'warning');
+          } else {
+            showMessage(`已取消订阅 ${successCount} 个信息源`, 'success');
+          }
+          
+          // 重新加载订阅列表和推荐信息源，更新状态
+          await loadUserSubscriptions();
+          
+          // 重新渲染该页签的推荐信息源
+          const panel = document.getElementById(`panel-${tabIndex}`);
+          if (panel) {
+            const history = JSON.parse(panel.dataset.history || '{}');
+            if (history.recommended_sources) {
+              await renderRecommendationsInTab(tabIndex, history.recommended_sources);
+            }
+          }
+        } else {
+          console.error('❌ 取消订阅失败');
+          showMessage('取消订阅失败', 'error');
+          // 恢复 checkbox 状态
+          checkboxes.forEach(cb => cb.checked = true);
+          checkbox.checked = true;
+        }
+      }
     }
 
     // 处理单个信息源复选框变化（旧版推荐显示）
@@ -4405,8 +4532,14 @@
       const exists = window.topicArticlesData[currentTopicFilter].some(a => a.id === article.id || a.url === article.url);
       if (!exists) {
         window.topicArticlesData[currentTopicFilter].push(article);
+        
         // 更新统计信息
         updateStatsForTab(window.topicArticlesData[currentTopicFilter], tabIndex);
+        
+        // 更新信息源卡片（实时添加新的信息源）
+        const currentSources = [...new Set(window.topicArticlesData[currentTopicFilter].map(a => a.source))];
+        loadSourceCardsForTab(currentSources, tabIndex);
+        
         // 重新渲染文章列表
         applyFiltersForTab(currentTopicFilter, tabIndex);
       }
@@ -4420,6 +4553,11 @@
         allArticles.push(article);
         // 更新统计信息
         updateStats(allArticles);
+        
+        // 更新信息源卡片（实时添加新的信息源）
+        const currentSources = [...new Set(allArticles.map(a => a.source))];
+        loadSourceCards(currentSources);
+        
         // 应用当前过滤和搜索
         applyFilters();
       }
