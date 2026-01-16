@@ -13,51 +13,81 @@ class TopicRecommender {
       throw new Error('DeepSeek API Key 未配置');
     }
     
-    const prompt = `请根据以下主题关键词，推荐世界上最好的、品质最高的RSS信息源。
+    const prompt = `请根据以下主题关键词，推荐世界上最好的、品质最高的信息源，包括RSS源、博客、新闻网站等多种类型。
 
 主题关键词：${keywords}
 
 **重要要求：**
-1. **只推荐RSS源**，必须提供RSS Feed的URL（通常以 /rss、/feed、/atom.xml、.xml 结尾，或包含 rss、feed 等关键词）
-2. **RSS URL格式示例**：
-   - https://example.com/rss
-   - https://example.com/feed
-   - https://example.com/feed.xml
-   - https://example.com/atom.xml
-   - https://feeds.feedburner.com/example
-3. **确保推荐的RSS源确实存在且可访问**，URL必须是真实有效的RSS Feed地址
-4. **优先推荐知名专家、大V、权威机构的官方RSS源**
+1. **推荐多种类型的信息源**，包括但不限于：
+   - **RSS源**：提供RSS Feed的URL（通常以 /rss、/feed、/atom.xml、.xml 结尾，或包含 rss、feed 等关键词）
+   - **博客**：提供博客主页URL（知名个人博客、技术博客、专业博客等）
+   - **新闻网站**：提供新闻网站的主页URL或特定栏目URL
+   - **专业网站**：提供专业机构、学术网站、行业网站的主页URL
+   - **社交媒体**：提供知名专家的社交媒体主页（如Twitter、LinkedIn等，如果支持RSS则提供RSS URL）
+
+2. **URL格式示例**：
+   - RSS源：https://example.com/rss、https://example.com/feed、https://example.com/atom.xml
+   - 博客：https://example.com/blog、https://blog.example.com
+   - 新闻网站：https://example.com/news、https://example.com/category/tech
+   - 专业网站：https://example.com
+
+3. **确保推荐的信息源确实存在且可访问**，URL必须是真实有效的地址
+4. **优先推荐知名专家、大V、权威机构的官方信息源**
 5. **信息源质量高、更新频率合理、内容专业**
-6. **RSS源应该来自权威网站、新闻媒体、技术博客、专业机构等**
+6. **信息源应该来自权威网站、新闻媒体、技术博客、专业机构等**
 
 请按照以下JSON格式返回推荐结果，每个信息源包含以下字段：
 - sourceName: 信息源名称（网站或博客名称）
-- sourceUrl: RSS Feed的URL（必须是RSS URL，不是网站主页）
-- sourceType: 固定为 "rss"
-- category: 分类
-- description: 简要描述（说明这个RSS源的特点和内容方向）
+- sourceUrl: 信息源的URL（RSS Feed URL、博客主页URL、新闻网站URL等）
+- sourceType: 信息源类型，必须是以下之一：
+  - "rss"：RSS Feed源（URL必须是RSS Feed地址）
+  - "blog"：博客（URL是博客主页或文章列表页）
+  - "news"：新闻网站（URL是新闻网站主页或特定栏目）
+  - "website"：专业网站（URL是网站主页）
+- category: 分类（如：科技、新闻、技术、行业等）
+- description: 简要描述（说明这个信息源的特点和内容方向）
 - region: 地区（"国内" 或 "国外"）。如果是中国（包括港澳台）的信息源，标记为"国内"；其他国家的信息源标记为"国外"
 
 请返回一个JSON数组，格式如下：
 [
   {
-    "sourceName": "示例网站",
+    "sourceName": "示例RSS源",
     "sourceUrl": "https://example.com/rss",
     "sourceType": "rss",
     "category": "科技",
     "description": "这是一个专注于...的优质RSS源",
     "region": "国外"
+  },
+  {
+    "sourceName": "示例博客",
+    "sourceUrl": "https://blog.example.com",
+    "sourceType": "blog",
+    "category": "技术",
+    "description": "这是一个专注于...的知名技术博客",
+    "region": "国外"
+  },
+  {
+    "sourceName": "示例新闻网站",
+    "sourceUrl": "https://news.example.com",
+    "sourceType": "news",
+    "category": "新闻",
+    "description": "这是一个专注于...的权威新闻网站",
+    "region": "国内"
   }
 ]
 
-请推荐15-20个最优质的RSS信息源，确保：
-1. **所有URL都是RSS Feed URL**，可以直接用于RSS阅读器或RSS解析器
-2. **URL必须真实有效**，确保RSS源确实存在且可访问
-3. **包含一些知名大V、专家或权威机构的RSS源**
+请推荐20-25个最优质的信息源，确保：
+1. **类型多样化**：
+   - RSS源：推荐8-12个（优先推荐有RSS Feed的源）
+   - 博客：推荐5-8个（知名个人博客、技术博客等）
+   - 新闻网站：推荐3-5个（权威新闻媒体）
+   - 专业网站：推荐2-3个（专业机构、学术网站等）
+2. **URL必须真实有效**，确保信息源确实存在且可访问
+3. **包含一些知名大V、专家或权威机构的信息源**
 4. **必须同时包含国内和国外的信息源**
-   - 国内信息源：推荐5-8个中国（包括港澳台）的权威、高质量RSS源，如知名技术网站、新闻媒体、专业机构的RSS源等
-   - 国外信息源：推荐8-12个国际权威RSS源，如知名技术网站、新闻媒体、专家博客的RSS源等
-5. 国内信息源应该包括但不限于：知名技术网站的RSS、新闻媒体的RSS、专业机构的RSS等
+   - 国内信息源：推荐8-12个中国（包括港澳台）的权威、高质量信息源
+   - 国外信息源：推荐12-15个国际权威信息源
+5. **优先推荐有RSS Feed的信息源**，如果没有RSS Feed，则推荐博客主页或新闻网站URL
 
 只返回JSON数组，不要添加其他说明文字。`;
 
@@ -69,7 +99,7 @@ class TopicRecommender {
           messages: [
             {
               role: 'system',
-              content: '你是一个专业的信息源推荐助手。请根据用户提供的主题关键词，推荐最优质的RSS信息源。只返回有效的JSON数组，不要添加任何其他文字。确保所有URL都是真实有效的RSS Feed URL。'
+              content: '你是一个专业的信息源推荐助手。请根据用户提供的主题关键词，推荐最优质的信息源，包括RSS源、博客、新闻网站等多种类型。只返回有效的JSON数组，不要添加任何其他文字。确保所有URL都是真实有效的地址，sourceType字段必须是 "rss"、"blog"、"news" 或 "website" 之一。'
             },
             {
               role: 'user',
@@ -107,14 +137,39 @@ class TopicRecommender {
           if (Array.isArray(sources)) {
             return sources
               .filter(source => source.sourceName && source.sourceUrl)
-              .map(source => ({
-                sourceName: source.sourceName.trim(),
-                sourceUrl: source.sourceUrl.trim(),
-                sourceType: 'rss', // 强制设置为rss
-                category: source.category || '未分类',
-                description: source.description || '',
-                region: source.region || '国外' // 默认为国外，如果没有指定
-              }));
+              .map(source => {
+                // 确定信息源类型
+                let sourceType = (source.sourceType || '').toLowerCase();
+                const sourceUrl = source.sourceUrl.trim().toLowerCase();
+                
+                // 如果未指定类型或类型无效，根据URL自动判断
+                if (!['rss', 'blog', 'news', 'website'].includes(sourceType)) {
+                  if (sourceUrl.includes('/rss') || sourceUrl.includes('/feed') || 
+                      sourceUrl.includes('.xml') || sourceUrl.includes('feedburner') ||
+                      sourceUrl.includes('atom')) {
+                    sourceType = 'rss';
+                  } else if (sourceUrl.includes('/blog') || sourceUrl.includes('blog.') ||
+                             sourceUrl.includes('medium.com') || sourceUrl.includes('substack.com')) {
+                    sourceType = 'blog';
+                  } else if (sourceUrl.includes('/news') || sourceUrl.includes('news.') ||
+                             sourceUrl.includes('cnn.com') || sourceUrl.includes('bbc.com') ||
+                             sourceUrl.includes('reuters.com') || sourceUrl.includes('xinhua') ||
+                             sourceUrl.includes('people.com')) {
+                    sourceType = 'news';
+                  } else {
+                    sourceType = 'website'; // 默认为网站类型
+                  }
+                }
+                
+                return {
+                  sourceName: source.sourceName.trim(),
+                  sourceUrl: source.sourceUrl.trim(),
+                  sourceType: sourceType,
+                  category: source.category || '未分类',
+                  description: source.description || '',
+                  region: source.region || '国外' // 默认为国外，如果没有指定
+                };
+              });
           }
         } catch (parseError) {
           console.error('解析DeepSeek返回的JSON失败:', parseError);
@@ -131,11 +186,12 @@ class TopicRecommender {
   }
   
   /**
-   * 验证信息源URL是否有效（针对RSS源）
+   * 验证信息源URL是否有效（支持RSS、博客、新闻网站等多种类型）
    * @param {string} url - 信息源URL
+   * @param {string} sourceType - 信息源类型（rss、blog、news、website）
    * @returns {Promise<{valid: boolean, error?: string}>} 验证结果
    */
-  async validateSourceUrl(url) {
+  async validateSourceUrl(url, sourceType = 'rss') {
     try {
       console.log(`[验证信息源] 开始验证: ${url}`);
       
@@ -150,13 +206,27 @@ class TopicRecommender {
           }
         });
         
-        // 检查Content-Type是否包含xml、rss、atom等
+        // 检查Content-Type
         const contentType = headResponse.headers['content-type'] || '';
         console.log(`[验证信息源] HEAD请求成功，Content-Type: ${contentType}`);
         
-        if (contentType.includes('xml') || contentType.includes('rss') || contentType.includes('atom')) {
-          console.log(`[验证信息源] ✓ 验证通过 (通过Content-Type判断)`);
-          return { valid: true };
+        if (sourceType === 'rss') {
+          // RSS源：检查是否包含xml、rss、atom等
+          if (contentType.includes('xml') || contentType.includes('rss') || contentType.includes('atom')) {
+            console.log(`[验证信息源] ✓ RSS源验证通过 (通过Content-Type判断)`);
+            return { valid: true };
+          }
+        } else {
+          // 博客、新闻网站、专业网站：检查是否是HTML页面
+          if (contentType.includes('html') || contentType.includes('text/html')) {
+            console.log(`[验证信息源] ✓ ${sourceType}类型信息源验证通过 (通过Content-Type判断)`);
+            return { valid: true };
+          }
+          // 对于非RSS类型，也允许其他常见的Content-Type（如text/plain等）
+          if (contentType.includes('text/') || contentType.includes('application/')) {
+            console.log(`[验证信息源] ✓ ${sourceType}类型信息源验证通过 (通过Content-Type判断，允许继续验证)`);
+            // 继续到GET请求进行内容检查
+          }
         }
       } catch (headError) {
         console.log(`[验证信息源] HEAD请求失败，尝试GET请求: ${headError.message}`);
@@ -183,19 +253,32 @@ class TopicRecommender {
       
       console.log(`[验证信息源] Content-Type: ${contentType}, 内容长度: ${contentStr.length}`);
       
-      // 检查是否包含RSS/XML标签
-      if (contentType.includes('xml') || 
-          contentType.includes('rss') || 
-          contentType.includes('atom') ||
-          contentStr.includes('<rss') ||
-          contentStr.includes('<feed') ||
-          contentStr.includes('<?xml')) {
-        console.log(`[验证信息源] ✓ 验证通过 (通过内容检查)`);
-        return { valid: true };
+      // 根据信息源类型进行不同的验证
+      if (sourceType === 'rss') {
+        // RSS源：检查是否包含RSS/XML标签
+        if (contentType.includes('xml') || 
+            contentType.includes('rss') || 
+            contentType.includes('atom') ||
+            contentStr.includes('<rss') ||
+            contentStr.includes('<feed') ||
+            contentStr.includes('<?xml')) {
+          console.log(`[验证信息源] ✓ RSS源验证通过 (通过内容检查)`);
+          return { valid: true };
+        }
+        console.log(`[验证信息源] ✗ RSS源验证失败: 响应内容不是有效的RSS/XML格式`);
+        return { valid: false, error: '响应内容不是有效的RSS/XML格式' };
+      } else {
+        // 博客、新闻网站、专业网站：检查是否是有效的HTML页面
+        if (contentType.includes('html') || 
+            contentStr.includes('<html') ||
+            contentStr.includes('<!DOCTYPE') ||
+            contentStr.includes('<body')) {
+          console.log(`[验证信息源] ✓ ${sourceType}类型信息源验证通过 (通过内容检查)`);
+          return { valid: true };
+        }
+        console.log(`[验证信息源] ✗ ${sourceType}类型信息源验证失败: 响应内容不是有效的HTML格式`);
+        return { valid: false, error: `响应内容不是有效的${sourceType}格式` };
       }
-      
-      console.log(`[验证信息源] ✗ 验证失败: 响应内容不是有效的RSS/XML格式`);
-      return { valid: false, error: '响应内容不是有效的RSS/XML格式' };
     } catch (error) {
       const errorMsg = error.response?.status 
         ? `HTTP ${error.response.status}: ${error.response.statusText || '请求失败'}`
@@ -223,8 +306,9 @@ class TopicRecommender {
         onProgress(sourceName, sourceUrl, { validating: true }, source);
       }
       
-      // 验证URL
-      const validationResult = await this.validateSourceUrl(sourceUrl);
+      // 验证URL（传入信息源类型）
+      const sourceType = source.sourceType || 'rss';
+      const validationResult = await this.validateSourceUrl(sourceUrl, sourceType);
       
       // 添加验证结果
       const validatedSource = {

@@ -320,19 +320,41 @@ cron.schedule('*/10 * * * *', async () => {
 });
 
 // 启动服务器
-app.listen(PORT, () => {
-  console.log(`服务器运行在 http://localhost:${PORT}`);
-  console.log(`API文档:`);
+// Railway 要求监听 0.0.0.0 而不是 localhost
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  // 获取实际的服务地址（用于日志显示）
+  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN || 
+                        process.env.RAILWAY_STATIC_URL ||
+                        process.env.RAILWAY_ENVIRONMENT_NAME;
+  const vercelUrl = process.env.VERCEL_URL;
+  
+  console.log(`✅ 服务器已启动`);
+  console.log(`   监听地址: ${HOST}:${PORT}`);
+  
+  if (railwayDomain) {
+    console.log(`   Railway 部署地址: https://${railwayDomain}`);
+  } else if (vercelUrl) {
+    console.log(`   Vercel 部署地址: https://${vercelUrl}`);
+  } else if (HOST === '0.0.0.0') {
+    console.log(`   本地访问: http://localhost:${PORT}`);
+    console.log(`   网络访问: http://0.0.0.0:${PORT}`);
+  } else {
+    console.log(`   访问地址: http://${HOST}:${PORT}`);
+  }
+  
+  console.log(`\n📚 API文档:`);
   console.log(`  GET  /api/news/list - 获取新闻列表`);
   console.log(`  GET  /api/news/:id - 获取新闻详情`);
   console.log(`  POST /api/collect - 手动触发新闻收集`);
-  console.log(`管理接口:`);
+  console.log(`\n🔐 管理接口:`);
   console.log(`  GET    /api/admin/sources - 获取所有来源列表（需要管理员令牌）`);
   console.log(`  DELETE /api/admin/source/:source - 删除某个来源的数据（需要管理员令牌）`);
   console.log(`  POST   /api/admin/source/:source/refresh - 刷新某个来源的数据（需要管理员令牌）`);
   console.log(`  GET    /api/admin/stats - 获取系统统计信息（需要管理员令牌）`);
-  console.log(`数据库已持久化，启动时不再自动收集新闻`);
-  console.log(`新闻收集方式：`);
+  console.log(`\n💾 数据库: 已持久化，启动时不再自动收集新闻`);
+  console.log(`\n📰 新闻收集方式：`);
   console.log(`  - 定时任务：每10分钟自动为所有用户收集所有主题的新闻`);
   console.log(`  - 手动触发：POST /api/collect`);
 });
