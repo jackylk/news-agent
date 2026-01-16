@@ -152,7 +152,7 @@ router.post('/topics/recommend', async (req, res) => {
     
     const apiCallLog = {
       type: 'progress',
-      message: '正在调用 DeepSeek API...',
+      message: `正在调用 DeepSeek API 为"${trimmedKeywords}"做信息源推荐...`,
       logType: 'loading',
       timestamp: new Date().toISOString()
     };
