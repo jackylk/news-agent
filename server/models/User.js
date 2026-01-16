@@ -7,29 +7,45 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 class User {
   // 创建用户（注册）
   static create(userData, callback) {
+    const timestamp = new Date().toISOString();
     const { username, email, password } = userData;
+    
+    console.log(`[${timestamp}] [User.create] 开始创建用户: ${username}`);
     
     // 验证输入
     if (!username || !email || !password) {
-      return callback(new Error('用户名、邮箱和密码都是必填项'), null);
+      const error = new Error('用户名、邮箱和密码都是必填项');
+      console.error(`[${timestamp}] [User.create] ❌ 验证失败: ${error.message}`);
+      return callback(error, null);
     }
     
     if (password.length < 6) {
-      return callback(new Error('密码长度至少6位'), null);
+      const error = new Error('密码长度至少6位');
+      console.error(`[${timestamp}] [User.create] ❌ 验证失败: ${error.message}`);
+      return callback(error, null);
     }
+    
+    console.log(`[${timestamp}] [User.create] 🔍 检查用户名和邮箱是否已存在...`);
     
     // 检查用户名和邮箱是否已存在
     db.query('SELECT id FROM users WHERE username = $1 OR email = $2', [username, email])
       .then(result => {
         if (result.rows.length > 0) {
-          return callback(new Error('用户名或邮箱已存在'), null);
+          const error = new Error('用户名或邮箱已存在');
+          console.error(`[${timestamp}] [User.create] ❌ 用户已存在: ${username} 或 ${email}`);
+          return callback(error, null);
         }
+        
+        console.log(`[${timestamp}] [User.create] 🔐 开始加密密码...`);
         
         // 加密密码
         bcrypt.hash(password, 10, (err, hash) => {
           if (err) {
+            console.error(`[${timestamp}] [User.create] ❌ 密码加密失败:`, err.message);
             return callback(err, null);
           }
+          
+          console.log(`[${timestamp}] [User.create] 💾 开始插入用户到数据库...`);
           
           // 插入用户
           const sql = `
@@ -41,6 +57,7 @@ class User {
           db.query(sql, [username, email, hash, false])
             .then(result => {
               const user = result.rows[0];
+              console.log(`[${timestamp}] [User.create] ✅ 用户创建成功: ID=${user.id}, username=${user.username}`);
               callback(null, {
                 id: user.id,
                 username: user.username,
@@ -48,10 +65,18 @@ class User {
                 isAdmin: user.is_admin
               });
             })
-            .catch(err => callback(err, null));
+            .catch(err => {
+              console.error(`[${timestamp}] [User.create] ❌ 数据库插入失败:`, err.message);
+              console.error(`[${timestamp}] [User.create]   错误堆栈:`, err.stack);
+              callback(err, null);
+            });
         });
       })
-      .catch(err => callback(err, null));
+      .catch(err => {
+        console.error(`[${timestamp}] [User.create] ❌ 数据库查询失败:`, err.message);
+        console.error(`[${timestamp}] [User.create]   错误堆栈:`, err.stack);
+        callback(err, null);
+      });
   }
   
   // 用户登录

@@ -20,9 +20,28 @@ const cron = require('node-cron');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 请求日志中间件
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+  console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${clientIP}`);
+  if (req.method === 'POST' || req.method === 'PUT') {
+    // 记录请求体（但不记录密码等敏感信息）
+    const bodyCopy = { ...req.body };
+    if (bodyCopy.password) {
+      bodyCopy.password = '***';
+    }
+    console.log(`[${timestamp}]   请求体:`, JSON.stringify(bodyCopy));
+  }
+  next();
+});
+
 // 中间件
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*'
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -412,18 +412,32 @@
       registerBtn.disabled = true;
       registerBtn.innerHTML = '<span class="loading"></span>注册中...';
       
+      // 记录请求信息
+      console.log('📝 开始注册请求');
+      console.log('   API地址:', `${API_BASE_URL}/auth/register`);
+      console.log('   用户名:', username);
+      console.log('   邮箱:', email);
+      
       try {
+        const requestBody = { username, email, password };
+        console.log('   请求体:', { username, email, password: '***' });
+        
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ username, email, password })
+          body: JSON.stringify(requestBody)
         });
+        
+        console.log('   响应状态:', response.status, response.statusText);
+        console.log('   响应头:', Object.fromEntries(response.headers.entries()));
         
         // 检查响应状态
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('   错误响应内容:', errorText.substring(0, 500));
+          
           let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
           
           try {
@@ -434,6 +448,8 @@
               errorMessage = 'API 地址配置错误，请检查后端服务是否正常运行';
             } else if (errorText.length < 200) {
               errorMessage = errorText;
+            } else {
+              errorMessage = `服务器错误 (${response.status})，请检查后端日志`;
             }
           }
           
@@ -447,16 +463,18 @@
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
           const text = await response.text();
+          console.error('   非 JSON 响应:', text.substring(0, 500));
           showMessage('注册失败: 服务器返回了非 JSON 响应，请检查 API 地址配置', 'error');
-          console.error('非 JSON 响应:', text.substring(0, 200));
           registerBtn.disabled = false;
           registerBtn.textContent = '注册';
           return;
         }
         
         const result = await response.json();
+        console.log('   响应结果:', result);
         
         if (result.success) {
+          console.log('✅ 注册成功');
           showMessage('注册成功，请登录', 'success');
           
           // 切换到登录标签页
@@ -467,17 +485,29 @@
             registerBtn.textContent = '注册';
           }, 1500);
         } else {
+          console.error('❌ 注册失败:', result.message);
           showMessage(result.message || '注册失败', 'error');
           registerBtn.disabled = false;
           registerBtn.textContent = '注册';
         }
       } catch (error) {
+        console.error('❌ 注册请求异常:', error);
+        console.error('   错误类型:', error.name);
+        console.error('   错误消息:', error.message);
+        console.error('   错误堆栈:', error.stack);
+        
         let errorMessage = error.message;
-        if (error.message.includes('JSON') || error.message.includes('Unexpected token')) {
+        
+        // 处理不同类型的错误
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          errorMessage = '无法连接到服务器。请检查：\n1. 网络连接是否正常\n2. API 地址是否正确 (' + API_BASE_URL + ')\n3. 后端服务是否正在运行\n4. 是否存在 CORS 跨域问题';
+        } else if (error.message.includes('JSON') || error.message.includes('Unexpected token')) {
           errorMessage = 'API 地址配置错误或后端服务未运行。请检查：\n1. 后端服务是否已部署\n2. API 地址是否正确\n3. 后端服务是否正常运行';
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMessage = '网络请求失败。可能的原因：\n1. 后端服务未运行或无法访问\n2. API 地址配置错误\n3. 网络连接问题\n4. CORS 跨域限制\n\n当前 API 地址: ' + API_BASE_URL;
         }
+        
         showMessage('注册失败: ' + errorMessage, 'error');
-        console.error('注册错误详情:', error);
         registerBtn.disabled = false;
         registerBtn.textContent = '注册';
       }
