@@ -1825,10 +1825,32 @@
           articleDetailView.style.display = 'none';
           const articlesListView = document.getElementById(`articlesListView-${currentTabIndex}`);
           if (articlesListView) articlesListView.style.display = 'block';
-        }
-        // 加载文章主题页签（如果还没有加载）
-        if (userTopics.length > 0 && document.getElementById('articlesTopicsTabsContainer').style.display === 'none') {
-          loadArticlesTopicsTabs();
+          const topicsTabsContainer = document.getElementById('articlesTopicsTabsContainer');
+          if (topicsTabsContainer) topicsTabsContainer.style.display = 'block';
+        } else {
+          // 检查主题页签是否已加载
+          const topicsTabsContainer = document.getElementById('articlesTopicsTabsContainer');
+          const topicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+          
+          // 如果主题页签容器不存在或没有页签，则加载它们
+          if (!topicsTabsHeader || topicsTabsHeader.children.length === 0) {
+            console.log('📚 文章阅读页面：主题页签未加载，开始加载...');
+            loadArticlesTopicsTabs().then(() => {
+              console.log('✅ 主题页签加载完成');
+            }).catch(err => {
+              console.error('❌ 加载主题页签失败:', err);
+            });
+          } else {
+            // 主题页签已加载，确保显示第一个页签的内容
+            if (userTopics && userTopics.length > 0) {
+              const firstTabIndex = 0;
+              window.currentArticlesTopicIndex = firstTabIndex;
+              // 确保主题页签容器可见
+              if (topicsTabsContainer) topicsTabsContainer.style.display = 'block';
+              // 切换到第一个页签（这会触发加载文章）
+              switchArticlesTopicTab(firstTabIndex);
+            }
+          }
         }
       }
     }
@@ -3879,41 +3901,63 @@
 
     // 加载文章阅读页面的主题页签
     async function loadArticlesTopicsTabs() {
+      console.log('📚 开始加载文章阅读页面的主题页签...');
+      
       try {
         // 加载用户主题列表
         const topicsResponse = await fetch(`${API_BASE_URL}/user/topics`, {
           headers: getHeaders()
         });
+        
+        if (!topicsResponse.ok) {
+          throw new Error(`HTTP ${topicsResponse.status}: ${topicsResponse.statusText}`);
+        }
+        
         const topicsResult = await topicsResponse.json();
+        console.log('📋 主题列表响应:', topicsResult);
         
         if (!topicsResult.success || !topicsResult.data || topicsResult.data.length === 0) {
+          console.log('ℹ️  用户没有主题，显示提示');
           document.getElementById('articlesTopicsTabsContainer').style.display = 'none';
           document.getElementById('articlesNoTopicsHint').style.display = 'block';
           return;
         }
         
         userTopics = topicsResult.data;
+        console.log(`✅ 找到 ${userTopics.length} 个主题`);
+        
         document.getElementById('articlesTopicsTabsContainer').style.display = 'block';
         document.getElementById('articlesNoTopicsHint').style.display = 'none';
         
         // 加载所有推荐历史
-        const historyResponse = await fetch(`${API_BASE_URL}/user/topics/recommend/history/all`, {
-          headers: getHeaders()
-        });
-        const historyResult = await historyResponse.json();
-        
-        if (historyResult.success && historyResult.data) {
-          historyResult.data.forEach(history => {
-            if (history.recommended_sources) {
-              topicRecommendationHistory[history.topic_keywords] = {
-                recommended_sources: Array.isArray(history.recommended_sources) 
-                  ? history.recommended_sources 
-                  : (typeof history.recommended_sources === 'string' 
-                      ? JSON.parse(history.recommended_sources) 
-                      : [])
-              };
-            }
+        try {
+          const historyResponse = await fetch(`${API_BASE_URL}/user/topics/recommend/history/all`, {
+            headers: getHeaders()
           });
+          
+          if (historyResponse.ok) {
+            const historyResult = await historyResponse.json();
+            
+            if (historyResult.success && historyResult.data) {
+              console.log(`📖 加载了 ${historyResult.data.length} 条推荐历史`);
+              historyResult.data.forEach(history => {
+                if (history.recommended_sources) {
+                  topicRecommendationHistory[history.topic_keywords] = {
+                    recommended_sources: Array.isArray(history.recommended_sources) 
+                      ? history.recommended_sources 
+                      : (typeof history.recommended_sources === 'string' 
+                          ? JSON.parse(history.recommended_sources) 
+                          : [])
+                  };
+                }
+              });
+            }
+          } else {
+            console.warn('⚠️  加载推荐历史失败:', historyResponse.status);
+          }
+        } catch (historyError) {
+          console.warn('⚠️  加载推荐历史时出错:', historyError);
+          // 继续执行，不中断流程
         }
         
         // 渲染主题页签
@@ -3922,9 +3966,12 @@
         // 初始化当前活动页签索引
         if (userTopics.length > 0) {
           window.currentArticlesTopicIndex = 0;
+          console.log('✅ 主题页签加载完成，默认选中第一个主题');
         }
       } catch (error) {
-        console.error('加载文章主题页签失败:', error);
+        console.error('❌ 加载文章主题页签失败:', error);
+        console.error('   错误详情:', error.message);
+        console.error('   错误堆栈:', error.stack);
         document.getElementById('articlesTopicsTabsContainer').style.display = 'none';
         document.getElementById('articlesNoTopicsHint').style.display = 'block';
       }

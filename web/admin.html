@@ -774,16 +774,63 @@
       document.getElementById('subscriptionsLoading').style.display = 'block';
       document.getElementById('subscriptionsTable').style.display = 'none';
       
+      const apiUrl = `${API_BASE_URL}/admin/subscriptions`;
+      console.log('📝 开始加载订阅列表');
+      console.log('   API地址:', apiUrl);
+      console.log('   请求头:', getHeaders());
+      
       try {
-        const response = await fetch(`${API_BASE_URL}/admin/subscriptions`, {
+        const response = await fetch(apiUrl, {
           headers: getHeaders()
         });
+        
+        console.log('   响应状态:', response.status, response.statusText);
+        console.log('   响应头:', Object.fromEntries(response.headers.entries()));
+        
+        // 检查响应状态
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('   错误响应内容:', errorText.substring(0, 500));
+          
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorMessage;
+          } catch (e) {
+            if (errorText.includes('The page') || errorText.includes('404') || errorText.includes('Not Found')) {
+              errorMessage = 'API 地址配置错误，请检查后端服务是否正常运行';
+            } else if (errorText.length < 200) {
+              errorMessage = errorText;
+            } else {
+              errorMessage = `服务器错误 (${response.status})，请检查后端日志`;
+            }
+          }
+          
+          document.getElementById('subscriptionsLoading').style.display = 'none';
+          showMessage('加载订阅列表失败: ' + errorMessage, 'error');
+          return;
+        }
+        
+        // 检查 Content-Type 是否为 JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('   非 JSON 响应:', text.substring(0, 500));
+          document.getElementById('subscriptionsLoading').style.display = 'none';
+          showMessage('加载订阅列表失败: 服务器返回了非 JSON 响应，请检查 API 地址配置', 'error');
+          return;
+        }
+        
         const result = await response.json();
+        console.log('   响应结果:', result);
         
         document.getElementById('subscriptionsLoading').style.display = 'none';
         
         if (result.success) {
-          const subscriptions = result.data;
+          const subscriptions = result.data || [];
+          console.log(`✅ 成功加载 ${subscriptions.length} 条订阅记录`);
+          
           const tbody = document.getElementById('subscriptionsBody');
           tbody.innerHTML = '';
           
@@ -796,15 +843,15 @@
                 ? new Date(sub.created_at).toLocaleString('zh-CN')
                 : '-';
               row.innerHTML = `
-                <td>${escapeHtml(sub.username)}</td>
-                <td>${escapeHtml(sub.email)}</td>
-                <td><strong>${escapeHtml(sub.source_name)}</strong></td>
-                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(sub.source_url)}">${escapeHtml(sub.source_url)}</td>
+                <td>${escapeHtml(sub.username || '')}</td>
+                <td>${escapeHtml(sub.email || '')}</td>
+                <td><strong>${escapeHtml(sub.source_name || '')}</strong></td>
+                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(sub.source_url || '')}">${escapeHtml(sub.source_url || '')}</td>
                 <td>${escapeHtml(sub.source_type || '未知')}</td>
                 <td>${escapeHtml(sub.category || '未分类')}</td>
                 <td>${createdDate}</td>
                 <td>
-                  <button class="btn btn-delete" onclick="deleteSubscription(${sub.user_id}, '${escapeHtml(sub.source_name).replace(/'/g, "\\'")}')" title="删除订阅">
+                  <button class="btn btn-delete" onclick="deleteSubscription(${sub.user_id}, '${escapeHtml(sub.source_name || '').replace(/'/g, "\\'")}')" title="删除订阅">
                     删除
                   </button>
                 </td>
@@ -815,11 +862,29 @@
           
           document.getElementById('subscriptionsTable').style.display = 'table';
         } else {
+          console.error('❌ 加载失败:', result.message);
           showMessage(result.message || '加载订阅列表失败', 'error');
         }
       } catch (error) {
+        console.error('❌ 加载订阅列表异常:', error);
+        console.error('   错误类型:', error.name);
+        console.error('   错误消息:', error.message);
+        console.error('   错误堆栈:', error.stack);
+        
         document.getElementById('subscriptionsLoading').style.display = 'none';
-        showMessage('加载订阅列表失败: ' + error.message, 'error');
+        
+        let errorMessage = error.message;
+        
+        // 处理不同类型的错误
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          errorMessage = '无法连接到服务器。请检查：\n1. 网络连接是否正常\n2. API 地址是否正确 (' + API_BASE_URL + ')\n3. 后端服务是否正在运行\n4. 是否存在 CORS 跨域问题';
+        } else if (error.message.includes('JSON') || error.message.includes('Unexpected token')) {
+          errorMessage = 'API 地址配置错误或后端服务未运行。请检查：\n1. 后端服务是否已部署\n2. API 地址是否正确\n3. 后端服务是否正常运行';
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMessage = '网络请求失败。可能的原因：\n1. 后端服务未运行或无法访问\n2. API 地址配置错误\n3. 网络连接问题\n4. CORS 跨域限制\n\n当前 API 地址: ' + API_BASE_URL;
+        }
+        
+        showMessage('加载订阅列表失败: ' + errorMessage, 'error');
       }
     }
 

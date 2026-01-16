@@ -217,14 +217,27 @@ router.delete('/topics/:userId/:keywords', authenticateAdmin, (req, res) => {
 
 // 获取所有用户的订阅信息源列表（管理员用）
 router.get('/subscriptions', authenticateAdmin, (req, res) => {
+  const timestamp = new Date().toISOString();
+  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+  
+  console.log(`[${timestamp}] 📋 收到获取订阅列表请求`);
+  console.log(`[${timestamp}]   来源 IP: ${clientIP}`);
+  console.log(`[${timestamp}]   请求头:`, JSON.stringify(req.headers, null, 2));
+  
   User.getAllSubscriptions((err, subscriptions) => {
     if (err) {
+      console.error(`[${timestamp}] ❌ 获取订阅列表失败:`, err.message);
+      console.error(`[${timestamp}]   错误堆栈:`, err.stack);
       return res.status(500).json({
         success: false,
         message: '获取订阅列表失败',
         error: err.message
       });
     }
+    
+    const count = subscriptions ? subscriptions.length : 0;
+    console.log(`[${timestamp}] ✅ 成功获取订阅列表，共 ${count} 条记录`);
+    
     res.json({
       success: true,
       data: subscriptions || []
