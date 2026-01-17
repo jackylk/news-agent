@@ -2597,6 +2597,15 @@
                     // 不在主题页签中，直接添加
                     addArticleToList(progress.article);
                   }
+                } else if (progress.type === 'filterStats') {
+                  // 显示过滤统计信息
+                  const statsMsg = `✓ 找到 ${progress.relevant} 篇相关文章，过滤了 ${progress.irrelevant} 篇不相关文章（主题：${progress.topicKeywords}）`;
+                  if (progressTextEl) {
+                    progressTextEl.textContent = statsMsg;
+                  }
+                  console.log(`[过滤统计] ${statsMsg}`);
+                  // 显示提示消息
+                  showMessage(statsMsg, 'success');
                 }
                 
                 // 如果是最终结果，保存

@@ -248,6 +248,18 @@ async function initDatabase() {
       // 字段可能已存在，忽略错误
     }
 
+    // 添加主题相关字段
+    try {
+      await client.query(`
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS topic_keywords TEXT
+      `);
+      await client.query(`
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS is_relevant_to_topic BOOLEAN
+      `);
+    } catch (err) {
+      // 字段可能已存在，忽略错误
+    }
+
     // 创建索引
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_user_id ON news(user_id)

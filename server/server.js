@@ -189,10 +189,14 @@ app.post('/api/collect', async (req, res) => {
         total: subscriptionsToCollect.length
       });
       
-      // 收集新闻，传入进度回调
+      // 收集新闻，传入进度回调和主题关键词
+      console.log(`[新闻收集] 调用 collectForUser，参数:`);
+      console.log(`[新闻收集]   - userId: ${userId}`);
+      console.log(`[新闻收集]   - subscriptions数量: ${subscriptionsToCollect.length}`);
+      console.log(`[新闻收集]   - topicKeywords: ${topicKeywords || '无（不过滤）'}`);
       await collector.collectForUser(userId, subscriptionsToCollect, (progress) => {
         sendProgress(progress);
-      });
+      }, topicKeywords);
       
       // 发送完成消息
       sendProgress({ 

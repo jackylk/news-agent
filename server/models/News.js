@@ -15,14 +15,14 @@ function serializeDate(dateValue) {
 class News {
   // 插入新闻
   static create(newsData, callback) {
-    const { title, content, summary, source, category, url, image_url, publish_date, user_id } = newsData;
+    const { title, content, summary, source, category, url, image_url, publish_date, user_id, topic_keywords, is_relevant_to_topic } = newsData;
     const sql = `
-      INSERT INTO news (title, content, summary, source, category, url, image_url, publish_date, user_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO news (title, content, summary, source, category, url, image_url, publish_date, user_id, topic_keywords, is_relevant_to_topic)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id
     `;
     
-    db.query(sql, [title, content, summary, source, category || '科技', url, image_url, publish_date, user_id || null])
+    db.query(sql, [title, content, summary, source, category || '科技', url, image_url, publish_date, user_id || null, topic_keywords || null, is_relevant_to_topic !== undefined ? is_relevant_to_topic : null])
       .then(result => {
         callback(null, { id: result.rows[0].id, ...newsData });
       })

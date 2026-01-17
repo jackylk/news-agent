@@ -3,6 +3,8 @@ const RSSParser = require('rss-parser');
 const cheerio = require('cheerio');
 const News = require('../models/News');
 
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+
 // 配置RSS解析器，添加超时和重试机制
 // 注意：rss-parser 会自动解析 content:encoded，但可能以不同的字段名存在
 const parser = new RSSParser({
@@ -961,10 +963,21 @@ class NewsCollector {
   }
 
   // 按用户订阅收集新闻
-  async collectForUser(userId, subscriptions, onProgress = null) {
-    console.log(`开始为用户 ${userId} 收集新闻，共 ${subscriptions.length} 个订阅源...`);
+  async collectForUser(userId, subscriptions, onProgress = null, topicKeywords = null) {
+    console.log(`\n========== 开始为用户 ${userId} 收集新闻 ==========`);
+    console.log(`订阅源数量: ${subscriptions.length}`);
+    if (topicKeywords && topicKeywords.trim()) {
+      console.log(`✓ 主题关键词: "${topicKeywords}" - 将使用 DeepSeek AI 进行主题相关性过滤`);
+    } else {
+      console.log(`✗ 未提供主题关键词 - 不会进行主题相关性过滤，将保存所有文章`);
+    }
+    console.log(`================================================\n`);
+    
     let totalCollected = 0;
     const totalSources = subscriptions.length;
+    
+    // 用于批量收集文章（所有信息源的文章）
+    const allCollectedArticles = [];
 
     for (let index = 0; index < subscriptions.length; index++) {
       const subscription = subscriptions[index];
@@ -983,15 +996,25 @@ class NewsCollector {
           });
         }
         
-        let count = 0;
+        let result = { count: 0, articles: [] };
         if (source_type === 'rss' || source_url.includes('/rss') || source_url.includes('/feed')) {
           // RSS源
-          count = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category, 3, onProgress);
-          totalCollected += count;
+          console.log(`[收集源 ${index + 1}/${totalSources}] 处理RSS源: ${source_name}${topicKeywords ? ` (主题: ${topicKeywords})` : ''}`);
+          result = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category, 3, onProgress, topicKeywords);
         } else {
           // 博客或其他类型，尝试作为博客处理
-          count = await this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress);
-          totalCollected += count;
+          console.log(`[收集源 ${index + 1}/${totalSources}] 处理博客源: ${source_name}${topicKeywords ? ` (主题: ${topicKeywords})` : ''}`);
+          result = await this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress, topicKeywords);
+        }
+        
+        // 收集文章到数组（如果有主题关键词，先不保存，等批量过滤）
+        if (result.articles && result.articles.length > 0) {
+          allCollectedArticles.push(...result.articles);
+        }
+        
+        // 如果没有主题关键词，直接保存（旧逻辑）
+        if (!topicKeywords || !topicKeywords.trim()) {
+          totalCollected += result.count || 0;
         }
         
         // 报告进度：完成某个源
@@ -1002,8 +1025,8 @@ class NewsCollector {
             total: totalSources,
             sourceName: source_name,
             status: 'completed',
-            collected: count,
-            message: `完成: ${source_name}，收集 ${count} 条新闻 (${index + 1}/${totalSources})`
+            collected: result.count || 0,
+            message: `完成: ${source_name}，收集 ${result.count || 0} 条新闻 (${index + 1}/${totalSources})`
           });
         }
         
@@ -1043,9 +1066,10 @@ class NewsCollector {
   }
 
   // 从单个RSS源收集（带用户ID，带重试机制）
-  async collectFromRSSFeedForUser(feedUrl, userId, sourceName, category, maxRetries = 3, onProgress = null) {
+  async collectFromRSSFeedForUser(feedUrl, userId, sourceName, category, maxRetries = 3, onProgress = null, topicKeywords = null) {
     let lastError = null;
     let collectedCount = 0;
+    const collectedArticles = []; // 用于批量收集
 
     // 重试逻辑
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -1126,34 +1150,43 @@ class NewsCollector {
               user_id: userId
             };
 
-            await new Promise((resolve, reject) => {
-              News.create(newsData, (err, result) => {
-                if (err) reject(err);
-                else {
-                  collectedCount++;
-                  console.log(`[用户${userId}] 已收集: ${newsData.title}`);
-                  
-                  // 实时发送收集到的文章
-                  if (onProgress && result) {
-                    onProgress({
-                      type: 'articleCollected',
-                      article: {
-                        id: result.id,
-                        ...newsData,
-                        date: newsData.publish_date
-                      }
-                    });
+            // 如果有主题关键词，先收集到数组，稍后批量过滤
+            if (topicKeywords && topicKeywords.trim()) {
+              collectedArticles.push(newsData);
+            } else {
+              // 没有主题关键词，直接保存（旧逻辑）
+              await new Promise((resolve, reject) => {
+                News.create(newsData, (err, result) => {
+                  if (err) reject(err);
+                  else {
+                    collectedCount++;
+                    console.log(`[用户${userId}] 已收集: ${newsData.title}`);
+                    
+                    // 实时发送收集到的文章
+                    if (onProgress && result) {
+                      onProgress({
+                        type: 'articleCollected',
+                        article: {
+                          id: result.id,
+                          ...newsData,
+                          date: newsData.publish_date
+                        }
+                      });
+                    }
+                    
+                    resolve(result);
                   }
-                  
-                  resolve(result);
-                }
+                });
               });
-            });
+            }
           }
         }
 
-        console.log(`从RSS源 ${feedUrl} 收集完成，共收集 ${collectedCount} 条新新闻`);
-        return collectedCount;
+        console.log(`从RSS源 ${feedUrl} 收集完成，共收集 ${topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount} 条新新闻`);
+        return {
+          count: topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount,
+          articles: collectedArticles
+        };
       } catch (error) {
         lastError = error;
         const errorMsg = error.message || error.toString();
@@ -1186,9 +1219,10 @@ class NewsCollector {
   }
 
   // 从博客收集（带用户ID）
-  async collectFromBlogForUser(blogUrl, userId, sourceName, category, onProgress = null) {
+  async collectFromBlogForUser(blogUrl, userId, sourceName, category, onProgress = null, topicKeywords = null) {
     console.log(`开始从博客 ${blogUrl} 收集文章（用户 ${userId}）...`);
     let collectedCount = 0;
+    const collectedArticles = []; // 用于批量收集
 
     try {
       // 获取博客主页
@@ -1281,31 +1315,37 @@ class NewsCollector {
           const articleData = await this.extractArticleFromBlogUrl(articleUrl, sourceName, category, userId);
           
           if (articleData && articleData.title && articleData.content) {
-            await new Promise((resolve, reject) => {
-              News.create(articleData, (err, result) => {
-                if (err) {
-                  console.error(`保存文章失败 ${articleUrl}:`, err.message);
-                  reject(err);
-                } else {
-                  collectedCount++;
-                  console.log(`已收集: ${articleData.title}`);
-                  
-                  // 实时发送收集到的文章
-                  if (onProgress && result) {
-                    onProgress({
-                      type: 'articleCollected',
-                      article: {
-                        id: result.id,
-                        ...articleData,
-                        date: articleData.publish_date
-                      }
-                    });
+            // 如果有主题关键词，先收集到数组，稍后批量过滤
+            if (topicKeywords && topicKeywords.trim()) {
+              collectedArticles.push(articleData);
+            } else {
+              // 没有主题关键词，直接保存（旧逻辑）
+              await new Promise((resolve, reject) => {
+                News.create(articleData, (err, result) => {
+                  if (err) {
+                    console.error(`保存文章失败 ${articleUrl}:`, err.message);
+                    reject(err);
+                  } else {
+                    collectedCount++;
+                    console.log(`已收集: ${articleData.title}`);
+                    
+                    // 实时发送收集到的文章
+                    if (onProgress && result) {
+                      onProgress({
+                        type: 'articleCollected',
+                        article: {
+                          id: result.id,
+                          ...articleData,
+                          date: articleData.publish_date
+                        }
+                      });
+                    }
+                    
+                    resolve(result);
                   }
-                  
-                  resolve(result);
-                }
+                });
               });
-            });
+            }
           }
 
           // 避免请求过快
@@ -1315,11 +1355,14 @@ class NewsCollector {
         }
       }
 
-      console.log(`从博客 ${blogUrl} 收集完成，共收集 ${collectedCount} 条新文章`);
-      return collectedCount;
+      console.log(`从博客 ${blogUrl} 收集完成，共收集 ${topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount} 条新文章`);
+      return {
+        count: topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount,
+        articles: collectedArticles
+      };
     } catch (error) {
       console.error(`从博客 ${blogUrl} 收集失败:`, error.message);
-      return 0;
+      return { count: 0, articles: [] };
     }
   }
 
