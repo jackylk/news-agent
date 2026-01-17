@@ -4363,8 +4363,9 @@
           // 使用缓存数据，立即显示
           let topicArticles = [];
           cached.flatData.forEach(article => {
-            // 只包含属于该主题推荐信息源的文章
-            if (sourceNames.length === 0 || sourceNames.includes(article.source)) {
+            // 只包含属于该主题推荐信息源的文章，且主题关键词匹配
+            if ((sourceNames.length === 0 || sourceNames.includes(article.source)) &&
+                (!article.topic_keywords || article.topic_keywords === topicKeywords)) {
               topicArticles.push(article);
             }
           });
@@ -4395,8 +4396,13 @@
       articlesListEl.innerHTML = '<div class="loading">加载中...</div>';
       
       try {
-        // 加载所有文章
-        const response = await fetch(`${API_BASE_URL}/news/list`, {
+        // 加载该主题的文章（传递 topicKeywords 参数）
+        let url = `${API_BASE_URL}/news/list`;
+        if (topicKeywords && topicKeywords.trim()) {
+          url += `?topicKeywords=${encodeURIComponent(topicKeywords)}`;
+        }
+        
+        const response = await fetch(url, {
           headers: getHeaders()
         });
         const result = await response.json();
@@ -4415,8 +4421,9 @@
               };
               flatData.push(article);
               
-              // 只包含属于该主题推荐信息源的文章
-              if (sourceNames.length === 0 || sourceNames.includes(news.source)) {
+              // 只包含属于该主题推荐信息源的文章，且主题关键词匹配
+              if ((sourceNames.length === 0 || sourceNames.includes(news.source)) &&
+                  (!news.topic_keywords || news.topic_keywords === topicKeywords)) {
                 topicArticles.push(article);
               }
             });

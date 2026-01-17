@@ -153,10 +153,14 @@ async function initDatabase() {
         summary TEXT,
         source TEXT,
         category TEXT,
-        url TEXT UNIQUE,
+        url TEXT NOT NULL,
         image_url TEXT,
         publish_date TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        topic_keywords TEXT,
+        is_relevant_to_topic BOOLEAN,
+        UNIQUE(user_id, topic_keywords, url)
       )
     `);
     
@@ -242,38 +246,71 @@ async function initDatabase() {
     
     // 为现有表添加 topic_keywords 字段（如果表已存在但没有该字段）
     try {
-      await client.query(`
-        ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS topic_keywords TEXT
+      // 首先检查字段是否已存在
+      const columnCheck = await client.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'user_subscriptions' 
+        AND column_name = 'topic_keywords'
       `);
       
-      // 如果字段刚添加且表中已有数据，需要为现有数据设置默认值
-      // 这里我们设置一个特殊值表示"未指定主题"，但实际使用中应该避免这种情况
-      await client.query(`
-        UPDATE user_subscriptions 
-        SET topic_keywords = '' 
-        WHERE topic_keywords IS NULL
-      `);
+      if (columnCheck.rows.length === 0) {
+        // 字段不存在，先添加为可空字段
+        await client.query(`
+          ALTER TABLE user_subscriptions ADD COLUMN topic_keywords TEXT
+        `);
+        
+        // 为现有数据设置默认值（空字符串）
+        await client.query(`
+          UPDATE user_subscriptions 
+          SET topic_keywords = '' 
+          WHERE topic_keywords IS NULL
+        `);
+        
+        // 如果需要，可以将字段设置为 NOT NULL（但这里我们保持可空，因为旧数据可能没有主题）
+        // 新代码会要求 topic_keywords 不能为空，所以旧数据需要用户重新订阅
+      }
       
       // 修改 UNIQUE 约束（需要先删除旧的，再创建新的）
       // 注意：PostgreSQL 不支持直接修改约束，需要先删除再创建
-      // 但为了避免错误，我们只在约束不存在时创建
       try {
+        // 尝试删除可能存在的旧约束（可能有不同的名称）
         await client.query(`
-          ALTER TABLE user_subscriptions 
-          DROP CONSTRAINT IF EXISTS user_subscriptions_user_id_source_name_key
+          DO $$ 
+          BEGIN
+            -- 删除通过 CREATE TABLE 创建的约束
+            IF EXISTS (
+              SELECT 1 FROM pg_constraint 
+              WHERE conname = 'user_subscriptions_user_id_source_name_key'
+            ) THEN
+              ALTER TABLE user_subscriptions 
+              DROP CONSTRAINT user_subscriptions_user_id_source_name_key;
+            END IF;
+            
+            -- 删除可能存在的唯一索引
+            IF EXISTS (
+              SELECT 1 FROM pg_indexes 
+              WHERE indexname = 'user_subscriptions_user_id_source_name_key'
+            ) THEN
+              DROP INDEX IF EXISTS user_subscriptions_user_id_source_name_key;
+            END IF;
+          END $$;
         `);
       } catch (err) {
         // 约束可能不存在或名称不同，忽略错误
+        console.log('删除旧约束时出现错误（可能已不存在）:', err.message);
       }
       
-      // 创建新的唯一约束
+      // 创建新的唯一索引（替代唯一约束）
       try {
         await client.query(`
           CREATE UNIQUE INDEX IF NOT EXISTS user_subscriptions_user_id_source_name_topic_key 
           ON user_subscriptions(user_id, source_name, topic_keywords)
         `);
+        console.log('✅ 已创建新的唯一索引: user_subscriptions_user_id_source_name_topic_key');
       } catch (err) {
         // 索引可能已存在，忽略错误
+        console.log('创建唯一索引时出现错误（可能已存在）:', err.message);
       }
     } catch (err) {
       // 字段可能已存在，忽略错误

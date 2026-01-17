@@ -31,10 +31,36 @@ class News {
       });
   }
 
-  // 检查新闻是否已存在（通过URL）
-  static exists(url, callback) {
-    const sql = `SELECT id FROM news WHERE url = $1`;
-    db.query(sql, [url])
+  // 检查新闻是否已存在（通过URL、用户ID和主题关键词的组合）
+  static exists(url, userId, topicKeywords, callback) {
+    // 如果 callback 是第二个参数（旧调用方式），调整参数
+    if (typeof userId === 'function') {
+      callback = userId;
+      userId = null;
+      topicKeywords = null;
+    } else if (typeof topicKeywords === 'function') {
+      callback = topicKeywords;
+      topicKeywords = null;
+    }
+    
+    let sql = `SELECT id FROM news WHERE url = $1`;
+    const params = [url];
+    
+    if (userId) {
+      sql += ` AND user_id = $2`;
+      params.push(userId);
+      if (topicKeywords) {
+        sql += ` AND topic_keywords = $3`;
+        params.push(topicKeywords);
+      } else {
+        sql += ` AND topic_keywords IS NULL`;
+      }
+    } else {
+      // 如果没有提供 userId，只检查 URL（向后兼容）
+      sql += ` AND user_id IS NULL`;
+    }
+    
+    db.query(sql, params)
       .then(result => {
         callback(null, result.rows.length > 0);
       })
@@ -43,12 +69,16 @@ class News {
       });
   }
 
-  // 获取新闻列表（按日期分组，支持按用户过滤）
-  static getListByDate(userId, callback) {
+  // 获取新闻列表（按日期分组，支持按用户和主题过滤）
+  static getListByDate(userId, topicKeywords = null, callback) {
     // 如果callback是第一个参数，说明是旧调用方式（无userId）
     if (typeof userId === 'function') {
       callback = userId;
       userId = null;
+      topicKeywords = null;
+    } else if (typeof topicKeywords === 'function') {
+      callback = topicKeywords;
+      topicKeywords = null;
     }
     
     let sql = `
@@ -60,14 +90,27 @@ class News {
         source,
         category,
         image_url,
-        publish_date
+        publish_date,
+        topic_keywords,
+        is_relevant_to_topic
       FROM news
     `;
     
     const params = [];
+    const conditions = [];
+    
     if (userId) {
-      sql += ' WHERE user_id = $1';
+      conditions.push(`user_id = $${params.length + 1}`);
       params.push(userId);
+      
+      if (topicKeywords && topicKeywords.trim()) {
+        conditions.push(`topic_keywords = $${params.length + 1}`);
+        params.push(topicKeywords);
+      }
+    }
+    
+    if (conditions.length > 0) {
+      sql += ' WHERE ' + conditions.join(' AND ');
     }
     
     sql += ' ORDER BY publish_date DESC';

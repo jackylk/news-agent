@@ -19,11 +19,12 @@ function optionalAuth(req, res, next) {
   }
 }
 
-// 获取新闻列表（按日期分组，支持按用户过滤）
+// 获取新闻列表（按日期分组，支持按用户和主题过滤）
 router.get('/list', optionalAuth, (req, res) => {
   const userId = req.user ? req.user.id : null;
+  const topicKeywords = req.query.topicKeywords || null;
   
-  News.getListByDate(userId, (err, data) => {
+  News.getListByDate(userId, topicKeywords, (err, data) => {
     if (err) {
       return res.status(500).json({
         success: false,
