@@ -21,7 +21,7 @@ sk
    - 点击 "New Variable"
    - 添加：
      - **Name**: `DEEPSEEK_API_KEY`
-     - **Value**: `sk-30d75a8ee66d43e89449736541fc6fdb`
+     - **Value**: `sk-`
    - 点击 "Add"
 
 3. **重新部署**
