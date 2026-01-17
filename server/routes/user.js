@@ -100,11 +100,15 @@ router.delete('/topics/:keywords', (req, res) => {
     if (result.deletedSubscriptionCount > 0) {
       message += `，已删除 ${result.deletedSubscriptionCount} 个相关订阅信息源`;
     }
+    if (result.deletedArticleCount > 0) {
+      message += `，已删除 ${result.deletedArticleCount} 篇相关文章`;
+    }
     
     res.json({
       success: true,
       message: message,
-      deletedSubscriptionCount: result.deletedSubscriptionCount || 0
+      deletedSubscriptionCount: result.deletedSubscriptionCount || 0,
+      deletedArticleCount: result.deletedArticleCount || 0
     });
   });
 });

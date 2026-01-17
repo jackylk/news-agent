@@ -2403,7 +2403,7 @@
 
     // 删除主题
     async function removeTopic(keywords) {
-      if (!confirm(`确定要删除主题 "${keywords}" 吗？删除后该主题的推荐历史也将被删除。`)) {
+      if (!confirm(`确定要删除主题 "${keywords}" 吗？\n\n删除后将同时删除：\n- 该主题的所有信息源订阅\n- 这些信息源收集的所有文章\n- 该主题的推荐历史\n\n此操作不可恢复！`)) {
         return;
       }
 
@@ -2419,11 +2419,19 @@
         const result = await response.json();
 
         if (result.success) {
-          showMessage('主题删除成功', 'success');
+          let message = result.message || '主题删除成功';
+          if (result.deletedSubscriptionCount > 0 || result.deletedArticleCount > 0) {
+            message += `（已删除 ${result.deletedSubscriptionCount || 0} 个订阅，${result.deletedArticleCount || 0} 篇文章）`;
+          }
+          showMessage(message, 'success');
           // 重新加载主题列表
           await loadTopics();
           // 重新加载所有推荐历史（这样对应的页签会被移除）
           await loadAllRecommendationHistory();
+          // 如果当前在文章阅读页面，刷新文章列表
+          if (document.getElementById('articlesPage').classList.contains('active')) {
+            await loadArticlesTopicsTabs();
+          }
         } else {
           showMessage(result.message || '删除失败', 'error');
         }
