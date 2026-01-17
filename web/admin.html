@@ -19,7 +19,7 @@
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 20px;
     }
@@ -39,29 +39,36 @@
 
     .auth-section {
       background: white;
-      padding: 20px;
+      padding: 30px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
+      max-width: 400px;
+    }
+
+    .auth-section h3 {
+      margin-bottom: 15px;
     }
 
     .auth-section input {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 14px;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
 
     .auth-section button {
-      padding: 10px 20px;
+      width: 100%;
+      padding: 12px;
       background-color: #667eea;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
       font-size: 14px;
+      font-weight: 500;
     }
 
     .auth-section button:hover {
@@ -95,43 +102,48 @@
       margin-top: 5px;
     }
 
-    .sources-section {
+    .section {
       background: white;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .sources-section h2 {
-      font-size: 20px;
       margin-bottom: 20px;
     }
 
-    .sources-table {
-      width: 100%;
-      border-collapse: collapse;
+    .section h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
     }
 
-    .sources-table th,
-    .sources-table td {
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    table th,
+    table td {
       padding: 12px;
       text-align: left;
       border-bottom: 1px solid #eee;
     }
 
-    .sources-table th {
+    table th {
       background-color: #f8f9fa;
       font-weight: 600;
       color: #333;
+      position: sticky;
+      top: 0;
     }
 
-    .sources-table tr:hover {
+    table tr:hover {
       background-color: #f8f9fa;
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 10px;
     }
 
     .btn {
@@ -141,6 +153,16 @@
       cursor: pointer;
       font-size: 13px;
       transition: background-color 0.3s;
+      margin-right: 5px;
+    }
+
+    .btn-delete {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background-color: #c82333;
     }
 
     .btn-refresh {
@@ -152,17 +174,6 @@
       background-color: #218838;
     }
 
-    .btn-delete,
-    .btn-clear {
-      background-color: #dc3545;
-      color: white;
-    }
-
-    .btn-delete:hover,
-    .btn-clear:hover {
-      background-color: #c82333;
-    }
-
     .btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -170,32 +181,79 @@
 
     .loading {
       text-align: center;
-      padding: 20px;
+      padding: 40px;
       color: #666;
-    }
-
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-      padding: 12px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-
-    .success {
-      background-color: #d4edda;
-      color: #155724;
-      padding: 12px;
-      border-radius: 4px;
-      margin-bottom: 20px;
     }
 
     .message {
       display: none;
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
     }
 
     .message.show {
       display: block;
+    }
+
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-bar input,
+    .search-bar select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .pagination button {
+      padding: 8px 16px;
+    }
+
+    .pagination span {
+      padding: 0 10px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .checkbox-cell {
+      width: 40px;
+      text-align: center;
     }
   </style>
 </head>
@@ -203,22 +261,40 @@
   <div class="container">
     <div class="header">
       <h1>新闻管理后台</h1>
-      <p>管理新闻来源和数据</p>
+      <p>管理系统用户、主题词、订阅和文章</p>
     </div>
 
     <div class="auth-section" id="authSection">
       <h3>管理员认证</h3>
-      <input type="password" id="adminToken" placeholder="请输入管理员令牌" onkeypress="handleKeyPress(event)" />
+      <input 
+        type="password" 
+        id="adminToken" 
+        placeholder="请输入管理员令牌" 
+        onkeypress="if(event.key==='Enter') authenticate()"
+      />
       <button onclick="authenticate()">登录</button>
     </div>
 
     <div id="adminContent" style="display: none;">
       <div class="message" id="message"></div>
 
+      <!-- 统计信息 -->
       <div class="stats-section" id="statsSection">
         <div class="stat-item">
           <div class="stat-value" id="totalCount">-</div>
           <div class="stat-label">总新闻数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalUsers">-</div>
+          <div class="stat-label">总用户数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalTopics">-</div>
+          <div class="stat-label">总主题数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalSubscriptions">-</div>
+          <div class="stat-label">总订阅数</div>
         </div>
         <div class="stat-item">
           <div class="stat-value" id="lastUpdated">-</div>
@@ -226,127 +302,143 @@
         </div>
       </div>
 
-      <div class="sources-section">
+      <!-- 用户管理 -->
+      <div class="section">
         <h2>用户管理</h2>
         <div id="usersLoading" class="loading">加载中...</div>
-        <table class="sources-table" id="usersTable" style="display: none;">
-          <thead>
-            <tr>
-              <th>用户名</th>
-              <th>邮箱</th>
-              <th>主题数</th>
-              <th>订阅数</th>
-              <th>注册时间</th>
-              <th>管理员</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="usersBody">
-          </tbody>
-        </table>
+        <div class="table-container" id="usersTableContainer" style="display: none;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>用户名</th>
+                <th>邮箱</th>
+                <th>主题数</th>
+                <th>订阅数</th>
+                <th>注册时间</th>
+                <th>管理员</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody">
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="sources-section">
-        <h2>用户主题词管理</h2>
+      <!-- 主题词管理 -->
+      <div class="section">
+        <h2>主题词管理</h2>
         <div id="topicsLoading" class="loading">加载中...</div>
-        <table class="sources-table" id="topicsTable" style="display: none;">
-          <thead>
-            <tr>
-              <th>用户名</th>
-              <th>邮箱</th>
-              <th>主题词</th>
-              <th>文章数</th>
-              <th>创建时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="topicsBody">
-          </tbody>
-        </table>
+        <div class="table-container" id="topicsTableContainer" style="display: none;">
+          <table>
+            <thead>
+              <tr>
+                <th>用户ID</th>
+                <th>用户名</th>
+                <th>邮箱</th>
+                <th>主题词</th>
+                <th>文章数</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="topicsBody">
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="sources-section">
-        <h2>用户订阅信息源管理</h2>
+      <!-- 订阅管理 -->
+      <div class="section">
+        <h2>订阅管理</h2>
         <div id="subscriptionsLoading" class="loading">加载中...</div>
-        <table class="sources-table" id="subscriptionsTable" style="display: none;">
-          <thead>
-            <tr>
-              <th>用户名</th>
-              <th>邮箱</th>
-              <th>信息源名称</th>
-              <th>信息源URL</th>
-              <th>类型</th>
-              <th>分类</th>
-              <th>主题词</th>
-              <th>订阅时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="subscriptionsBody">
-          </tbody>
-        </table>
+        <div class="table-container" id="subscriptionsTableContainer" style="display: none;">
+          <table>
+            <thead>
+              <tr>
+                <th>用户ID</th>
+                <th>用户名</th>
+                <th>邮箱</th>
+                <th>信息源名称</th>
+                <th>信息源URL</th>
+                <th>类型</th>
+                <th>分类</th>
+                <th>主题词</th>
+                <th>订阅时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="subscriptionsBody">
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="sources-section">
-        <h2>新闻列表管理</h2>
-        <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <!-- 文章管理 -->
+      <div class="section">
+        <h2>文章管理</h2>
+        <div class="search-bar">
           <input 
             type="text" 
             id="newsSearchInput" 
-            placeholder="搜索新闻标题、摘要或内容..." 
-            style="flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
-            onkeypress="if(event.key==='Enter') loadNews()"
-          >
-          <select 
-            id="newsSourceFilter" 
-            style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
-            onchange="loadNews()"
-          >
+            placeholder="搜索文章标题、摘要或内容..." 
+            onkeypress="if(event.key==='Enter') loadNews(1)"
+          />
+          <select id="newsSourceFilter" onchange="loadNews(1)">
             <option value="">全部来源</option>
           </select>
-          <button class="btn btn-refresh" onclick="loadNews()">刷新</button>
-          <button class="btn btn-delete" onclick="deleteSelectedNews()" id="deleteSelectedBtn" style="display: none;">删除选中</button>
+          <button class="btn btn-refresh" onclick="loadNews(1)">刷新</button>
+          <button class="btn btn-delete" onclick="deleteSelectedNews()" id="deleteSelectedBtn" style="display: none;">
+            删除选中
+          </button>
         </div>
         <div id="newsLoading" class="loading">加载中...</div>
-        <table class="sources-table" id="newsTable" style="display: none;">
-          <thead>
-            <tr>
-              <th style="width: 40px;">
-                <input type="checkbox" id="selectAllNews" onchange="toggleSelectAllNews()">
-              </th>
-              <th>标题</th>
-              <th>来源</th>
-              <th>分类</th>
-              <th>发布日期</th>
-              <th>创建时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="newsBody">
-          </tbody>
-        </table>
-        <div id="newsPagination" style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+        <div class="table-container" id="newsTableContainer" style="display: none;">
+          <table>
+            <thead>
+              <tr>
+                <th class="checkbox-cell">
+                  <input type="checkbox" id="selectAllNews" onchange="toggleSelectAllNews()">
+                </th>
+                <th>ID</th>
+                <th>标题</th>
+                <th>来源</th>
+                <th>分类</th>
+                <th>用户ID</th>
+                <th>主题词</th>
+                <th>发布日期</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="newsBody">
+            </tbody>
+          </table>
         </div>
+        <div id="newsPagination" class="pagination"></div>
       </div>
     </div>
   </div>
- 
+
   <script>
-    // API 基础地址 - 本地开发时自动使用当前域名和端口
+    // API 基础地址
     const API_BASE_URL = (() => {
-      // 本地开发：使用本地API
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return `${window.location.protocol}//${window.location.host}/api`;
       }
-      // 生产环境：使用 Railway 后端地址
       return 'https://news-agent-production-c5db.up.railway.app/api';
     })();
+
     let adminToken = '';
+    let currentNewsPage = 1;
+    const pageSize = 20;
+    let selectedNewsIds = new Set();
 
     function authenticate() {
-      const token = document.getElementById('adminToken').value;
+      const token = document.getElementById('adminToken').value.trim();
       if (!token) {
-        alert('请输入管理员令牌');
+        showMessage('请输入管理员令牌', 'error');
         return;
       }
       
@@ -354,18 +446,8 @@
       document.getElementById('authSection').style.display = 'none';
       document.getElementById('adminContent').style.display = 'block';
       
-      loadStats();
-      loadUsers();
-      loadTopics();
-      loadSubscriptions();
-      loadNewsSources();
-      loadNews();
-    }
-
-    function handleKeyPress(event) {
-      if (event.key === 'Enter' || event.keyCode === 13) {
-        authenticate();
-      }
+      // 加载所有数据
+      loadAllData();
     }
 
     function getHeaders() {
@@ -375,34 +457,254 @@
       };
     }
 
+    async function loadAllData() {
+      try {
+        await Promise.all([
+          loadStats(),
+          loadUsers(),
+          loadTopics(),
+          loadSubscriptions(),
+          loadNewsSources(),
+          loadNews(1)
+        ]);
+      } catch (error) {
+        console.error('加载数据失败:', error);
+        showMessage('加载数据时出现错误: ' + error.message, 'error');
+      }
+    }
+
     async function loadStats() {
       try {
         const response = await fetch(`${API_BASE_URL}/admin/stats`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const result = await response.json();
         
         if (result.success) {
           document.getElementById('totalCount').textContent = result.data.totalCount || 0;
-          document.getElementById('lastUpdated').textContent = result.data.lastUpdated 
-            ? new Date(result.data.lastUpdated).toLocaleString('zh-CN')
+          const lastUpdated = result.data.lastUpdated;
+          document.getElementById('lastUpdated').textContent = lastUpdated 
+            ? new Date(lastUpdated).toLocaleString('zh-CN')
             : '-';
         }
       } catch (error) {
         console.error('加载统计信息失败:', error);
+        showMessage('加载统计信息失败: ' + error.message, 'error');
       }
     }
 
-    let currentNewsPage = 1;
-    let currentNewsPageSize = 20;
-    let selectedNewsIds = new Set();
+    async function loadUsers() {
+      const loadingEl = document.getElementById('usersLoading');
+      const containerEl = document.getElementById('usersTableContainer');
+      
+      loadingEl.style.display = 'block';
+      containerEl.style.display = 'none';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/users`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
 
-    // 加载新闻来源列表（用于筛选）
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        loadingEl.style.display = 'none';
+        
+        if (result.success) {
+          const users = result.data || [];
+          const tbody = document.getElementById('usersBody');
+          tbody.innerHTML = '';
+          
+          // 更新统计
+          document.getElementById('totalUsers').textContent = users.length;
+          
+          if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">暂无用户</td></tr>';
+          } else {
+            users.forEach(user => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${user.id}</td>
+                <td>${escapeHtml(user.username)}</td>
+                <td>${escapeHtml(user.email)}</td>
+                <td>${user.topic_count || 0}</td>
+                <td>${user.subscription_count || 0}</td>
+                <td>${formatDate(user.created_at)}</td>
+                <td>${user.is_admin ? '是' : '否'}</td>
+                <td>
+                  <button class="btn btn-delete" onclick="deleteUserAllData(${user.id}, '${escapeHtml(user.username).replace(/'/g, "\\'")}')" title="删除用户所有数据">
+                    删除所有数据
+                  </button>
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
+          
+          containerEl.style.display = 'block';
+        } else {
+          showMessage(result.message || '加载用户列表失败', 'error');
+        }
+      } catch (error) {
+        loadingEl.style.display = 'none';
+        console.error('加载用户列表失败:', error);
+        showMessage('加载用户列表失败: ' + error.message, 'error');
+      }
+    }
+
+    async function loadTopics() {
+      const loadingEl = document.getElementById('topicsLoading');
+      const containerEl = document.getElementById('topicsTableContainer');
+      
+      loadingEl.style.display = 'block';
+      containerEl.style.display = 'none';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/topics`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        loadingEl.style.display = 'none';
+        
+        if (result.success) {
+          const topics = result.data || [];
+          const tbody = document.getElementById('topicsBody');
+          tbody.innerHTML = '';
+          
+          // 更新统计
+          document.getElementById('totalTopics').textContent = topics.length;
+          
+          if (topics.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">暂无主题词</td></tr>';
+          } else {
+            topics.forEach(topic => {
+              const row = document.createElement('tr');
+              const createdDate = formatDate(topic.created_at);
+              row.innerHTML = `
+                <td>${topic.user_id}</td>
+                <td>${escapeHtml(topic.username || '')}</td>
+                <td>${escapeHtml(topic.email || '')}</td>
+                <td><strong>${escapeHtml(topic.topic_keywords)}</strong></td>
+                <td>${topic.article_count || 0}</td>
+                <td>${createdDate}</td>
+                <td>
+                  <button class="btn btn-delete" onclick="deleteTopic(${topic.user_id}, '${escapeHtml(topic.topic_keywords).replace(/'/g, "\\'")}', ${topic.article_count || 0})" title="删除主题词">
+                    删除
+                  </button>
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
+          
+          containerEl.style.display = 'block';
+        } else {
+          showMessage(result.message || '加载主题词列表失败', 'error');
+        }
+      } catch (error) {
+        loadingEl.style.display = 'none';
+        console.error('加载主题词列表失败:', error);
+        showMessage('加载主题词列表失败: ' + error.message, 'error');
+      }
+    }
+
+    async function loadSubscriptions() {
+      const loadingEl = document.getElementById('subscriptionsLoading');
+      const containerEl = document.getElementById('subscriptionsTableContainer');
+      
+      loadingEl.style.display = 'block';
+      containerEl.style.display = 'none';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/subscriptions`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        loadingEl.style.display = 'none';
+        
+        if (result.success) {
+          const subscriptions = result.data || [];
+          const tbody = document.getElementById('subscriptionsBody');
+          tbody.innerHTML = '';
+          
+          // 更新统计
+          document.getElementById('totalSubscriptions').textContent = subscriptions.length;
+          
+          if (subscriptions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #999;">暂无订阅信息源</td></tr>';
+          } else {
+            subscriptions.forEach(sub => {
+              const row = document.createElement('tr');
+              const createdDate = formatDate(sub.created_at);
+              const topicKeywords = sub.topic_keywords || '';
+              row.innerHTML = `
+                <td>${sub.user_id}</td>
+                <td>${escapeHtml(sub.username || '')}</td>
+                <td>${escapeHtml(sub.email || '')}</td>
+                <td><strong>${escapeHtml(sub.source_name || '')}</strong></td>
+                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(sub.source_url || '')}">
+                  ${escapeHtml(sub.source_url || '')}
+                </td>
+                <td>${escapeHtml(sub.source_type || '未知')}</td>
+                <td>${escapeHtml(sub.category || '未分类')}</td>
+                <td><strong>${escapeHtml(topicKeywords)}</strong></td>
+                <td>${createdDate}</td>
+                <td>
+                  <button class="btn btn-delete" onclick="deleteSubscription(${sub.user_id}, '${escapeHtml(sub.source_name || '').replace(/'/g, "\\'")}', '${escapeHtml(topicKeywords).replace(/'/g, "\\'")}')" title="删除订阅">
+                    删除
+                  </button>
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+          }
+          
+          containerEl.style.display = 'block';
+        } else {
+          showMessage(result.message || '加载订阅列表失败', 'error');
+        }
+      } catch (error) {
+        loadingEl.style.display = 'none';
+        console.error('加载订阅列表失败:', error);
+        showMessage('加载订阅列表失败: ' + error.message, 'error');
+      }
+    }
+
     async function loadNewsSources() {
       try {
         const response = await fetch(`${API_BASE_URL}/admin/sources`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const result = await response.json();
         
         if (result.success) {
@@ -421,11 +723,13 @@
       }
     }
 
-    // 加载新闻列表
     async function loadNews(page = 1) {
       currentNewsPage = page;
-      document.getElementById('newsLoading').style.display = 'block';
-      document.getElementById('newsTable').style.display = 'none';
+      const loadingEl = document.getElementById('newsLoading');
+      const containerEl = document.getElementById('newsTableContainer');
+      
+      loadingEl.style.display = 'block';
+      containerEl.style.display = 'none';
       
       const search = document.getElementById('newsSearchInput').value.trim();
       const source = document.getElementById('newsSourceFilter').value;
@@ -433,39 +737,47 @@
       try {
         const params = new URLSearchParams({
           page: currentNewsPage,
-          pageSize: currentNewsPageSize
+          pageSize: pageSize
         });
         if (search) params.append('search', search);
         if (source) params.append('source', source);
         
         const response = await fetch(`${API_BASE_URL}/admin/news?${params.toString()}`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const result = await response.json();
         
-        document.getElementById('newsLoading').style.display = 'none';
+        loadingEl.style.display = 'none';
         
         if (result.success) {
           const { news, totalCount, totalPages } = result.data;
-          
           const tbody = document.getElementById('newsBody');
           tbody.innerHTML = '';
           
           if (news.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">暂无新闻</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #999;">暂无新闻</td></tr>';
           } else {
             news.forEach(item => {
               const row = document.createElement('tr');
               const isSelected = selectedNewsIds.has(item.id);
               row.innerHTML = `
-                <td>
+                <td class="checkbox-cell">
                   <input type="checkbox" class="news-checkbox" value="${item.id}" ${isSelected ? 'checked' : ''} onchange="toggleNewsSelection(${item.id})">
                 </td>
+                <td>${item.id}</td>
                 <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.title)}">
                   ${escapeHtml(item.title)}
                 </td>
                 <td>${escapeHtml(item.source || '未知')}</td>
                 <td>${escapeHtml(item.category || '未分类')}</td>
+                <td>${item.user_id || '-'}</td>
+                <td>${escapeHtml(item.topic_keywords || '-')}</td>
                 <td>${formatDate(item.publish_date)}</td>
                 <td>${formatDate(item.created_at)}</td>
                 <td>
@@ -476,26 +788,25 @@
             });
           }
           
-          document.getElementById('newsTable').style.display = 'table';
+          containerEl.style.display = 'block';
           renderNewsPagination(totalPages);
           updateDeleteButton();
         } else {
           showMessage(result.message || '加载新闻列表失败', 'error');
         }
       } catch (error) {
-        document.getElementById('newsLoading').style.display = 'none';
+        loadingEl.style.display = 'none';
+        console.error('加载新闻列表失败:', error);
         showMessage('加载新闻列表失败: ' + error.message, 'error');
       }
     }
 
-    // 渲染分页
     function renderNewsPagination(totalPages) {
       const pagination = document.getElementById('newsPagination');
       pagination.innerHTML = '';
       
       if (totalPages <= 1) return;
       
-      // 上一页
       const prevBtn = document.createElement('button');
       prevBtn.className = 'btn';
       prevBtn.textContent = '上一页';
@@ -503,13 +814,10 @@
       prevBtn.onclick = () => loadNews(currentNewsPage - 1);
       pagination.appendChild(prevBtn);
       
-      // 页码
       const pageInfo = document.createElement('span');
       pageInfo.textContent = `第 ${currentNewsPage} / ${totalPages} 页`;
-      pageInfo.style.padding = '0 10px';
       pagination.appendChild(pageInfo);
       
-      // 下一页
       const nextBtn = document.createElement('button');
       nextBtn.className = 'btn';
       nextBtn.textContent = '下一页';
@@ -518,7 +826,6 @@
       pagination.appendChild(nextBtn);
     }
 
-    // 切换新闻选择
     function toggleNewsSelection(id) {
       if (selectedNewsIds.has(id)) {
         selectedNewsIds.delete(id);
@@ -528,7 +835,6 @@
       updateDeleteButton();
     }
 
-    // 全选/取消全选
     function toggleSelectAllNews() {
       const selectAll = document.getElementById('selectAllNews');
       const checkboxes = document.querySelectorAll('.news-checkbox');
@@ -546,7 +852,6 @@
       updateDeleteButton();
     }
 
-    // 更新删除按钮显示
     function updateDeleteButton() {
       const deleteBtn = document.getElementById('deleteSelectedBtn');
       if (selectedNewsIds.size > 0) {
@@ -557,7 +862,6 @@
       }
     }
 
-    // 删除单条新闻
     async function deleteNews(id) {
       if (!confirm(`确定要删除这条新闻吗？此操作不可恢复！`)) {
         return;
@@ -568,6 +872,11 @@
           method: 'DELETE',
           headers: getHeaders()
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const result = await response.json();
         
         if (result.success) {
@@ -579,11 +888,11 @@
           showMessage(result.message || '删除失败', 'error');
         }
       } catch (error) {
+        console.error('删除新闻失败:', error);
         showMessage('删除失败: ' + error.message, 'error');
       }
     }
 
-    // 批量删除新闻
     async function deleteSelectedNews() {
       if (selectedNewsIds.size === 0) {
         showMessage('请先选择要删除的新闻', 'error');
@@ -600,6 +909,11 @@
           headers: getHeaders(),
           body: JSON.stringify({ ids: Array.from(selectedNewsIds) })
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const result = await response.json();
         
         if (result.success) {
@@ -611,6 +925,129 @@
           showMessage(result.message || '删除失败', 'error');
         }
       } catch (error) {
+        console.error('批量删除新闻失败:', error);
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+
+    async function deleteTopic(userId, keywords, articleCount) {
+      const deleteArticles = confirm(
+        `确定要删除主题词 "${keywords}" 吗？\n\n` +
+        `该主题词当前有 ${articleCount} 篇文章。\n\n` +
+        `点击"确定"将同时删除该主题词的所有信息源订阅和相关文章，\n` +
+        `点击"取消"只删除主题词和订阅，保留文章。`
+      );
+      
+      const confirmMessage = deleteArticles 
+        ? `⚠️  最后确认：\n\n您即将删除主题词 "${keywords}" 及其：\n- 所有信息源订阅\n- 所有 ${articleCount} 篇相关文章\n- 推荐历史\n\n此操作不可恢复！`
+        : `⚠️  最后确认：\n\n您即将删除主题词 "${keywords}" 及其：\n- 所有信息源订阅\n- 推荐历史\n\n文章将保留。\n\n此操作不可恢复！`;
+      
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/admin/topics/${userId}/${encodeURIComponent(keywords)}?deleteArticles=${deleteArticles}`,
+          {
+            method: 'DELETE',
+            headers: getHeaders()
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(result.message || '删除成功', 'success');
+          loadTopics();
+          loadUsers();
+          loadStats();
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除主题词失败:', error);
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+
+    async function deleteSubscription(userId, sourceName, topicKeywords) {
+      const topicText = topicKeywords ? `（主题: ${topicKeywords}）` : '';
+      if (!confirm(`确定要删除用户订阅信息源 "${sourceName}"${topicText} 吗？\n\n此操作不可恢复！`)) {
+        return;
+      }
+      
+      try {
+        let url = `${API_BASE_URL}/admin/subscriptions/${userId}/${encodeURIComponent(sourceName)}`;
+        if (topicKeywords && topicKeywords.trim()) {
+          url += `?topicKeywords=${encodeURIComponent(topicKeywords)}`;
+        }
+        
+        const response = await fetch(url, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(result.message || '删除成功', 'success');
+          loadSubscriptions();
+          loadUsers();
+          loadStats();
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除订阅失败:', error);
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+
+    async function deleteUserAllData(userId, username) {
+      if (!confirm(`⚠️  警告：您即将删除用户 "${username}" 的所有数据！\n\n这将删除：\n- 该用户的所有主题词\n- 该用户的所有信息源订阅\n- 该用户的所有文章\n- 该用户的所有推荐历史\n\n此操作不可恢复！`)) {
+        return;
+      }
+      
+      if (!confirm(`🚨 最后确认：\n\n您确定要删除用户 "${username}" 的所有数据吗？\n\n此操作不可恢复，请再次确认！`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/admin/users/${userId}/all`,
+          {
+            method: 'DELETE',
+            headers: getHeaders()
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(result.message || '删除成功', 'success');
+          loadUsers();
+          loadTopics();
+          loadSubscriptions();
+          loadStats();
+          loadNews(1);
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除用户数据失败:', error);
         showMessage('删除失败: ' + error.message, 'error');
       }
     }
@@ -635,334 +1072,10 @@
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
-    }
-
-    async function loadUsers() {
-      document.getElementById('usersLoading').style.display = 'block';
-      document.getElementById('usersTable').style.display = 'none';
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/admin/users`, {
-          headers: getHeaders()
-        });
-        const result = await response.json();
-        
-        document.getElementById('usersLoading').style.display = 'none';
-        
-        if (result.success) {
-          const users = result.data;
-          const tbody = document.getElementById('usersBody');
-          tbody.innerHTML = '';
-          
-          users.forEach(user => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${escapeHtml(user.username)}</td>
-              <td>${escapeHtml(user.email)}</td>
-              <td>${user.topic_count || 0}</td>
-              <td>${user.subscription_count || 0}</td>
-              <td>${formatDate(user.created_at)}</td>
-              <td>${user.is_admin ? '是' : '否'}</td>
-              <td>
-                <button class="btn btn-delete" onclick="deleteUserAllData(${user.id}, '${escapeHtml(user.username).replace(/'/g, "\\'")}')" title="删除用户所有数据">
-                  删除所有数据
-                </button>
-              </td>
-            `;
-            tbody.appendChild(row);
-          });
-          
-          document.getElementById('usersTable').style.display = 'table';
-        } else {
-          showMessage(result.message || '加载用户列表失败', 'error');
-        }
-      } catch (error) {
-        document.getElementById('usersLoading').style.display = 'none';
-        showMessage('加载用户列表失败: ' + error.message, 'error');
-      }
-    }
-
-    async function loadTopics() {
-      document.getElementById('topicsLoading').style.display = 'block';
-      document.getElementById('topicsTable').style.display = 'none';
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/admin/topics`, {
-          headers: getHeaders()
-        });
-        const result = await response.json();
-        
-        document.getElementById('topicsLoading').style.display = 'none';
-        
-        if (result.success) {
-          const topics = result.data;
-          const tbody = document.getElementById('topicsBody');
-          tbody.innerHTML = '';
-          
-          if (topics.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">暂无主题词</td></tr>';
-          } else {
-            topics.forEach(topic => {
-              const row = document.createElement('tr');
-              const createdDate = topic.created_at 
-                ? new Date(topic.created_at).toLocaleString('zh-CN')
-                : '-';
-              row.innerHTML = `
-                <td>${escapeHtml(topic.username)}</td>
-                <td>${escapeHtml(topic.email)}</td>
-                <td><strong>${escapeHtml(topic.topic_keywords)}</strong></td>
-                <td>${topic.article_count || 0}</td>
-                <td>${createdDate}</td>
-                <td>
-                  <button class="btn-delete" onclick="deleteTopic(${topic.user_id}, '${escapeHtml(topic.topic_keywords).replace(/'/g, "\\'")}', ${topic.article_count || 0})" title="删除主题词">
-                    删除
-                  </button>
-                </td>
-              `;
-              tbody.appendChild(row);
-            });
-          }
-          
-          document.getElementById('topicsTable').style.display = 'table';
-        } else {
-          showMessage(result.message || '加载主题词列表失败', 'error');
-        }
-      } catch (error) {
-        document.getElementById('topicsLoading').style.display = 'none';
-        showMessage('加载主题词列表失败: ' + error.message, 'error');
-      }
-    }
-
-    async function deleteTopic(userId, keywords, articleCount) {
-      // 显示确认对话框，询问是否删除相关文章
-      const deleteArticles = confirm(
-        `确定要删除主题词 "${keywords}" 吗？\n\n` +
-        `该主题词当前有 ${articleCount} 篇文章。\n\n` +
-        `点击"确定"将同时删除该主题词的所有信息源订阅和相关文章，\n` +
-        `点击"取消"只删除主题词和订阅，保留文章。`
-      );
-      
-      const confirmMessage = deleteArticles 
-        ? `⚠️  最后确认：\n\n您即将删除主题词 "${keywords}" 及其：\n- 所有信息源订阅\n- 所有 ${articleCount} 篇相关文章\n- 推荐历史\n\n此操作不可恢复！`
-        : `⚠️  最后确认：\n\n您即将删除主题词 "${keywords}" 及其：\n- 所有信息源订阅\n- 推荐历史\n\n文章将保留。\n\n此操作不可恢复！`;
-      
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-      
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/admin/topics/${userId}/${encodeURIComponent(keywords)}?deleteArticles=${deleteArticles}`,
-          {
-            method: 'DELETE',
-            headers: getHeaders()
-          }
-        );
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          showMessage(result.message || '删除成功', 'success');
-          loadTopics(); // 重新加载主题词列表
-          loadUsers(); // 重新加载用户列表（更新主题数）
-          loadStats(); // 重新加载统计信息（更新文章总数）
-        } else {
-          showMessage(result.message || '删除失败', 'error');
-        }
-      } catch (error) {
-        showMessage('删除失败: ' + error.message, 'error');
-      }
-    }
-
-    async function loadSubscriptions() {
-      document.getElementById('subscriptionsLoading').style.display = 'block';
-      document.getElementById('subscriptionsTable').style.display = 'none';
-      
-      const apiUrl = `${API_BASE_URL}/admin/subscriptions`;
-      console.log('📝 开始加载订阅列表');
-      console.log('   API地址:', apiUrl);
-      console.log('   请求头:', getHeaders());
-      
-      try {
-        const response = await fetch(apiUrl, {
-          headers: getHeaders()
-        });
-        
-        console.log('   响应状态:', response.status, response.statusText);
-        console.log('   响应头:', Object.fromEntries(response.headers.entries()));
-        
-        // 检查响应状态
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('   错误响应内容:', errorText.substring(0, 500));
-          
-          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-          
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.message || errorMessage;
-          } catch (e) {
-            if (errorText.includes('The page') || errorText.includes('404') || errorText.includes('Not Found')) {
-              errorMessage = 'API 地址配置错误，请检查后端服务是否正常运行';
-            } else if (errorText.length < 200) {
-              errorMessage = errorText;
-            } else {
-              errorMessage = `服务器错误 (${response.status})，请检查后端日志`;
-            }
-          }
-          
-          document.getElementById('subscriptionsLoading').style.display = 'none';
-          showMessage('加载订阅列表失败: ' + errorMessage, 'error');
-          return;
-        }
-        
-        // 检查 Content-Type 是否为 JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          console.error('   非 JSON 响应:', text.substring(0, 500));
-          document.getElementById('subscriptionsLoading').style.display = 'none';
-          showMessage('加载订阅列表失败: 服务器返回了非 JSON 响应，请检查 API 地址配置', 'error');
-          return;
-        }
-        
-        const result = await response.json();
-        console.log('   响应结果:', result);
-        
-        document.getElementById('subscriptionsLoading').style.display = 'none';
-        
-        if (result.success) {
-          const subscriptions = result.data || [];
-          console.log(`✅ 成功加载 ${subscriptions.length} 条订阅记录`);
-          
-          const tbody = document.getElementById('subscriptionsBody');
-          tbody.innerHTML = '';
-          
-          if (subscriptions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #999;">暂无订阅信息源</td></tr>';
-          } else {
-            subscriptions.forEach(sub => {
-              const row = document.createElement('tr');
-              const createdDate = sub.created_at 
-                ? new Date(sub.created_at).toLocaleString('zh-CN')
-                : '-';
-              const topicKeywords = sub.topic_keywords || '';
-              row.innerHTML = `
-                <td>${escapeHtml(sub.username || '')}</td>
-                <td>${escapeHtml(sub.email || '')}</td>
-                <td><strong>${escapeHtml(sub.source_name || '')}</strong></td>
-                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(sub.source_url || '')}">${escapeHtml(sub.source_url || '')}</td>
-                <td>${escapeHtml(sub.source_type || '未知')}</td>
-                <td>${escapeHtml(sub.category || '未分类')}</td>
-                <td><strong>${escapeHtml(topicKeywords)}</strong></td>
-                <td>${createdDate}</td>
-                <td>
-                  <button class="btn btn-delete" onclick="deleteSubscription(${sub.user_id}, '${escapeHtml(sub.source_name || '').replace(/'/g, "\\'")}', '${escapeHtml(topicKeywords).replace(/'/g, "\\'")}')" title="删除订阅">
-                    删除
-                  </button>
-                </td>
-              `;
-              tbody.appendChild(row);
-            });
-          }
-          
-          document.getElementById('subscriptionsTable').style.display = 'table';
-        } else {
-          console.error('❌ 加载失败:', result.message);
-          showMessage(result.message || '加载订阅列表失败', 'error');
-        }
-      } catch (error) {
-        console.error('❌ 加载订阅列表异常:', error);
-        console.error('   错误类型:', error.name);
-        console.error('   错误消息:', error.message);
-        console.error('   错误堆栈:', error.stack);
-        
-        document.getElementById('subscriptionsLoading').style.display = 'none';
-        
-        let errorMessage = error.message;
-        
-        // 处理不同类型的错误
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-          errorMessage = '无法连接到服务器。请检查：\n1. 网络连接是否正常\n2. API 地址是否正确 (' + API_BASE_URL + ')\n3. 后端服务是否正在运行\n4. 是否存在 CORS 跨域问题';
-        } else if (error.message.includes('JSON') || error.message.includes('Unexpected token')) {
-          errorMessage = 'API 地址配置错误或后端服务未运行。请检查：\n1. 后端服务是否已部署\n2. API 地址是否正确\n3. 后端服务是否正常运行';
-        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          errorMessage = '网络请求失败。可能的原因：\n1. 后端服务未运行或无法访问\n2. API 地址配置错误\n3. 网络连接问题\n4. CORS 跨域限制\n\n当前 API 地址: ' + API_BASE_URL;
-        }
-        
-        showMessage('加载订阅列表失败: ' + errorMessage, 'error');
-      }
-    }
-
-    async function deleteSubscription(userId, sourceName, topicKeywords) {
-      const topicText = topicKeywords ? `（主题: ${topicKeywords}）` : '';
-      if (!confirm(`确定要删除用户订阅信息源 "${sourceName}"${topicText} 吗？\n\n此操作不可恢复！`)) {
-        return;
-      }
-      
-      try {
-        let url = `${API_BASE_URL}/admin/subscriptions/${userId}/${encodeURIComponent(sourceName)}`;
-        if (topicKeywords && topicKeywords.trim()) {
-          url += `?topicKeywords=${encodeURIComponent(topicKeywords)}`;
-        }
-        
-        const response = await fetch(url, {
-          method: 'DELETE',
-          headers: getHeaders()
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          showMessage(result.message || '删除成功', 'success');
-          loadSubscriptions(); // 重新加载订阅列表
-          loadUsers(); // 重新加载用户列表（更新订阅数）
-          loadStats(); // 重新加载统计信息
-        } else {
-          showMessage(result.message || '删除失败', 'error');
-        }
-      } catch (error) {
-        showMessage('删除失败: ' + error.message, 'error');
-      }
-    }
-    
-    // 删除用户的所有数据
-    async function deleteUserAllData(userId, username) {
-      if (!confirm(`⚠️  警告：您即将删除用户 "${username}" 的所有数据！\n\n这将删除：\n- 该用户的所有主题词\n- 该用户的所有信息源订阅\n- 该用户的所有文章\n- 该用户的所有推荐历史\n\n此操作不可恢复！`)) {
-        return;
-      }
-      
-      if (!confirm(`🚨 最后确认：\n\n您确定要删除用户 "${username}" 的所有数据吗？\n\n此操作不可恢复，请再次确认！`)) {
-        return;
-      }
-      
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/admin/users/${userId}/all`,
-          {
-            method: 'DELETE',
-            headers: getHeaders()
-          }
-        );
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          showMessage(result.message || '删除成功', 'success');
-          loadUsers(); // 重新加载用户列表
-          loadTopics(); // 重新加载主题词列表
-          loadSubscriptions(); // 重新加载订阅列表
-          loadStats(); // 重新加载统计信息
-          loadNews(); // 重新加载新闻列表
-        } else {
-          showMessage(result.message || '删除失败', 'error');
-        }
-      } catch (error) {
-        showMessage('删除失败: ' + error.message, 'error');
-      }
     }
   </script>
 </body>
