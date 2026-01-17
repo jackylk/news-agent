@@ -4,7 +4,7 @@
 
 你的 DeepSeek API Key 已添加到配置中：
 ```
-sk-30d75a8ee66d43e89449736541fc6fdb
+sk
 ```
 
 ## 在 Railway 上配置

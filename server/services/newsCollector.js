@@ -80,6 +80,60 @@ const RSS_FEEDS = [
 const NEWS_API_KEY = process.env.NEWS_API_KEY || '';
 const NEWS_API_URL = 'https://newsapi.org/v2/top-headlines';
 
+// Twitter/X RSS源配置
+// 支持通过Nitter实例将Twitter用户转换为RSS源
+// 可以配置多个Nitter实例作为备用（如果第一个失效，会尝试下一个）
+const NITTER_INSTANCES = process.env.NITTER_INSTANCES 
+  ? process.env.NITTER_INSTANCES.split(',').map(url => url.trim())
+  : [
+      'https://nitter.net',  // 默认Nitter实例（可能不稳定）
+      'https://nitter.it',   // 备用实例1
+      'https://nitter.pussthecat.org', // 备用实例2
+      // 用户可以自己部署Nitter实例，然后在这里配置
+    ];
+
+// 从Twitter/X URL或用户名提取用户名
+function extractTwitterUsername(urlOrUsername) {
+  if (!urlOrUsername) return null;
+  
+  // 移除@符号
+  let username = urlOrUsername.replace(/^@/, '').trim();
+  
+  // 如果是URL，提取用户名
+  const urlPatterns = [
+    /twitter\.com\/([a-zA-Z0-9_]+)/i,
+    /x\.com\/([a-zA-Z0-9_]+)/i,
+    /nitter\.(?:net|it|unixfox\.dev|privacyredirect\.com)\/([a-zA-Z0-9_]+)/i,
+  ];
+  
+  for (const pattern of urlPatterns) {
+    const match = urlOrUsername.match(pattern);
+    if (match && match[1]) {
+      username = match[1];
+      break;
+    }
+  }
+  
+  // 验证用户名格式（Twitter用户名只允许字母、数字和下划线）
+  if (/^[a-zA-Z0-9_]+$/.test(username)) {
+    return username;
+  }
+  
+  return null;
+}
+
+// 将Twitter用户名转换为Nitter RSS URL
+function getTwitterRSSUrl(username, nitterInstance = null) {
+  const cleanUsername = extractTwitterUsername(username);
+  if (!cleanUsername) {
+    return null;
+  }
+  
+  // 使用指定的实例，或从配置中选择
+  const instance = nitterInstance || NITTER_INSTANCES[0];
+  return `${instance}/${cleanUsername}/rss`;
+}
+
 class NewsCollector {
   // 从RSS源收集新闻
   async collectFromRSS() {
@@ -1009,7 +1063,14 @@ class NewsCollector {
         const lowerUrl = source_url.toLowerCase();
         
         // 判断信息源类型并调用相应的收集方法
-        if (normalizedSourceType === 'rss' || normalizedSourceType === 'feed' || 
+        // 首先检查是否是Twitter/X源
+        if (normalizedSourceType === 'twitter' || normalizedSourceType === 'x' || 
+            lowerUrl.includes('twitter.com/') || lowerUrl.includes('x.com/') ||
+            lowerUrl.includes('nitter.') || extractTwitterUsername(source_url)) {
+          // Twitter/X推文源
+          console.log(`[收集源 ${index + 1}/${totalSources}] 处理Twitter/X源: ${source_name}${currentTopicKeywords ? ` (主题: ${currentTopicKeywords})` : ''}`);
+          result = await this.collectFromTwitterForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
+        } else if (normalizedSourceType === 'rss' || normalizedSourceType === 'feed' || 
             normalizedSourceType === 'xml' || normalizedSourceType === 'atom' ||
             lowerUrl.includes('/rss') || lowerUrl.includes('/feed') || 
             lowerUrl.includes('/atom') || lowerUrl.endsWith('.xml') ||
@@ -1302,17 +1363,77 @@ class NewsCollector {
           continue;
         }
         
-        // 如果不是网络错误或已达到最大重试次数，返回0
+        // 如果不是网络错误或已达到最大重试次数，返回空结果
         if (attempt === maxRetries) {
           console.error(`从RSS源 ${feedUrl} 收集失败，已重试 ${maxRetries} 次，跳过该源`);
-          return 0;
+          return { count: 0, articles: [] };
         }
       }
     }
     
     // 如果所有重试都失败
     console.error(`从RSS源 ${feedUrl} 收集失败，已重试 ${maxRetries} 次`);
-    return 0;
+    return { count: 0, articles: [] };
+  }
+
+  // 从Twitter/X收集推文（带用户ID）
+  // 通过Nitter实例将Twitter用户转换为RSS源，然后收集推文
+  async collectFromTwitterForUser(twitterUrlOrUsername, userId, sourceName, category, onProgress = null, topicKeywords = null) {
+    console.log(`开始从Twitter/X ${twitterUrlOrUsername} 收集推文（用户 ${userId}）...`);
+    let collectedCount = 0;
+    const collectedArticles = []; // 用于批量收集
+
+    // 提取Twitter用户名
+    const username = extractTwitterUsername(twitterUrlOrUsername);
+    if (!username) {
+      console.error(`无法从 "${twitterUrlOrUsername}" 提取Twitter用户名`);
+      return { count: 0, articles: [] };
+    }
+
+    // 尝试使用不同的Nitter实例获取RSS
+    let lastError = null;
+    for (const nitterInstance of NITTER_INSTANCES) {
+      try {
+        const rssUrl = getTwitterRSSUrl(username, nitterInstance);
+        if (!rssUrl) {
+          continue;
+        }
+
+        console.log(`尝试使用Nitter实例: ${nitterInstance}`);
+        
+        // 使用RSS收集方法获取推文
+        const result = await this.collectFromRSSFeedForUser(
+          rssUrl, 
+          userId, 
+          sourceName || `@${username}`, 
+          category || '社交媒体', 
+          2, // 最多重试2次（因为会尝试多个实例）
+          onProgress, 
+          topicKeywords
+        );
+
+        // 如果成功收集到数据，返回结果
+        if (result && (result.count > 0 || (result.articles && result.articles.length > 0))) {
+          console.log(`成功从Nitter实例 ${nitterInstance} 收集到推文`);
+          return result;
+        }
+      } catch (error) {
+        lastError = error;
+        const errorMsg = error.message || error.toString();
+        console.warn(`Nitter实例 ${nitterInstance} 失败: ${errorMsg}`);
+        
+        // 继续尝试下一个实例
+        continue;
+      }
+    }
+
+    // 如果所有实例都失败
+    console.error(`所有Nitter实例都失败，无法收集Twitter用户 @${username} 的推文`);
+    if (lastError) {
+      console.error('最后一个错误:', lastError.message);
+    }
+    
+    return { count: 0, articles: [] };
   }
 
   // 从博客收集（带用户ID）
