@@ -1659,6 +1659,126 @@ class NewsCollector {
     return null;
   }
 
+  // 批量检查文章与主题的相关性（使用 DeepSeek API）
+  async batchCheckArticleRelevance(articles, topicKeywords) {
+    if (!DEEPSEEK_API_KEY) {
+      console.warn('[DeepSeek过滤] DeepSeek API Key 未配置，跳过相关性判断，将保存所有文章');
+      // 如果没有配置 API Key，返回所有文章都相关
+      return articles.map(() => true);
+    }
+
+    if (!articles || articles.length === 0) {
+      return [];
+    }
+
+    if (!topicKeywords || !topicKeywords.trim()) {
+      // 没有主题关键词，返回所有文章都相关
+      return articles.map(() => true);
+    }
+
+    console.log(`[DeepSeek过滤] 开始批量判断 ${articles.length} 篇文章与主题 "${topicKeywords}" 的相关性...`);
+
+    try {
+      // 构建提示词，包含所有文章的标题和摘要
+      const articlesInfo = articles.map((article, index) => {
+        const title = article.title || '无标题';
+        const summary = article.summary || article.content?.substring(0, 200) || '';
+        return `${index + 1}. 标题: ${title}\n   摘要: ${summary}`;
+      }).join('\n\n');
+
+      const prompt = `请判断以下文章列表中的每篇文章是否与主题关键词 "${topicKeywords}" 相关。
+
+文章列表：
+${articlesInfo}
+
+请为每篇文章判断是否与主题相关，只返回一个JSON数组，数组中的每个元素是一个布尔值（true表示相关，false表示不相关），数组的顺序与文章列表的顺序一致。
+
+例如，如果有3篇文章，第1篇和第3篇相关，第2篇不相关，则返回：
+[true, false, true]
+
+只返回JSON数组，不要添加任何其他文字说明。`;
+
+      const startTime = Date.now();
+      
+      const response = await axios.post(
+        'https://api.deepseek.com/v1/chat/completions',
+        {
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: '你是一个专业的内容相关性判断助手。请根据用户提供的主题关键词，判断每篇文章是否与主题相关。只返回有效的JSON数组，数组中的每个元素是布尔值（true表示相关，false表示不相关），不要添加任何其他文字说明。'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.3
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 60000 // 60秒超时
+        }
+      );
+
+      const duration = Date.now() - startTime;
+      console.log(`[DeepSeek过滤] API调用完成，耗时: ${duration}ms`);
+
+      if (response.data && response.data.choices && response.data.choices.length > 0) {
+        const content = response.data.choices[0].message.content.trim();
+        console.log(`[DeepSeek过滤] API响应长度: ${content.length} 字符`);
+
+        // 尝试解析JSON数组
+        let results;
+        try {
+          // 移除可能的markdown代码块标记
+          const jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          results = JSON.parse(jsonContent);
+        } catch (parseError) {
+          console.error('[DeepSeek过滤] JSON解析失败:', parseError.message);
+          console.error('[DeepSeek过滤] 响应内容:', content);
+          // 如果解析失败，返回所有文章都相关（保守策略）
+          return articles.map(() => true);
+        }
+
+        if (!Array.isArray(results)) {
+          console.error('[DeepSeek过滤] 返回结果不是数组:', typeof results);
+          return articles.map(() => true);
+        }
+
+        if (results.length !== articles.length) {
+          console.warn(`[DeepSeek过滤] 返回结果数量(${results.length})与文章数量(${articles.length})不匹配，使用保守策略`);
+          return articles.map(() => true);
+        }
+
+        // 确保所有结果都是布尔值
+        const booleanResults = results.map(r => Boolean(r));
+        const relevantCount = booleanResults.filter(r => r).length;
+        const irrelevantCount = booleanResults.filter(r => !r).length;
+        
+        console.log(`[DeepSeek过滤] 判断结果: 相关 ${relevantCount} 篇，不相关 ${irrelevantCount} 篇`);
+        
+        return booleanResults;
+      } else {
+        console.error('[DeepSeek过滤] API响应格式异常');
+        return articles.map(() => true);
+      }
+    } catch (error) {
+      console.error('[DeepSeek过滤] API调用失败:', error.message);
+      if (error.response) {
+        console.error('[DeepSeek过滤] 响应状态:', error.response.status);
+        console.error('[DeepSeek过滤] 响应数据:', error.response.data);
+      }
+      // 如果API调用失败，返回所有文章都相关（保守策略，避免丢失文章）
+      return articles.map(() => true);
+    }
+  }
+
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
