@@ -19,12 +19,18 @@ class News {
     const sql = `
       INSERT INTO news (title, content, summary, source, category, url, image_url, publish_date, user_id, topic_keywords, is_relevant_to_topic)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (user_id, topic_keywords, url) DO NOTHING
       RETURNING id
     `;
     
     db.query(sql, [title, content, summary, source, category || '科技', url, image_url, publish_date, user_id || null, topic_keywords || null, is_relevant_to_topic !== undefined ? is_relevant_to_topic : null])
       .then(result => {
-        callback(null, { id: result.rows[0].id, ...newsData });
+        // 如果result.rows为空，说明是重复的文章，返回null但不报错
+        if (result.rows.length === 0) {
+          callback(null, null); // 返回null表示文章已存在，但不报错
+        } else {
+          callback(null, { id: result.rows[0].id, ...newsData });
+        }
       })
       .catch(err => {
         callback(err, null);

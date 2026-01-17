@@ -1183,14 +1183,21 @@ class NewsCollector {
         await new Promise((resolve, reject) => {
           News.create(articleData, (err, result) => {
             if (err) {
-              console.error(`保存文章失败 ${articleData.url}:`, err.message);
-              reject(err);
-            } else {
+              // 检查是否是重复键错误
+              if (err.code === '23505' || err.message.includes('duplicate key')) {
+                console.log(`文章已存在，跳过: ${articleData.url}`);
+                resolve(null); // 忽略重复文章，不报错
+              } else {
+                console.error(`保存文章失败 ${articleData.url}:`, err.message);
+                reject(err);
+              }
+              } else if (result) {
+              // 只有成功插入新文章时才计数和发送进度
               totalCollected++;
               console.log(`[用户${userId}] 已保存相关文章: ${articleData.title}`);
               
               // 实时发送收集到的文章
-              if (onProgress && result) {
+              if (onProgress) {
                 onProgress({
                   type: 'articleCollected',
                   article: {
@@ -1203,6 +1210,10 @@ class NewsCollector {
               }
               
               resolve(result);
+            } else {
+              // result为null表示文章已存在（ON CONFLICT DO NOTHING）
+              console.log(`文章已存在，跳过: ${articleData.url}`);
+              resolve(null);
             }
           });
         });
@@ -1857,11 +1868,19 @@ class NewsCollector {
     console.log(`[DeepSeek过滤] 开始批量判断 ${articles.length} 篇文章与主题 "${topicKeywords}" 的相关性...`);
 
     try {
-      // 构建提示词，包含所有文章的标题和摘要
+      // 构建提示词，只包含所有文章的标题和摘要（不发送全文）
       const articlesInfo = articles.map((article, index) => {
         const title = article.title || '无标题';
-        const summary = article.summary || article.content?.substring(0, 200) || '';
-        return `${index + 1}. 标题: ${title}\n   摘要: ${summary}`;
+        // 优先使用摘要，如果没有摘要则只取内容前200字符作为临时摘要
+        let summary = article.summary || '';
+        if (!summary && article.content) {
+          // 只取前200字符，避免发送全文
+          summary = article.content.substring(0, 200).trim();
+          if (article.content.length > 200) {
+            summary += '...';
+          }
+        }
+        return `${index + 1}. 标题: ${title}\n   摘要: ${summary || '无摘要'}`;
       }).join('\n\n');
 
       const prompt = `请判断以下文章列表中的每篇文章是否与主题关键词 "${topicKeywords}" 相关。
@@ -1892,7 +1911,7 @@ ${articlesInfo}
               content: prompt
             }
           ],
-          max_tokens: 2000,
+          max_tokens: 8000, // 增加token数量以支持大量文章的相关性判断
           temperature: 0.3
         },
         {
