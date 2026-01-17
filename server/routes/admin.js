@@ -245,10 +245,11 @@ router.get('/subscriptions', authenticateAdmin, (req, res) => {
   });
 });
 
-// 删除用户订阅信息源（管理员用）
+// 删除用户订阅信息源（管理员用，支持 topic_keywords 参数）
 router.delete('/subscriptions/:userId/:sourceName', authenticateAdmin, (req, res) => {
   const userId = parseInt(req.params.userId);
   const sourceName = decodeURIComponent(req.params.sourceName);
+  const topicKeywords = req.query.topicKeywords ? decodeURIComponent(req.query.topicKeywords) : null;
   
   if (isNaN(userId)) {
     return res.status(400).json({
@@ -264,7 +265,7 @@ router.delete('/subscriptions/:userId/:sourceName', authenticateAdmin, (req, res
     });
   }
   
-  User.removeSubscriptionByAdmin(userId, sourceName, (err, result) => {
+  User.removeSubscriptionByAdmin(userId, sourceName, topicKeywords, (err, result) => {
     if (err) {
       return res.status(500).json({
         success: false,
@@ -280,9 +281,52 @@ router.delete('/subscriptions/:userId/:sourceName', authenticateAdmin, (req, res
       });
     }
     
+    let message = `已删除用户订阅信息源 "${sourceName}"`;
+    if (topicKeywords) {
+      message += `（主题: ${topicKeywords}）`;
+    }
+    if (result.deletedCount > 1) {
+      message += `，共删除 ${result.deletedCount} 条记录`;
+    }
+    
     res.json({
       success: true,
-      message: `已删除用户订阅信息源 "${sourceName}"`
+      message: message,
+      deletedCount: result.deletedCount || 1
+    });
+  });
+});
+
+// 删除用户的所有信息（包括主题、订阅、文章、推荐历史）
+router.delete('/users/:userId/all', authenticateAdmin, (req, res) => {
+  const userId = parseInt(req.params.userId);
+  
+  if (isNaN(userId)) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的用户ID'
+    });
+  }
+  
+  User.deleteUserAllData(userId, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '删除用户数据失败',
+        error: err.message
+      });
+    }
+    
+    let message = '已删除用户的所有数据：';
+    message += `${result.deletedTopicCount} 个主题，`;
+    message += `${result.deletedSubscriptionCount} 个订阅，`;
+    message += `${result.deletedArticleCount} 篇文章，`;
+    message += `${result.deletedHistoryCount} 条推荐历史`;
+    
+    res.json({
+      success: true,
+      message: message,
+      ...result
     });
   });
 });

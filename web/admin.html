@@ -238,6 +238,7 @@
               <th>订阅数</th>
               <th>注册时间</th>
               <th>管理员</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody id="usersBody">
@@ -276,6 +277,7 @@
               <th>信息源URL</th>
               <th>类型</th>
               <th>分类</th>
+              <th>主题词</th>
               <th>订阅时间</th>
               <th>操作</th>
             </tr>
@@ -664,6 +666,11 @@
               <td>${user.subscription_count || 0}</td>
               <td>${formatDate(user.created_at)}</td>
               <td>${user.is_admin ? '是' : '否'}</td>
+              <td>
+                <button class="btn btn-delete" onclick="deleteUserAllData(${user.id}, '${escapeHtml(user.username).replace(/'/g, "\\'")}')" title="删除用户所有数据">
+                  删除所有数据
+                </button>
+              </td>
             `;
             tbody.appendChild(row);
           });
@@ -732,15 +739,15 @@
     async function deleteTopic(userId, keywords, articleCount) {
       // 显示确认对话框，询问是否删除相关文章
       const deleteArticles = confirm(
-        `确定要删除用户 "${keywords}" 这个主题词吗？\n\n` +
-        `该用户当前有 ${articleCount} 篇文章。\n\n` +
-        `点击"确定"将同时删除所有相关文章，\n` +
-        `点击"取消"只删除主题词，保留文章。`
+        `确定要删除主题词 "${keywords}" 吗？\n\n` +
+        `该主题词当前有 ${articleCount} 篇文章。\n\n` +
+        `点击"确定"将同时删除该主题词的所有信息源订阅和相关文章，\n` +
+        `点击"取消"只删除主题词和订阅，保留文章。`
       );
       
       const confirmMessage = deleteArticles 
-        ? `确定要删除主题词 "${keywords}" 及其所有 ${articleCount} 篇相关文章吗？此操作不可恢复！`
-        : `确定要删除主题词 "${keywords}" 吗？文章将保留。`;
+        ? `⚠️  最后确认：\n\n您即将删除主题词 "${keywords}" 及其：\n- 所有信息源订阅\n- 所有 ${articleCount} 篇相关文章\n- 推荐历史\n\n此操作不可恢复！`
+        : `⚠️  最后确认：\n\n您即将删除主题词 "${keywords}" 及其：\n- 所有信息源订阅\n- 推荐历史\n\n文章将保留。\n\n此操作不可恢复！`;
       
       if (!confirm(confirmMessage)) {
         return;
@@ -835,13 +842,14 @@
           tbody.innerHTML = '';
           
           if (subscriptions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">暂无订阅信息源</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #999;">暂无订阅信息源</td></tr>';
           } else {
             subscriptions.forEach(sub => {
               const row = document.createElement('tr');
               const createdDate = sub.created_at 
                 ? new Date(sub.created_at).toLocaleString('zh-CN')
                 : '-';
+              const topicKeywords = sub.topic_keywords || '';
               row.innerHTML = `
                 <td>${escapeHtml(sub.username || '')}</td>
                 <td>${escapeHtml(sub.email || '')}</td>
@@ -849,9 +857,10 @@
                 <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(sub.source_url || '')}">${escapeHtml(sub.source_url || '')}</td>
                 <td>${escapeHtml(sub.source_type || '未知')}</td>
                 <td>${escapeHtml(sub.category || '未分类')}</td>
+                <td><strong>${escapeHtml(topicKeywords)}</strong></td>
                 <td>${createdDate}</td>
                 <td>
-                  <button class="btn btn-delete" onclick="deleteSubscription(${sub.user_id}, '${escapeHtml(sub.source_name || '').replace(/'/g, "\\'")}')" title="删除订阅">
+                  <button class="btn btn-delete" onclick="deleteSubscription(${sub.user_id}, '${escapeHtml(sub.source_name || '').replace(/'/g, "\\'")}', '${escapeHtml(topicKeywords).replace(/'/g, "\\'")}')" title="删除订阅">
                     删除
                   </button>
                 </td>
@@ -888,18 +897,51 @@
       }
     }
 
-    async function deleteSubscription(userId, sourceName) {
-      if (!confirm(`确定要删除用户订阅信息源 "${sourceName}" 吗？\n\n此操作不可恢复！`)) {
+    async function deleteSubscription(userId, sourceName, topicKeywords) {
+      const topicText = topicKeywords ? `（主题: ${topicKeywords}）` : '';
+      if (!confirm(`确定要删除用户订阅信息源 "${sourceName}"${topicText} 吗？\n\n此操作不可恢复！`)) {
         return;
       }
       
-      if (!confirm(`🚨 最后确认：\n\n您即将删除订阅信息源 "${sourceName}"。\n\n此操作不可恢复，请再次确认！`)) {
+      try {
+        let url = `${API_BASE_URL}/admin/subscriptions/${userId}/${encodeURIComponent(sourceName)}`;
+        if (topicKeywords && topicKeywords.trim()) {
+          url += `?topicKeywords=${encodeURIComponent(topicKeywords)}`;
+        }
+        
+        const response = await fetch(url, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(result.message || '删除成功', 'success');
+          loadSubscriptions(); // 重新加载订阅列表
+          loadUsers(); // 重新加载用户列表（更新订阅数）
+          loadStats(); // 重新加载统计信息
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+    
+    // 删除用户的所有数据
+    async function deleteUserAllData(userId, username) {
+      if (!confirm(`⚠️  警告：您即将删除用户 "${username}" 的所有数据！\n\n这将删除：\n- 该用户的所有主题词\n- 该用户的所有信息源订阅\n- 该用户的所有文章\n- 该用户的所有推荐历史\n\n此操作不可恢复！`)) {
+        return;
+      }
+      
+      if (!confirm(`🚨 最后确认：\n\n您确定要删除用户 "${username}" 的所有数据吗？\n\n此操作不可恢复，请再次确认！`)) {
         return;
       }
       
       try {
         const response = await fetch(
-          `${API_BASE_URL}/admin/subscriptions/${userId}/${encodeURIComponent(sourceName)}`,
+          `${API_BASE_URL}/admin/users/${userId}/all`,
           {
             method: 'DELETE',
             headers: getHeaders()
@@ -910,8 +952,11 @@
         
         if (result.success) {
           showMessage(result.message || '删除成功', 'success');
+          loadUsers(); // 重新加载用户列表
+          loadTopics(); // 重新加载主题词列表
           loadSubscriptions(); // 重新加载订阅列表
-          loadUsers(); // 重新加载用户列表（更新订阅数）
+          loadStats(); // 重新加载统计信息
+          loadNews(); // 重新加载新闻列表
         } else {
           showMessage(result.message || '删除失败', 'error');
         }
