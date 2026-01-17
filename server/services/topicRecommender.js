@@ -13,20 +13,26 @@ class TopicRecommender {
       throw new Error('DeepSeek API Key 未配置');
     }
     
-    const prompt = `请根据以下主题关键词，推荐世界上最好的、品质最高的信息源，包括RSS源、博客、新闻网站等多种类型。
+    const prompt = `请根据以下主题关键词，推荐世界上最好的、品质最高的信息源，包括RSS源、Feed源、XML源、Atom源、博客、新闻网站等多种类型。
 
 主题关键词：${keywords}
 
 **重要要求：**
 1. **推荐多种类型的信息源**，包括但不限于：
-   - **RSS源**：提供RSS Feed的URL（通常以 /rss、/feed、/atom.xml、.xml 结尾，或包含 rss、feed 等关键词）
-   - **博客**：提供博客主页URL（知名个人博客、技术博客、专业博客等）
-   - **新闻网站**：提供新闻网站的主页URL或特定栏目URL
-   - **专业网站**：提供专业机构、学术网站、行业网站的主页URL
-   - **社交媒体**：提供知名专家的社交媒体主页（如Twitter、LinkedIn等，如果支持RSS则提供RSS URL）
+   - **RSS源 (rss)**：提供RSS Feed的URL（通常以 /rss、/feed、.rss 结尾，或包含 rss 关键词）
+   - **Feed源 (feed)**：提供Feed的URL（通常以 /feed、/feeds、.feed 结尾，或包含 feed 关键词）
+   - **XML源 (xml)**：提供XML格式的Feed URL（通常以 .xml、/xml、/atom.xml 结尾）
+   - **Atom源 (atom)**：提供Atom Feed的URL（通常以 /atom、/atom.xml、.atom 结尾）
+   - **博客 (blog)**：提供博客主页URL（知名个人博客、技术博客、专业博客等）
+   - **新闻网站 (news)**：提供新闻网站的主页URL或特定栏目URL
+   - **专业网站 (website)**：提供专业机构、学术网站、行业网站的主页URL
+   - **社交媒体 (social)**：提供知名专家的社交媒体主页（如Twitter、LinkedIn等，如果支持RSS则提供RSS URL）
 
 2. **URL格式示例**：
-   - RSS源：https://example.com/rss、https://example.com/feed、https://example.com/atom.xml
+   - RSS源：https://example.com/rss、https://example.com/rss.xml、https://example.com/feed.rss
+   - Feed源：https://example.com/feed、https://example.com/feeds/all
+   - XML源：https://example.com/feed.xml、https://example.com/sitemap.xml
+   - Atom源：https://example.com/atom.xml、https://example.com/feed/atom
    - 博客：https://example.com/blog、https://blog.example.com
    - 新闻网站：https://example.com/news、https://example.com/category/tech
    - 专业网站：https://example.com
@@ -38,12 +44,16 @@ class TopicRecommender {
 
 请按照以下JSON格式返回推荐结果，每个信息源包含以下字段：
 - sourceName: 信息源名称（网站或博客名称）
-- sourceUrl: 信息源的URL（RSS Feed URL、博客主页URL、新闻网站URL等）
+- sourceUrl: 信息源的URL（RSS Feed URL、Feed URL、XML URL、Atom URL、博客主页URL、新闻网站URL等）
 - sourceType: 信息源类型，必须是以下之一：
-  - "rss"：RSS Feed源（URL必须是RSS Feed地址）
+  - "rss"：RSS Feed源（URL是RSS Feed地址）
+  - "feed"：Feed源（URL是Feed地址，可能是RSS或Atom格式）
+  - "xml"：XML源（URL是XML格式的Feed）
+  - "atom"：Atom源（URL是Atom Feed地址）
   - "blog"：博客（URL是博客主页或文章列表页）
   - "news"：新闻网站（URL是新闻网站主页或特定栏目）
   - "website"：专业网站（URL是网站主页）
+  - "social"：社交媒体（URL是社交媒体主页或RSS Feed）
 - category: 分类（如：科技、新闻、技术、行业等）
 - description: 简要描述（说明这个信息源的特点和内容方向）
 - region: 地区（"国内" 或 "国外"）。如果是中国（包括港澳台）的信息源，标记为"国内"；其他国家的信息源标记为"国外"
@@ -56,6 +66,22 @@ class TopicRecommender {
     "sourceType": "rss",
     "category": "科技",
     "description": "这是一个专注于...的优质RSS源",
+    "region": "国外"
+  },
+  {
+    "sourceName": "示例Feed源",
+    "sourceUrl": "https://example.com/feed",
+    "sourceType": "feed",
+    "category": "科技",
+    "description": "这是一个专注于...的Feed源",
+    "region": "国外"
+  },
+  {
+    "sourceName": "示例Atom源",
+    "sourceUrl": "https://example.com/atom.xml",
+    "sourceType": "atom",
+    "category": "技术",
+    "description": "这是一个专注于...的Atom Feed源",
     "region": "国外"
   },
   {
@@ -78,7 +104,7 @@ class TopicRecommender {
 
 请推荐20-25个最优质的信息源，确保：
 1. **类型多样化**：
-   - RSS源：推荐8-12个（优先推荐有RSS Feed的源）
+   - RSS/Feed/XML/Atom源：推荐10-15个（优先推荐有Feed的源，包括RSS、Feed、XML、Atom等格式）
    - 博客：推荐5-8个（知名个人博客、技术博客等）
    - 新闻网站：推荐3-5个（权威新闻媒体）
    - 专业网站：推荐2-3个（专业机构、学术网站等）
@@ -87,7 +113,7 @@ class TopicRecommender {
 4. **必须同时包含国内和国外的信息源**
    - 国内信息源：推荐8-12个中国（包括港澳台）的权威、高质量信息源
    - 国外信息源：推荐12-15个国际权威信息源
-5. **优先推荐有RSS Feed的信息源**，如果没有RSS Feed，则推荐博客主页或新闻网站URL
+5. **优先推荐有Feed的信息源**（RSS、Feed、XML、Atom等），如果没有Feed，则推荐博客主页或新闻网站URL
 
 只返回JSON数组，不要添加其他说明文字。`;
 
@@ -99,7 +125,7 @@ class TopicRecommender {
           messages: [
             {
               role: 'system',
-              content: '你是一个专业的信息源推荐助手。请根据用户提供的主题关键词，推荐最优质的信息源，包括RSS源、博客、新闻网站等多种类型。只返回有效的JSON数组，不要添加任何其他文字。确保所有URL都是真实有效的地址，sourceType字段必须是 "rss"、"blog"、"news" 或 "website" 之一。'
+              content: '你是一个专业的信息源推荐助手。请根据用户提供的主题关键词，推荐最优质的信息源，包括RSS源、Feed源、XML源、Atom源、博客、新闻网站等多种类型。只返回有效的JSON数组，不要添加任何其他文字。确保所有URL都是真实有效的地址，sourceType字段必须是 "rss"、"feed"、"xml"、"atom"、"blog"、"news"、"website" 或 "social" 之一。'
             },
             {
               role: 'user',
@@ -143,19 +169,32 @@ class TopicRecommender {
                 const sourceUrl = source.sourceUrl.trim().toLowerCase();
                 
                 // 如果未指定类型或类型无效，根据URL自动判断
-                if (!['rss', 'blog', 'news', 'website'].includes(sourceType)) {
-                  if (sourceUrl.includes('/rss') || sourceUrl.includes('/feed') || 
-                      sourceUrl.includes('.xml') || sourceUrl.includes('feedburner') ||
-                      sourceUrl.includes('atom')) {
+                if (!['rss', 'feed', 'xml', 'atom', 'blog', 'news', 'website', 'social'].includes(sourceType)) {
+                  const lowerUrl = sourceUrl.toLowerCase();
+                  // 优先判断Feed类型
+                  if (lowerUrl.includes('/atom') || lowerUrl.endsWith('.atom') || lowerUrl.includes('/atom.xml')) {
+                    sourceType = 'atom';
+                  } else if (lowerUrl.includes('/feed') || lowerUrl.includes('/feeds') || 
+                             lowerUrl.endsWith('.feed') || lowerUrl.includes('feedburner')) {
+                    sourceType = 'feed';
+                  } else if (lowerUrl.includes('/rss') || lowerUrl.endsWith('.rss') || 
+                             lowerUrl.includes('rss.xml')) {
                     sourceType = 'rss';
-                  } else if (sourceUrl.includes('/blog') || sourceUrl.includes('blog.') ||
-                             sourceUrl.includes('medium.com') || sourceUrl.includes('substack.com')) {
+                  } else if (lowerUrl.endsWith('.xml') || lowerUrl.includes('/xml') ||
+                             lowerUrl.includes('/sitemap')) {
+                    sourceType = 'xml';
+                  } else if (lowerUrl.includes('/blog') || lowerUrl.includes('blog.') ||
+                             lowerUrl.includes('medium.com') || lowerUrl.includes('substack.com') ||
+                             lowerUrl.includes('wordpress.com') || lowerUrl.includes('blogger.com')) {
                     sourceType = 'blog';
-                  } else if (sourceUrl.includes('/news') || sourceUrl.includes('news.') ||
-                             sourceUrl.includes('cnn.com') || sourceUrl.includes('bbc.com') ||
-                             sourceUrl.includes('reuters.com') || sourceUrl.includes('xinhua') ||
-                             sourceUrl.includes('people.com')) {
+                  } else if (lowerUrl.includes('/news') || lowerUrl.includes('news.') ||
+                             lowerUrl.includes('cnn.com') || lowerUrl.includes('bbc.com') ||
+                             lowerUrl.includes('reuters.com') || lowerUrl.includes('xinhua') ||
+                             lowerUrl.includes('people.com') || lowerUrl.includes('theguardian.com')) {
                     sourceType = 'news';
+                  } else if (lowerUrl.includes('twitter.com') || lowerUrl.includes('linkedin.com') ||
+                             lowerUrl.includes('facebook.com') || lowerUrl.includes('instagram.com')) {
+                    sourceType = 'social';
                   } else {
                     sourceType = 'website'; // 默认为网站类型
                   }
@@ -254,19 +293,20 @@ class TopicRecommender {
       console.log(`[验证信息源] Content-Type: ${contentType}, 内容长度: ${contentStr.length}`);
       
       // 根据信息源类型进行不同的验证
-      if (sourceType === 'rss') {
-        // RSS源：检查是否包含RSS/XML标签
+      if (['rss', 'feed', 'xml', 'atom'].includes(sourceType)) {
+        // RSS/Feed/XML/Atom源：检查是否包含RSS/XML/Atom标签
         if (contentType.includes('xml') || 
             contentType.includes('rss') || 
             contentType.includes('atom') ||
             contentStr.includes('<rss') ||
             contentStr.includes('<feed') ||
+            contentStr.includes('<atom:feed') ||
             contentStr.includes('<?xml')) {
-          console.log(`[验证信息源] ✓ RSS源验证通过 (通过内容检查)`);
+          console.log(`[验证信息源] ✓ ${sourceType}源验证通过 (通过内容检查)`);
           return { valid: true };
         }
-        console.log(`[验证信息源] ✗ RSS源验证失败: 响应内容不是有效的RSS/XML格式`);
-        return { valid: false, error: '响应内容不是有效的RSS/XML格式' };
+        console.log(`[验证信息源] ✗ ${sourceType}源验证失败: 响应内容不是有效的Feed/XML格式`);
+        return { valid: false, error: `响应内容不是有效的${sourceType}格式` };
       } else {
         // 博客、新闻网站、专业网站：检查是否是有效的HTML页面
         if (contentType.includes('html') || 
