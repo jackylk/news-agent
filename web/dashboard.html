@@ -2083,6 +2083,13 @@
               }
             }
             
+            // 如果文章阅读页面的主题页签已加载，刷新它们以显示新添加的主题
+            const articlesTopicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+            if (articlesTopicsTabsHeader && articlesTopicsTabsHeader.children.length > 0) {
+              console.log('📚 获取推荐后，刷新文章阅读页面的主题页签...');
+              await loadArticlesTopicsTabs();
+            }
+            
             showMessage(finalResult.message || `已找到 ${recommendedSources.length} 个推荐信息源`, 'success');
           } else {
             showMessage(finalResult.message || '获取推荐失败', 'error');
@@ -4221,13 +4228,19 @@
           // 继续执行，不中断流程
         }
         
-        // 渲染主题页签
+        // 渲染主题页签（为所有主题创建页签，即使没有推荐历史）
         renderArticlesTopicsTabs();
         
         // 初始化当前活动页签索引
         if (userTopics.length > 0) {
           window.currentArticlesTopicIndex = 0;
-          console.log('✅ 主题页签加载完成，默认选中第一个主题');
+          console.log(`✅ 主题页签加载完成，共 ${userTopics.length} 个主题，默认选中第一个主题`);
+          
+          // 打印每个主题的页签状态
+          userTopics.forEach((topic, index) => {
+            const hasHistory = topicRecommendationHistory[topic.topic_keywords]?.recommended_sources?.length > 0;
+            console.log(`   - 主题 ${index + 1}: "${topic.topic_keywords}" ${hasHistory ? '(有推荐历史)' : '(无推荐历史，但页签已创建)'}`);
+          });
         }
       } catch (error) {
         console.error('❌ 加载文章主题页签失败:', error);
@@ -4363,6 +4376,24 @@
       // 获取该主题的推荐信息源
       const recommendedSources = topicRecommendationHistory[topicKeywords]?.recommended_sources || [];
       const sourceNames = recommendedSources.map(s => s.sourceName || s.name).filter(Boolean);
+      
+      // 如果没有推荐历史，显示提示信息
+      if (recommendedSources.length === 0) {
+        console.log(`ℹ️  主题 "${topicKeywords}" 还没有推荐历史，显示提示信息`);
+        articlesListEl.innerHTML = `
+          <div class="empty-state">
+            <p>该主题还没有获取推荐信息源</p>
+            <p style="margin-top: 12px; font-size: 13px; color: #999;">
+              请前往"订阅管理"页面，为该主题获取推荐信息源
+            </p>
+          </div>
+        `;
+        // 更新统计信息
+        updateStatsForTab([], tabIndex);
+        // 清空信息源卡片（只保留"全部"）
+        loadSourceCardsForTab([], tabIndex);
+        return;
+      }
       
       // 检查缓存
       if (!forceRefresh) {
