@@ -2573,6 +2573,15 @@
         return; // 停止后续操作
       }
 
+      // 检查 newTabIndex 是否有效
+      if (newTabIndex < 0) {
+        console.error('❌ 创建主题页签失败，无法继续推荐');
+        showMessage('创建主题页签失败，请重试', 'error');
+        recommendBtn.disabled = false;
+        recommendBtn.textContent = '获取推荐';
+        return;
+      }
+
       // 在页签中显示推荐过程（小字显示）
       addProcessLogInTab(newTabIndex, `开始为关键词 "${keywords}" 获取推荐信息源...`, 'loading');
  
@@ -2583,6 +2592,9 @@
       window.recommendedSourcesByTab[newTabIndex] = [];
 
       try {
+        console.log(`[推荐] 开始调用推荐接口，关键词: "${keywords}"`);
+        console.log(`[推荐] API地址: ${API_BASE_URL}/user/topics/recommend`);
+        
         // 使用 fetch 获取流式响应，实时显示进度
         const response = await fetch(`${API_BASE_URL}/user/topics/recommend`, {
           method: 'POST',
@@ -2590,21 +2602,37 @@
           body: JSON.stringify({ keywords })
         });
 
+        console.log(`[推荐] 收到响应，状态码: ${response.status}, Content-Type: ${response.headers.get('Content-Type')}`);
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          console.error(`[推荐] HTTP错误: ${response.status}`, errorText);
+          throw new Error(`HTTP error! status: ${response.status}: ${errorText}`);
+        }
+
+        // 检查响应体是否存在
+        if (!response.body) {
+          console.error('[推荐] 响应体为空');
+          throw new Error('响应体为空，无法读取流式数据');
         }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let finalResult = null;
+        let hasReceivedData = false;
+
+        console.log('[推荐] 开始读取流式响应...');
 
         while (true) {
           const { done, value } = await reader.read();
           
           if (done) {
+            console.log('[推荐] 流式响应读取完成');
             break;
           }
+          
+          hasReceivedData = true;
           
           // 解码数据并添加到缓冲区
           buffer += decoder.decode(value, { stream: true });
@@ -2617,6 +2645,7 @@
             if (line.trim()) {
               try {
                 const progress = JSON.parse(line);
+                console.log('[推荐] 收到进度数据:', progress.type, progress.message || '');
                 
                 // 实时更新进度显示
                 if (progress.type === 'progress') {
@@ -2668,7 +2697,12 @@
         }
 
         // 处理最终结果
-        if (finalResult) {
+        if (!hasReceivedData) {
+          console.warn('[推荐] 警告：没有收到任何数据');
+          addProcessLogInTab(newTabIndex, '未收到服务器响应数据，请检查网络连接或稍后重试', 'error');
+          showMessage('未收到服务器响应，请检查网络连接', 'error');
+        } else if (finalResult) {
+          console.log('[推荐] 收到最终结果:', finalResult.success ? '成功' : '失败');
           if (finalResult.success) {
             recommendedSources = finalResult.data || [];
             
@@ -2711,10 +2745,17 @@
             
             showMessage(finalResult.message || `已找到 ${recommendedSources.length} 个推荐信息源`, 'success');
           } else {
+            console.error('[推荐] 推荐失败:', finalResult.message);
+            addProcessLogInTab(newTabIndex, finalResult.message || '获取推荐失败', 'error');
             showMessage(finalResult.message || '获取推荐失败', 'error');
           }
+        } else {
+          console.warn('[推荐] 警告：没有收到最终结果，但已收到部分数据');
+          addProcessLogInTab(newTabIndex, '推荐过程可能未完成，请刷新页面查看结果', 'warning');
+          showMessage('推荐过程可能未完成，请刷新页面查看', 'warning');
         }
       } catch (error) {
+        console.error('[推荐] 捕获到错误:', error);
         addProcessLogInTab(newTabIndex, 'API 调用异常: ' + error.message, 'error');
         showMessage('获取推荐失败: ' + error.message, 'error');
       } finally {
