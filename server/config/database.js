@@ -373,6 +373,26 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_recommendation_history_created_at ON recommendation_history(created_at DESC)
     `);
 
+    // 创建Nitter实例表（用于存储Twitter/X推文抓取的Nitter实例配置）
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS nitter_instances (
+        id SERIAL PRIMARY KEY,
+        url TEXT NOT NULL UNIQUE,
+        name VARCHAR(255),
+        is_active BOOLEAN DEFAULT TRUE,
+        priority INTEGER DEFAULT 0,
+        last_checked TIMESTAMP,
+        status VARCHAR(50) DEFAULT 'unknown',
+        error_message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_nitter_instances_active ON nitter_instances(is_active, priority DESC)
+    `);
+
     console.log('数据库表初始化完成');
   } catch (err) {
     console.error('初始化数据库表失败:', err);

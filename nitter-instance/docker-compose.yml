@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nitter-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  nitter:
+    build: .
+    container_name: nitter
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    environment:
+      - NITTER_DOMAIN=localhost:8080
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NITTER_HMAC_KEY=${NITTER_HMAC_KEY:-change-me-in-production}
+      - NITTER_BASE64SECRET=${NITTER_BASE64SECRET:-change-me-in-production}
+      - NITTER_TITLE=Nitter
+      - NITTER_THEME=auto
+    volumes:
+      - ./data:/data
+
+volumes:
+  redis-data:

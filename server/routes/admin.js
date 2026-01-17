@@ -3,6 +3,7 @@ const router = express.Router();
 const News = require('../models/News');
 const NewsCollector = require('../services/newsCollector');
 const User = require('../models/User');
+const NitterInstance = require('../models/NitterInstance');
 
 // 简单的身份验证中间件（可以通过环境变量配置）
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'admin123'; // 默认token，生产环境应该使用强密码
@@ -420,6 +421,153 @@ router.delete('/news', authenticateAdmin, (req, res) => {
       success: true,
       message: `已删除 ${result.deletedCount} 条新闻`,
       deletedCount: result.deletedCount
+    });
+  });
+});
+
+// ========== Nitter实例管理 ==========
+
+// 获取所有Nitter实例
+router.get('/nitter-instances', authenticateAdmin, (req, res) => {
+  NitterInstance.getAll((err, instances) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '获取Nitter实例列表失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      data: instances || []
+    });
+  });
+});
+
+// 创建Nitter实例
+router.post('/nitter-instances', authenticateAdmin, (req, res) => {
+  const { url, name, priority = 0, is_active = true } = req.body;
+  
+  if (!url || !url.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: 'URL不能为空'
+    });
+  }
+
+  NitterInstance.create({ url, name, priority, is_active }, (err, instance) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '创建Nitter实例失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      message: 'Nitter实例创建成功',
+      data: instance
+    });
+  });
+});
+
+// 更新Nitter实例
+router.put('/nitter-instances/:id', authenticateAdmin, (req, res) => {
+  const id = parseInt(req.params.id);
+  const { url, name, priority, is_active, status, error_message } = req.body;
+  
+  if (isNaN(id)) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的实例ID'
+    });
+  }
+
+  NitterInstance.update(id, { url, name, priority, is_active, status, error_message }, (err, instance) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '更新Nitter实例失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      message: 'Nitter实例更新成功',
+      data: instance
+    });
+  });
+});
+
+// 删除Nitter实例
+router.delete('/nitter-instances/:id', authenticateAdmin, (req, res) => {
+  const id = parseInt(req.params.id);
+  
+  if (isNaN(id)) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的实例ID'
+    });
+  }
+
+  NitterInstance.delete(id, (err, instance) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '删除Nitter实例失败',
+        error: err.message
+      });
+    }
+    res.json({
+      success: true,
+      message: 'Nitter实例删除成功',
+      data: instance
+    });
+  });
+});
+
+// 测试Nitter实例
+router.post('/nitter-instances/:id/test', authenticateAdmin, (req, res) => {
+  const id = parseInt(req.params.id);
+  
+  if (isNaN(id)) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的实例ID'
+    });
+  }
+
+  NitterInstance.getById(id, (err, instance) => {
+    if (err || !instance) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nitter实例不存在'
+      });
+    }
+
+    NitterInstance.testInstance(instance.url, (testErr, result) => {
+      if (testErr) {
+        return res.status(500).json({
+          success: false,
+          message: '测试失败',
+          error: testErr.message
+        });
+      }
+
+      // 更新实例状态
+      const status = result.available ? 'ok' : 'error';
+      NitterInstance.updateStatus(id, status, result.message || null, (updateErr) => {
+        if (updateErr) {
+          console.error('更新实例状态失败:', updateErr);
+        }
+      });
+
+      res.json({
+        success: true,
+        available: result.available,
+        status: result.status,
+        message: result.message || (result.available ? '实例可用' : '实例不可用')
+      });
     });
   });
 });

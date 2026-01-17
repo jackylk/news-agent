@@ -255,13 +255,42 @@
       width: 40px;
       text-align: center;
     }
+
+    .status-ok {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .status-error {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    .status-unknown {
+      color: #6c757d;
+    }
+
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 12px;
+      margin: 0 2px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>新闻管理后台</h1>
-      <p>管理系统用户、主题词、订阅和文章</p>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1>新闻管理后台</h1>
+          <p>管理系统用户、主题词、订阅和文章</p>
+        </div>
+        <div id="logoutButtonContainer" style="display: none;">
+          <button class="btn" onclick="logout()" style="background-color: #6c757d; color: white;">
+            退出登录
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="auth-section" id="authSection">
@@ -302,8 +331,29 @@
         </div>
       </div>
 
-      <!-- 用户管理 -->
-      <div class="section">
+      <!-- 页签导航 -->
+      <div class="tabs">
+        <div class="tabs-header">
+          <button class="tab-button active" onclick="switchTab('overview')">概览</button>
+          <button class="tab-button" onclick="switchTab('users')">用户管理</button>
+          <button class="tab-button" onclick="switchTab('topics')">主题管理</button>
+          <button class="tab-button" onclick="switchTab('subscriptions')">订阅管理</button>
+          <button class="tab-button" onclick="switchTab('nitter')">Nitter管理</button>
+          <button class="tab-button" onclick="switchTab('news')">文章管理</button>
+        </div>
+
+        <!-- 概览页签 -->
+        <div id="tab-overview" class="tab-content active">
+          <div class="section">
+            <h2>系统概览</h2>
+            <p>欢迎使用新闻管理后台。请使用上方页签导航到不同功能模块。</p>
+          </div>
+        </div>
+
+        <!-- 用户管理页签 -->
+        <div id="tab-users" class="tab-content">
+          <div class="section">
+            <h2>用户管理</h2>
         <h2>用户管理</h2>
         <div id="usersLoading" class="loading">加载中...</div>
         <div class="table-container" id="usersTableContainer" style="display: none;">
@@ -324,11 +374,13 @@
             </tbody>
           </table>
         </div>
-      </div>
+          </div>
+        </div>
 
-      <!-- 主题词管理 -->
-      <div class="section">
-        <h2>主题词管理</h2>
+        <!-- 主题管理页签 -->
+        <div id="tab-topics" class="tab-content">
+          <div class="section">
+            <h2>主题词管理</h2>
         <div id="topicsLoading" class="loading">加载中...</div>
         <div class="table-container" id="topicsTableContainer" style="display: none;">
           <table>
@@ -347,11 +399,13 @@
             </tbody>
           </table>
         </div>
-      </div>
+          </div>
+        </div>
 
-      <!-- 订阅管理 -->
-      <div class="section">
-        <h2>订阅管理</h2>
+        <!-- 订阅管理页签 -->
+        <div id="tab-subscriptions" class="tab-content">
+          <div class="section">
+            <h2>订阅管理</h2>
         <div id="subscriptionsLoading" class="loading">加载中...</div>
         <div class="table-container" id="subscriptionsTableContainer" style="display: none;">
           <table>
@@ -373,11 +427,80 @@
             </tbody>
           </table>
         </div>
-      </div>
+          </div>
+        </div>
 
-      <!-- 文章管理 -->
-      <div class="section">
-        <h2>文章管理</h2>
+        <!-- Nitter管理页签 -->
+        <div id="tab-nitter" class="tab-content">
+          <!-- Nitter实例管理 -->
+          <div class="section">
+            <h2>Nitter实例管理</h2>
+            <p style="color: #666; margin-bottom: 15px;">
+              Nitter是Twitter/X的前端替代工具，可以将Twitter用户转换为RSS源。添加Nitter实例后，系统会自动使用这些实例来抓取Twitter/X推文。
+            </p>
+            <div style="margin-bottom: 15px;">
+              <button class="btn btn-primary" onclick="showAddNitterInstanceModal()">添加Nitter实例</button>
+              <button class="btn btn-refresh" onclick="loadNitterInstances()">刷新列表</button>
+            </div>
+            <div id="nitterInstancesLoading" class="loading">加载中...</div>
+            <div class="table-container" id="nitterInstancesTableContainer" style="display: none;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>URL</th>
+                    <th>优先级</th>
+                    <th>状态</th>
+                    <th>最后检查</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="nitterInstancesBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Nitter实例抓取的推文 -->
+          <div class="section" id="nitterTweetsSection" style="display: none;">
+            <h2>推文列表</h2>
+            <div id="selectedInstanceInfo" class="nitter-instance-detail"></div>
+            <div class="search-bar">
+              <input 
+                type="text" 
+                id="nitterTweetSearch" 
+                placeholder="搜索推文标题或内容..." 
+                onkeypress="if(event.key==='Enter') loadNitterTweets()"
+              />
+              <button class="btn btn-refresh" onclick="loadNitterTweets()">刷新</button>
+              <button class="btn" onclick="clearNitterTweetsView()">返回实例列表</button>
+            </div>
+            <div id="nitterTweetsLoading" class="loading">加载中...</div>
+            <div class="table-container" id="nitterTweetsTableContainer" style="display: none;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>来源用户</th>
+                    <th>摘要</th>
+                    <th>发布日期</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="nitterTweetsBody">
+                </tbody>
+              </table>
+            </div>
+            <div id="nitterTweetsPagination" class="pagination"></div>
+          </div>
+        </div>
+
+        <!-- 文章管理页签 -->
+        <div id="tab-news" class="tab-content">
+          <div class="section">
+            <h2>文章管理</h2>
         <div class="search-bar">
           <input 
             type="text" 
@@ -417,6 +540,8 @@
           </table>
         </div>
         <div id="newsPagination" class="pagination"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -434,45 +559,181 @@
     // 在控制台输出API地址，方便调试
     console.log('[管理员页面] API基础地址:', API_BASE_URL);
 
+    const ADMIN_TOKEN_KEY = 'admin_token';
+    const ADMIN_TOKEN_EXPIRY_KEY = 'admin_token_expiry';
+    const TOKEN_EXPIRY_HOURS = 24; // 令牌有效期24小时
+    
     let adminToken = '';
     let currentNewsPage = 1;
     const pageSize = 20;
     let selectedNewsIds = new Set();
+    let currentNitterInstanceId = null;
+    let currentNitterTweetsPage = 1;
 
-    function authenticate() {
+    // 保存管理员令牌到 localStorage
+    function saveAdminToken(token) {
+      try {
+        localStorage.setItem(ADMIN_TOKEN_KEY, token);
+        // 设置过期时间（24小时后）
+        const expiryTime = new Date().getTime() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+        localStorage.setItem(ADMIN_TOKEN_EXPIRY_KEY, expiryTime.toString());
+        console.log('[管理员页面] 令牌已保存到 localStorage');
+      } catch (error) {
+        console.error('[管理员页面] 保存令牌失败:', error);
+      }
+    }
+
+    // 从 localStorage 加载管理员令牌
+    function loadAdminToken() {
+      try {
+        const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+        const expiryTime = localStorage.getItem(ADMIN_TOKEN_EXPIRY_KEY);
+        
+        if (!token || !expiryTime) {
+          return null;
+        }
+        
+        // 检查是否过期
+        const now = new Date().getTime();
+        const expiry = parseInt(expiryTime);
+        if (now > expiry) {
+          console.log('[管理员页面] 令牌已过期，清除本地存储');
+          clearAdminToken();
+          return null;
+        }
+        
+        console.log('[管理员页面] 从 localStorage 加载令牌');
+        return token;
+      } catch (error) {
+        console.error('[管理员页面] 加载令牌失败:', error);
+        return null;
+      }
+    }
+
+    // 清除管理员令牌
+    function clearAdminToken() {
+      try {
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
+        localStorage.removeItem(ADMIN_TOKEN_EXPIRY_KEY);
+        console.log('[管理员页面] 令牌已清除');
+      } catch (error) {
+        console.error('[管理员页面] 清除令牌失败:', error);
+      }
+    }
+
+    // 验证令牌是否有效
+    async function validateAdminToken(token) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Token': token
+          },
+          cache: 'no-cache',
+          mode: 'cors'
+        });
+        
+        return response.ok;
+      } catch (error) {
+        console.error('[管理员页面] 验证令牌失败:', error);
+        return false;
+      }
+    }
+
+    // 管理员登录
+    async function authenticate() {
       const token = document.getElementById('adminToken').value.trim();
       if (!token) {
         showMessage('请输入管理员令牌', 'error');
         return;
       }
       
+      // 验证令牌
+      const isValid = await validateAdminToken(token);
+      if (!isValid) {
+        showMessage('管理员令牌无效，请检查后重试', 'error');
+        return;
+      }
+      
       adminToken = token;
+      saveAdminToken(token);
+      
       document.getElementById('authSection').style.display = 'none';
       document.getElementById('adminContent').style.display = 'block';
+      
+      // 显示登出按钮
+      document.getElementById('logoutButtonContainer').style.display = 'block';
       
       // 加载所有数据
       loadAllData();
     }
 
+    // 管理员登出
+    function logout() {
+      adminToken = '';
+      clearAdminToken();
+      document.getElementById('authSection').style.display = 'block';
+      document.getElementById('adminContent').style.display = 'none';
+      document.getElementById('logoutButtonContainer').style.display = 'none';
+      document.getElementById('adminToken').value = '';
+      showMessage('已退出登录', 'success');
+    }
+
+    // 页面加载时自动检查并登录
+    async function autoLogin() {
+      const savedToken = loadAdminToken();
+      if (!savedToken) {
+        console.log('[管理员页面] 未找到保存的令牌，显示登录界面');
+        return;
+      }
+      
+      console.log('[管理员页面] 找到保存的令牌，正在验证...');
+      const isValid = await validateAdminToken(savedToken);
+      
+      if (isValid) {
+        console.log('[管理员页面] 令牌有效，自动登录');
+        adminToken = savedToken;
+        document.getElementById('authSection').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        document.getElementById('logoutButtonContainer').style.display = 'block';
+        loadAllData();
+      } else {
+        console.log('[管理员页面] 令牌无效，清除并显示登录界面');
+        clearAdminToken();
+        showMessage('保存的登录凭证已失效，请重新登录', 'error');
+      }
+    }
+
     function getHeaders() {
-      return {
+      const headers = {
         'Content-Type': 'application/json',
         'X-Admin-Token': adminToken
       };
+      console.log('[管理员页面] 请求头:', headers);
+      return headers;
     }
 
     async function loadAllData() {
       try {
-        await Promise.all([
-          loadStats(),
-          loadUsers(),
-          loadTopics(),
-          loadSubscriptions(),
-          loadNewsSources(),
-          loadNews(1)
-        ]);
+        console.log('[管理员页面] 开始加载所有数据...');
+        console.log('[管理员页面] API地址:', API_BASE_URL);
+        console.log('[管理员页面] 管理员令牌:', adminToken ? '已设置' : '未设置');
+        
+        // 顺序加载，避免并发请求过多
+        await loadStats();
+        await loadUsers();
+        await loadTopics();
+        await loadSubscriptions();
+        await loadNewsSources();
+        if (typeof loadNitterInstances === 'function') {
+          await loadNitterInstances();
+        }
+        await loadNews(1);
+        
+        console.log('[管理员页面] 所有数据加载完成');
       } catch (error) {
         console.error('加载数据失败:', error);
+        console.error('错误堆栈:', error.stack);
         showMessage('加载数据时出现错误: ' + error.message, 'error');
       }
     }
@@ -481,11 +742,14 @@
       try {
         const response = await fetch(`${API_BASE_URL}/admin/stats`, {
           headers: getHeaders(),
-          cache: 'no-cache'
+          cache: 'no-cache',
+          mode: 'cors'
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('加载统计信息失败 - 响应:', response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText || errorText}`);
         }
 
         const result = await response.json();
@@ -499,7 +763,10 @@
         }
       } catch (error) {
         console.error('加载统计信息失败:', error);
-        showMessage('加载统计信息失败: ' + error.message, 'error');
+        // 统计信息失败不影响其他功能，只记录错误
+        if (error.message.includes('Failed to fetch')) {
+          console.error('网络请求失败，请检查后端服务是否运行');
+        }
       }
     }
 
@@ -513,11 +780,14 @@
       try {
         const response = await fetch(`${API_BASE_URL}/admin/users`, {
           headers: getHeaders(),
-          cache: 'no-cache'
+          cache: 'no-cache',
+          mode: 'cors'
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('加载用户列表失败 - 响应:', response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText || errorText}`);
         }
 
         const result = await response.json();
@@ -562,7 +832,18 @@
       } catch (error) {
         loadingEl.style.display = 'none';
         console.error('加载用户列表失败:', error);
-        showMessage('加载用户列表失败: ' + error.message, 'error');
+        console.error('错误详情:', {
+          message: error.message,
+          stack: error.stack,
+          API_BASE_URL: API_BASE_URL,
+          headers: getHeaders()
+        });
+        
+        let errorMsg = '加载用户列表失败: ' + error.message;
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMsg += '\n\n可能的原因：\n1. 后端服务未运行或无法访问\n2. CORS配置问题\n3. 网络连接问题\n\n请检查：\n- 后端地址是否正确: ' + API_BASE_URL + '\n- 浏览器控制台的网络请求详情';
+        }
+        showMessage(errorMsg, 'error');
       }
     }
 
@@ -576,11 +857,14 @@
       try {
         const response = await fetch(`${API_BASE_URL}/admin/topics`, {
           headers: getHeaders(),
-          cache: 'no-cache'
+          cache: 'no-cache',
+          mode: 'cors'
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('加载主题词列表失败 - 响应:', response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText || errorText}`);
         }
 
         const result = await response.json();
@@ -639,11 +923,14 @@
       try {
         const response = await fetch(`${API_BASE_URL}/admin/subscriptions`, {
           headers: getHeaders(),
-          cache: 'no-cache'
+          cache: 'no-cache',
+          mode: 'cors'
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('加载订阅列表失败 - 响应:', response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText || errorText}`);
         }
 
         const result = await response.json();
@@ -1081,6 +1368,352 @@
       div.textContent = text;
       return div.innerHTML;
     }
+
+    // ========== Nitter实例管理 ==========
+    
+    async function loadNitterInstances() {
+      const loadingEl = document.getElementById('nitterInstancesLoading');
+      const containerEl = document.getElementById('nitterInstancesTableContainer');
+      const bodyEl = document.getElementById('nitterInstancesBody');
+      
+      try {
+        loadingEl.style.display = 'block';
+        containerEl.style.display = 'none';
+        
+        const response = await fetch(`${API_BASE_URL}/admin/nitter-instances`, {
+          headers: getHeaders()
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          const instances = result.data || [];
+          bodyEl.innerHTML = '';
+          
+          if (instances.length === 0) {
+            bodyEl.innerHTML = '<tr><td colspan="7" class="empty-state">暂无Nitter实例，请添加</td></tr>';
+          } else {
+            instances.forEach(instance => {
+              const row = document.createElement('tr');
+              const statusClass = instance.status === 'ok' ? 'status-ok' : 
+                                 instance.status === 'error' ? 'status-error' : 'status-unknown';
+              const statusText = instance.status === 'ok' ? '正常' : 
+                                instance.status === 'error' ? '错误' : '未知';
+              const lastChecked = instance.last_checked 
+                ? new Date(instance.last_checked).toLocaleString('zh-CN')
+                : '未检查';
+              
+              row.innerHTML = `
+                <td>${instance.id}</td>
+                <td>${instance.name || '-'}</td>
+                <td><a href="${instance.url}" target="_blank">${instance.url}</a></td>
+                <td>${instance.priority}</td>
+                <td>
+                  <span class="${statusClass}">${statusText}</span>
+                  ${instance.is_active ? '<span style="color: green;">●</span>' : '<span style="color: red;">●</span>'}
+                </td>
+                <td>${lastChecked}</td>
+                <td>
+                  <button class="btn btn-small" onclick="testNitterInstance(${instance.id})">测试</button>
+                  <button class="btn btn-small" onclick="editNitterInstance(${instance.id})">编辑</button>
+                  <button class="btn btn-small btn-primary" onclick="viewNitterTweets(${instance.id}, '${escapeHtml(instance.name || '')}', '${escapeHtml(instance.url)}')">查看推文</button>
+                  <button class="btn btn-small btn-delete" onclick="deleteNitterInstance(${instance.id})">删除</button>
+                </td>
+              `;
+              bodyEl.appendChild(row);
+            });
+          }
+          
+          loadingEl.style.display = 'none';
+          containerEl.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('加载Nitter实例失败:', error);
+        loadingEl.style.display = 'none';
+        showMessage('加载Nitter实例失败: ' + error.message, 'error');
+      }
+    }
+    
+    function showAddNitterInstanceModal() {
+      const url = prompt('请输入Nitter实例URL（例如: https://nitter.net）:');
+      if (!url || !url.trim()) return;
+      
+      const name = prompt('请输入实例名称（可选，按取消跳过）:') || null;
+      const priorityStr = prompt('请输入优先级（数字，越大越优先，默认0）:') || '0';
+      const priority = parseInt(priorityStr) || 0;
+      
+      addNitterInstance(url.trim(), name, priority);
+    }
+    
+    async function addNitterInstance(url, name, priority) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/nitter-instances`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ url, name, priority })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage('Nitter实例添加成功', 'success');
+          loadNitterInstances();
+        } else {
+          showMessage(result.message || '添加失败', 'error');
+        }
+      } catch (error) {
+        console.error('添加Nitter实例失败:', error);
+        showMessage('添加失败: ' + error.message, 'error');
+      }
+    }
+    
+    async function testNitterInstance(id) {
+      try {
+        showMessage('正在测试Nitter实例...', 'info');
+        const response = await fetch(`${API_BASE_URL}/admin/nitter-instances/${id}/test`, {
+          method: 'POST',
+          headers: getHeaders()
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          if (result.available) {
+            showMessage(`测试成功: ${result.message}`, 'success');
+          } else {
+            showMessage(`测试失败: ${result.message}`, 'error');
+          }
+          loadNitterInstances();
+        } else {
+          showMessage(result.message || '测试失败', 'error');
+        }
+      } catch (error) {
+        console.error('测试Nitter实例失败:', error);
+        showMessage('测试失败: ' + error.message, 'error');
+      }
+    }
+    
+    function editNitterInstance(id) {
+      const name = prompt('请输入新的实例名称（可选，按取消跳过）:');
+      if (name === null) return;
+      
+      const priorityStr = prompt('请输入新的优先级（数字，越大越优先，按取消跳过）:');
+      if (priorityStr === null) return;
+      
+      const priority = priorityStr ? parseInt(priorityStr) : undefined;
+      const isActiveStr = prompt('是否激活？(true/false，按取消跳过）:');
+      const is_active = isActiveStr ? isActiveStr.toLowerCase() === 'true' : undefined;
+      
+      updateNitterInstance(id, name || undefined, priority, is_active);
+    }
+    
+    async function updateNitterInstance(id, name, priority, is_active) {
+      try {
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (priority !== undefined) updateData.priority = priority;
+        if (is_active !== undefined) updateData.is_active = is_active;
+        
+        const response = await fetch(`${API_BASE_URL}/admin/nitter-instances/${id}`, {
+          method: 'PUT',
+          headers: getHeaders(),
+          body: JSON.stringify(updateData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage('Nitter实例更新成功', 'success');
+          loadNitterInstances();
+        } else {
+          showMessage(result.message || '更新失败', 'error');
+        }
+      } catch (error) {
+        console.error('更新Nitter实例失败:', error);
+        showMessage('更新失败: ' + error.message, 'error');
+      }
+    }
+    
+    async function deleteNitterInstance(id) {
+      if (!confirm('确定要删除这个Nitter实例吗？')) return;
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/nitter-instances/${id}`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage('Nitter实例删除成功', 'success');
+          loadNitterInstances();
+          if (currentNitterInstanceId === id) {
+            clearNitterTweetsView();
+          }
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除Nitter实例失败:', error);
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+
+    // 查看Nitter实例抓取的推文
+    function viewNitterTweets(instanceId, instanceName, instanceUrl) {
+      currentNitterInstanceId = instanceId;
+      currentNitterTweetsPage = 1;
+      
+      // 显示实例信息
+      const infoEl = document.getElementById('selectedInstanceInfo');
+      infoEl.innerHTML = `
+        <h3>${instanceName || '未命名实例'}</h3>
+        <p><strong>URL:</strong> <a href="${instanceUrl}" target="_blank">${instanceUrl}</a></p>
+        <p>以下是通过Nitter抓取的Twitter/X推文（注意：由于技术限制，无法精确区分是哪个Nitter实例抓取的，这里显示所有通过Nitter抓取的推文）：</p>
+      `;
+      
+      // 显示推文列表区域，隐藏实例列表
+      document.getElementById('nitterInstancesTableContainer').style.display = 'none';
+      document.getElementById('nitterTweetsSection').style.display = 'block';
+      
+      // 加载推文
+      loadNitterTweets();
+    }
+
+    // 清除推文视图，返回实例列表
+    function clearNitterTweetsView() {
+      currentNitterInstanceId = null;
+      document.getElementById('nitterTweetsSection').style.display = 'none';
+      document.getElementById('nitterInstancesTableContainer').style.display = 'block';
+      document.getElementById('selectedInstanceInfo').innerHTML = '';
+    }
+
+    // 加载Nitter实例抓取的推文
+    async function loadNitterTweets(page = 1) {
+      if (!currentNitterInstanceId) return;
+      
+      const loadingEl = document.getElementById('nitterTweetsLoading');
+      const containerEl = document.getElementById('nitterTweetsTableContainer');
+      const bodyEl = document.getElementById('nitterTweetsBody');
+      const paginationEl = document.getElementById('nitterTweetsPagination');
+      
+      try {
+        loadingEl.style.display = 'block';
+        containerEl.style.display = 'none';
+        
+        // 获取实例信息
+        const instanceResponse = await fetch(`${API_BASE_URL}/admin/nitter-instances/${currentNitterInstanceId}`, {
+          headers: getHeaders()
+        });
+        const instanceResult = await instanceResponse.json();
+        const instance = instanceResult.data;
+        
+        if (!instance) {
+          throw new Error('无法获取Nitter实例信息');
+        }
+        
+        // 搜索所有Twitter/X推文（通过URL模式识别）
+        // 注意：由于推文的source字段存储的是Twitter用户名，无法直接区分是哪个Nitter实例抓取的
+        // 这里显示所有通过Nitter抓取的推文（URL包含nitter域名或source以@开头）
+        const searchKeyword = document.getElementById('nitterTweetSearch')?.value || '';
+        let url = `${API_BASE_URL}/admin/news?page=${page}&pageSize=${pageSize}`;
+        if (searchKeyword) {
+          url += `&search=${encodeURIComponent(searchKeyword)}`;
+        }
+        
+        const response = await fetch(url, {
+          headers: getHeaders()
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // 过滤出Twitter/X推文（URL包含nitter、twitter.com或x.com，或source以@开头）
+          let news = result.data.news || [];
+          news = news.filter(article => {
+            const url = (article.url || '').toLowerCase();
+            const source = (article.source || '').trim();
+            return url.includes('nitter') || 
+                   url.includes('twitter.com') || 
+                   url.includes('x.com') ||
+                   source.startsWith('@') ||
+                   source.includes('Twitter') ||
+                   source.includes('X');
+          });
+          
+          bodyEl.innerHTML = '';
+          
+          if (news.length === 0) {
+            bodyEl.innerHTML = '<tr><td colspan="6" class="empty-state">暂无推文（或没有通过此Nitter实例抓取的推文）</td></tr>';
+          } else {
+            news.forEach(article => {
+              const row = document.createElement('tr');
+              const publishDate = formatDate(article.publish_date);
+              const title = escapeHtml(article.title || '无标题');
+              const summary = escapeHtml((article.summary || '').substring(0, 100));
+              
+              // 提取Twitter用户名（从来源中提取）
+              let twitterUser = article.source || '';
+              if (twitterUser.startsWith('@')) {
+                twitterUser = twitterUser;
+              } else if (article.url) {
+                // 尝试从URL提取
+                const match = article.url.match(/(?:twitter\.com|x\.com|nitter[^/]+)\/([a-zA-Z0-9_]+)/);
+                if (match) {
+                  twitterUser = '@' + match[1];
+                }
+              }
+              
+              row.innerHTML = `
+                <td>${article.id}</td>
+                <td><a href="/article.html?id=${article.id}" target="_blank">${title}</a></td>
+                <td>${twitterUser}</td>
+                <td>${summary}${article.summary && article.summary.length > 100 ? '...' : ''}</td>
+                <td>${publishDate}</td>
+                <td>
+                  <button class="btn btn-delete btn-small" onclick="deleteNews(${article.id})">删除</button>
+                </td>
+              `;
+              bodyEl.appendChild(row);
+            });
+          }
+          
+          // 分页
+          const totalPages = result.data.totalPages || 1;
+          paginationEl.innerHTML = '';
+          if (totalPages > 1) {
+            paginationEl.innerHTML = `
+              <button class="btn" onclick="loadNitterTweets(${page - 1})" ${page === 1 ? 'disabled' : ''}>上一页</button>
+              <span>第 ${page} / ${totalPages} 页，共 ${result.data.totalCount || 0} 条</span>
+              <button class="btn" onclick="loadNitterTweets(${page + 1})" ${page === totalPages ? 'disabled' : ''}>下一页</button>
+            `;
+          }
+          
+          loadingEl.style.display = 'none';
+          containerEl.style.display = 'block';
+          currentNitterTweetsPage = page;
+        }
+      } catch (error) {
+        console.error('加载推文失败:', error);
+        loadingEl.style.display = 'none';
+        showMessage('加载推文失败: ' + error.message, 'error');
+      }
+    }
+
+    // 页面加载完成后自动尝试登录
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('[管理员页面] 页面加载完成，检查保存的登录凭证...');
+      autoLogin();
+    });
   </script>
 </body>
 </html>

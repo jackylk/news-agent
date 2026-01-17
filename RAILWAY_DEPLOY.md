@@ -93,6 +93,54 @@ https://your-app-name.up.railway.app
 
 访问该 URL 即可使用应用。
 
+## 多服务部署（在同一项目中部署多个服务）
+
+Railway支持在同一个项目中部署多个服务，这对于需要多个组件的应用非常有用。
+
+### 部署Nitter实例（可选）
+
+如果你需要抓取Twitter/X推文，可以在同一个Railway项目中部署Nitter实例。
+
+#### 步骤
+
+1. **添加Redis服务**
+   - 在Railway项目中，点击 "New" → "Database" → "Add Redis"
+   - Railway会自动创建Redis实例
+   - 记下Redis连接信息
+
+2. **添加Nitter服务**
+   - 创建独立的GitHub仓库，包含Nitter配置（参考 `nitter-instance/` 目录）
+   - 在Railway项目中，点击 "New" → "GitHub Repo"
+   - 选择Nitter仓库
+   - Railway会自动构建和部署
+
+3. **配置环境变量**
+   - 在Nitter服务中配置Redis连接
+   - 配置Nitter域名和密钥
+   - 详细说明请参考 `NITTER_DEPLOY.md`
+
+4. **获取Nitter URL**
+   - 部署完成后，在服务设置中查看Public URL
+   - 在网站后台的Nitter管理中添加此URL
+
+#### 架构
+
+```
+Railway Project
+├── 网站后台服务 (Node.js)
+├── Nitter服务 (Docker)
+└── Redis服务 (Railway插件)
+```
+
+#### 优势
+
+- 统一管理：所有服务在同一个项目中
+- 资源隔离：每个服务独立运行
+- 独立扩展：可以单独扩展每个服务
+- 独立部署：更新一个服务不影响其他服务
+
+详细部署指南请参考：`NITTER_DEPLOY.md`
+
 ## 配置文件说明
 
 ### railway.json

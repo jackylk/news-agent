@@ -14,9 +14,39 @@
 
 ## 配置方法
 
-### 1. 环境变量配置（可选）
+### 1. 在后台管理界面添加（推荐）
 
-在 `.env` 文件中配置 Nitter 实例：
+这是最简单的方法，无需修改代码或环境变量。
+
+1. **登录管理后台**
+   - 访问 `/admin.html`
+   - 输入管理员令牌登录
+
+2. **添加 Nitter 实例**
+   - 找到 "Nitter实例管理" 部分
+   - 点击 "添加Nitter实例" 按钮
+   - 输入 Nitter 实例 URL（例如：`https://nitter.net`）
+   - 可选：设置实例名称和优先级（数字越大越优先）
+   - 点击确定添加
+
+3. **测试实例**
+   - 添加后，点击 "测试" 按钮验证实例是否可用
+   - 系统会自动检查实例状态并更新
+
+4. **管理实例**
+   - 可以编辑实例的名称、优先级和激活状态
+   - 可以删除不再使用的实例
+   - 系统会优先使用优先级高的激活实例
+
+**优势**：
+- ✅ 无需修改代码或重启服务
+- ✅ 可以动态添加/删除实例
+- ✅ 支持测试实例可用性
+- ✅ 支持设置优先级
+
+### 2. 环境变量配置（备选）
+
+如果不想使用后台管理，也可以在 `.env` 文件中配置：
 
 ```bash
 # 配置多个Nitter实例作为备用（用逗号分隔）
@@ -24,11 +54,11 @@ NITTER_INSTANCES=https://nitter.net,https://nitter.it,https://nitter.pussthecat.
 ```
 
 **注意**：
-- 如果不配置，系统会使用默认的公共 Nitter 实例（可能不稳定）
-- 建议自己部署 Nitter 实例以获得更好的稳定性
-- 公共 Nitter 实例可能随时失效或被封禁
+- 如果数据库中有 Nitter 实例，会优先使用数据库中的实例
+- 只有在数据库没有实例时，才会使用环境变量或默认值
+- 建议使用后台管理界面，更加灵活方便
 
-### 2. 添加 Twitter/X 订阅源
+### 3. 添加 Twitter/X 订阅源
 
 在订阅管理界面添加 Twitter/X 源时，可以使用以下格式：
 
@@ -39,7 +69,7 @@ NITTER_INSTANCES=https://nitter.net,https://nitter.it,https://nitter.pussthecat.
 
 系统会自动识别并提取用户名。
 
-### 3. 源类型设置
+### 4. 源类型设置
 
 在添加订阅时，将 `source_type` 设置为以下任一值：
 - `twitter`
@@ -100,24 +130,29 @@ NITTER_INSTANCES=https://nitter.net,https://nitter.it,https://nitter.pussthecat.
 
 ## 自建 Nitter 实例（推荐）
 
-为了获得更好的稳定性和控制权，建议自己部署 Nitter 实例：
+为了获得更好的稳定性和控制权，建议自己部署 Nitter 实例。详细的自建指南请参考：[NITTER_DEPLOY.md](./NITTER_DEPLOY.md)
 
-### 使用 Docker 部署
+### 快速开始
 
-```bash
-docker run -d -p 8080:8080 zedeus/nitter
-```
-
-### 配置环境变量
+使用 Docker 部署（最简单的方法）：
 
 ```bash
-NITTER_INSTANCES=http://localhost:8080
+# 创建目录
+mkdir nitter && cd nitter
+
+# 创建 docker-compose.yml（参考 NITTER_DEPLOY.md）
+
+# 启动服务
+docker-compose up -d
 ```
+
+部署完成后，在管理后台添加你的 Nitter 实例 URL。
 
 ### 更多信息
 
-- Nitter GitHub: https://github.com/zedeus/nitter
-- XRSS GitHub: https://github.com/Thytu/XRSS（另一个可选方案）
+- **详细部署指南**：查看 [NITTER_DEPLOY.md](./NITTER_DEPLOY.md)
+- **Nitter GitHub**: https://github.com/zedeus/nitter
+- **XRSS GitHub**: https://github.com/Thytu/XRSS（另一个可选方案）
 
 ## 替代方案
 

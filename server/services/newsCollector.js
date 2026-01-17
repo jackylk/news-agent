@@ -82,15 +82,37 @@ const NEWS_API_URL = 'https://newsapi.org/v2/top-headlines';
 
 // Twitter/X RSS源配置
 // 支持通过Nitter实例将Twitter用户转换为RSS源
-// 可以配置多个Nitter实例作为备用（如果第一个失效，会尝试下一个）
-const NITTER_INSTANCES = process.env.NITTER_INSTANCES 
-  ? process.env.NITTER_INSTANCES.split(',').map(url => url.trim())
-  : [
-      'https://nitter.net',  // 默认Nitter实例（可能不稳定）
-      'https://nitter.it',   // 备用实例1
-      'https://nitter.pussthecat.org', // 备用实例2
-      // 用户可以自己部署Nitter实例，然后在这里配置
-    ];
+// 优先从数据库读取，如果没有则使用环境变量或默认值
+const NitterInstance = require('../models/NitterInstance');
+
+// 获取Nitter实例列表（从数据库或环境变量）
+async function getNitterInstances() {
+  return new Promise((resolve) => {
+    // 首先尝试从数据库获取激活的实例
+    NitterInstance.getActive((err, instances) => {
+      if (!err && instances && instances.length > 0) {
+        // 从数据库获取成功，返回URL列表
+        const urls = instances.map(inst => inst.url);
+        resolve(urls);
+        return;
+      }
+      
+      // 如果数据库没有实例，使用环境变量或默认值
+      if (process.env.NITTER_INSTANCES) {
+        const urls = process.env.NITTER_INSTANCES.split(',').map(url => url.trim());
+        resolve(urls);
+        return;
+      }
+      
+      // 使用默认值
+      resolve([
+        'https://nitter.net',  // 默认Nitter实例（可能不稳定）
+        'https://nitter.it',   // 备用实例1
+        'https://nitter.pussthecat.org', // 备用实例2
+      ]);
+    });
+  });
+}
 
 // 从Twitter/X URL或用户名提取用户名
 function extractTwitterUsername(urlOrUsername) {
@@ -129,9 +151,13 @@ function getTwitterRSSUrl(username, nitterInstance = null) {
     return null;
   }
   
-  // 使用指定的实例，或从配置中选择
-  const instance = nitterInstance || NITTER_INSTANCES[0];
-  return `${instance}/${cleanUsername}/rss`;
+  // 使用指定的实例
+  if (nitterInstance) {
+    return `${nitterInstance.replace(/\/$/, '')}/${cleanUsername}/rss`;
+  }
+  
+  // 如果没有指定实例，返回null（调用者需要先获取实例列表）
+  return null;
 }
 
 class NewsCollector {
@@ -1390,9 +1416,16 @@ class NewsCollector {
       return { count: 0, articles: [] };
     }
 
+    // 获取Nitter实例列表（从数据库或配置）
+    const nitterInstances = await getNitterInstances();
+    if (!nitterInstances || nitterInstances.length === 0) {
+      console.error('没有可用的Nitter实例');
+      return { count: 0, articles: [] };
+    }
+
     // 尝试使用不同的Nitter实例获取RSS
     let lastError = null;
-    for (const nitterInstance of NITTER_INSTANCES) {
+    for (const nitterInstance of nitterInstances) {
       try {
         const rssUrl = getTwitterRSSUrl(username, nitterInstance);
         if (!rssUrl) {

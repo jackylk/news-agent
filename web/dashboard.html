@@ -1194,6 +1194,7 @@
       transition: color 0.3s;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
       flex-shrink: 0;
@@ -1232,6 +1233,7 @@
       margin-top: auto;
       display: -webkit-box;
       -webkit-line-clamp: 3;
+      line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
       flex-grow: 1;
@@ -1505,6 +1507,229 @@
       text-decoration: underline;
     }
 
+    /* 用户指南页面样式 */
+    .guide-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .guide-step,
+    .guide-feature,
+    .guide-tip,
+    .guide-faq {
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #8B5CF6;
+    }
+
+    .guide-step h4,
+    .guide-feature h4,
+    .guide-tip h4,
+    .guide-faq h4 {
+      margin: 0 0 12px 0;
+      color: #333;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .guide-step p,
+    .guide-feature p,
+    .guide-faq p {
+      margin: 0;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .guide-tip ul {
+      margin: 12px 0 0 0;
+      padding-left: 24px;
+      color: #666;
+    }
+
+    .guide-tip li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    /* 特性介绍页面样式 */
+    .features-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid #e9ecef;
+      background: white;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .features-tab {
+      flex: 1;
+      padding: 16px 24px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      color: #666;
+      transition: all 0.3s;
+    }
+
+    .features-tab:hover {
+      background: #f8f9fa;
+      color: #8B5CF6;
+    }
+
+    .features-tab.active {
+      color: #8B5CF6;
+      border-bottom-color: #8B5CF6;
+      background: #faf5ff;
+    }
+
+    .features-tab-content {
+      display: none;
+    }
+
+    .features-tab-content.active {
+      display: block;
+    }
+
+    /* 时间线样式 */
+    .timeline {
+      position: relative;
+      padding-left: 40px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, #8B5CF6 0%, #EC4899 100%);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 32px;
+      padding-left: 40px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -25px;
+      top: 8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      border: 4px solid white;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+    }
+
+    .timeline-date {
+      font-size: 13px;
+      color: #8B5CF6;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .timeline-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e9ecef;
+    }
+
+    .timeline-content h3 {
+      margin: 0 0 12px 0;
+      color: #333;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .timeline-content p {
+      margin: 0 0 16px 0;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .feature-value {
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 3px solid #8B5CF6;
+      margin-top: 12px;
+    }
+
+    .feature-value strong {
+      color: #8B5CF6;
+      font-weight: 600;
+    }
+
+    /* 更新历史样式 */
+    .changelog-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .changelog-item {
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #8B5CF6;
+    }
+
+    .changelog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .changelog-version {
+      font-size: 18px;
+      font-weight: 600;
+      color: #8B5CF6;
+    }
+
+    .changelog-date {
+      font-size: 14px;
+      color: #999;
+    }
+
+    .changelog-section {
+      margin-bottom: 12px;
+    }
+
+    .changelog-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .changelog-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .changelog-section ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #666;
+    }
+
+    .changelog-section li {
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+
     @media (max-width: 768px) {
       .sidebar {
         width: 200px;
@@ -1531,6 +1756,18 @@
       <div class="menu-item" onclick="switchPage('articles', event)">
         <span class="menu-item-icon">📰</span>
         <span class="menu-item-text">文章阅读</span>
+      </div>
+      <div class="menu-item" onclick="switchPage('tweets', event)">
+        <span class="menu-item-icon">🐦</span>
+        <span class="menu-item-text">最新推文</span>
+      </div>
+      <div class="menu-item" onclick="switchPage('guide', event)">
+        <span class="menu-item-icon">📖</span>
+        <span class="menu-item-text">用户指南</span>
+      </div>
+      <div class="menu-item" onclick="switchPage('features', event)">
+        <span class="menu-item-icon">⭐</span>
+        <span class="menu-item-text">特性介绍</span>
       </div>
     </div>
     <div class="sidebar-footer">
@@ -1643,6 +1880,270 @@
         </div>
       </div>
     </div>
+
+    <!-- 最新推文页面 -->
+    <div id="tweetsPage" class="content-page">
+      <div class="page-header">
+        <h2>最新推文</h2>
+        <p>查看通过Nitter抓取的Twitter/X推文</p>
+      </div>
+
+      <div id="tweetsMessage" class="message"></div>
+
+      <!-- 推文筛选 -->
+      <div class="section" style="margin-bottom: 20px;">
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <input 
+            type="text" 
+            id="tweetsSearchInput" 
+            placeholder="搜索推文..." 
+            style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+            onkeypress="if(event.key==='Enter') loadTweets()"
+          />
+          <select 
+            id="tweetsUserFilter" 
+            style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+            onchange="loadTweets()"
+          >
+            <option value="">所有用户</option>
+          </select>
+          <button class="btn-primary" onclick="loadTweets()" style="padding: 10px 20px;">刷新</button>
+        </div>
+      </div>
+
+      <!-- 推文列表 -->
+      <div id="tweetsLoading" class="loading">加载中...</div>
+      <div id="tweetsContainer" style="display: none;">
+        <div id="tweetsList"></div>
+        <div id="tweetsPagination" style="text-align: center; margin-top: 20px; padding: 20px;"></div>
+      </div>
+    </div>
+
+    <!-- 用户指南页面 -->
+    <div id="guidePage" class="content-page">
+      <div class="page-header">
+        <h2>用户指南</h2>
+        <p>了解如何使用个人信息整理系统</p>
+      </div>
+
+      <!-- 基础使用流程 -->
+      <div class="section">
+        <h3>📚 基础使用流程</h3>
+        <div class="guide-content">
+          <div class="guide-step">
+            <h4>1. 注册/登录</h4>
+            <p>首次使用需要注册账号，输入用户名、邮箱和密码即可完成注册。已有账号的用户可以直接登录。</p>
+          </div>
+          <div class="guide-step">
+            <h4>2. 添加主题关键词</h4>
+            <p>在"订阅管理"页面，点击"+"按钮添加您关注的主题关键词，例如：人工智能、机器学习、区块链等。</p>
+          </div>
+          <div class="guide-step">
+            <h4>3. 获取推荐信息源</h4>
+            <p>输入主题关键词后，点击"获取推荐"按钮，系统会使用 AI 为您推荐优质的信息源。</p>
+          </div>
+          <div class="guide-step">
+            <h4>4. 订阅信息源</h4>
+            <p>在推荐的信息源列表中，选择您感兴趣的信息源，点击"订阅选中"按钮完成订阅。</p>
+          </div>
+          <div class="guide-step">
+            <h4>5. 查看收集的新闻</h4>
+            <p>订阅后，系统会每 10 分钟自动收集这些信息源的最新内容。您可以在"文章阅读"页面查看收集到的新闻。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 详细功能介绍 -->
+      <div class="section">
+        <h3>🔧 详细功能介绍</h3>
+        <div class="guide-content">
+          <div class="guide-feature">
+            <h4>主题管理</h4>
+            <p>您可以添加多个主题关键词，系统会为每个主题推荐相应的信息源。主题之间相互独立，方便您管理不同领域的关注点。</p>
+          </div>
+          <div class="guide-feature">
+            <h4>AI 推荐信息源</h4>
+            <p>系统使用 DeepSeek AI 根据您输入的关键词，智能推荐相关的高质量信息源，包括 RSS 源和博客网站。</p>
+          </div>
+          <div class="guide-feature">
+            <h4>订阅管理</h4>
+            <p>在订阅管理页面，您可以查看所有已订阅的信息源，包括信息源名称、URL、类型和分类。您可以随时取消不需要的订阅。</p>
+          </div>
+          <div class="guide-feature">
+            <h4>文章阅读</h4>
+            <p>文章阅读页面按主题分组展示新闻，支持按信息源过滤。点击文章可以查看详情，支持生成摘要和翻译功能。</p>
+          </div>
+          <div class="guide-feature">
+            <h4>最新推文</h4>
+            <p>通过 Nitter 抓取 Twitter/X 推文，支持搜索和按用户过滤，方便您关注特定账号的最新动态。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 使用技巧和最佳实践 -->
+      <div class="section">
+        <h3>💡 使用技巧和最佳实践</h3>
+        <div class="guide-content">
+          <div class="guide-tip">
+            <h4>如何选择有效的关键词</h4>
+            <ul>
+              <li>使用具体的关键词，避免过于宽泛的词汇</li>
+              <li>可以尝试使用英文关键词，可能获得更多优质信息源</li>
+              <li>结合多个相关关键词，获得更全面的推荐</li>
+            </ul>
+          </div>
+          <div class="guide-tip">
+            <h4>如何管理多个主题</h4>
+            <ul>
+              <li>为不同领域创建不同的主题，便于分类管理</li>
+              <li>定期检查订阅的信息源，取消不再需要的订阅</li>
+              <li>在文章阅读页面，使用主题页签快速切换不同主题的内容</li>
+            </ul>
+          </div>
+          <div class="guide-tip">
+            <h4>如何优化订阅列表</h4>
+            <ul>
+              <li>优先订阅更新频率高、内容质量好的信息源</li>
+              <li>避免订阅过多相似的信息源，减少重复内容</li>
+              <li>定期检查订阅的信息源是否仍然活跃</li>
+            </ul>
+          </div>
+          <div class="guide-tip">
+            <h4>如何高效阅读新闻</h4>
+            <ul>
+              <li>使用信息源过滤功能，专注于特定来源的内容</li>
+              <li>利用文章摘要功能，快速了解文章要点</li>
+              <li>使用翻译功能阅读英文内容</li>
+              <li>在文章详情页查看原文链接，获取完整信息</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 常见问题解答 -->
+      <div class="section">
+        <h3>❓ 常见问题解答（FAQ）</h3>
+        <div class="guide-content">
+          <div class="guide-faq">
+            <h4>如何开始使用？</h4>
+            <p>首先注册一个账号，然后在"订阅管理"页面添加您关注的主题关键词，获取推荐并订阅信息源，系统就会自动为您收集相关新闻。</p>
+          </div>
+          <div class="guide-faq">
+            <h4>为什么没有推荐到信息源？</h4>
+            <p>可能的原因包括：关键词过于宽泛或特殊、AI 推荐服务暂时不可用。建议尝试使用更具体的关键词，或稍后重试。</p>
+          </div>
+          <div class="guide-faq">
+            <h4>新闻多久更新一次？</h4>
+            <p>系统每 10 分钟自动收集一次您订阅的信息源的最新内容。您也可以手动刷新查看最新内容。</p>
+          </div>
+          <div class="guide-faq">
+            <h4>如何取消订阅？</h4>
+            <p>在"订阅管理"页面，找到要取消的订阅，点击删除按钮即可。取消订阅后，系统将不再收集该信息源的内容。</p>
+          </div>
+          <div class="guide-faq">
+            <h4>可以订阅多少个信息源？</h4>
+            <p>目前没有限制，但建议不要订阅过多信息源，以免内容过多难以管理。建议控制在 20-30 个以内。</p>
+          </div>
+          <div class="guide-faq">
+            <h4>支持哪些类型的信息源？</h4>
+            <p>目前支持 RSS 源和博客网站。系统会自动识别信息源类型并采用相应的收集方式。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 特性介绍页面 -->
+    <div id="featuresPage" class="content-page">
+      <div class="page-header">
+        <h2>特性介绍</h2>
+        <p>了解系统的核心功能和最新更新</p>
+      </div>
+
+      <!-- 页签切换 -->
+      <div class="section" style="padding: 0;">
+        <div class="features-tabs">
+          <button class="features-tab active" onclick="switchFeaturesTab('major', event)">重大特性</button>
+          <button class="features-tab" onclick="switchFeaturesTab('changelog', event)">更新历史</button>
+        </div>
+      </div>
+
+      <!-- 重大特性页签内容 -->
+      <div id="majorFeaturesTab" class="features-tab-content active">
+        <div class="section">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-date">2024-01-01</div>
+              <div class="timeline-content">
+                <h3>用户认证系统</h3>
+                <p>完整的用户注册、登录和认证系统，使用 JWT token 进行身份验证，确保用户数据安全。</p>
+                <div class="feature-value">
+                  <strong>对用户的价值：</strong>保护个人隐私，每个用户只能看到自己订阅的内容，数据安全可靠。
+                </div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">2024-01-01</div>
+              <div class="timeline-content">
+                <h3>AI 智能推荐信息源</h3>
+                <p>基于 DeepSeek AI 的智能推荐系统，根据用户输入的关键词自动推荐高质量的信息源。</p>
+                <div class="feature-value">
+                  <strong>对用户的价值：</strong>无需手动搜索，AI 自动为您找到最相关的优质信息源，节省大量时间。
+                </div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">2024-01-01</div>
+              <div class="timeline-content">
+                <h3>个性化新闻收集</h3>
+                <p>系统根据每个用户的订阅自动收集新闻，每 10 分钟更新一次，确保内容及时性。</p>
+                <div class="feature-value">
+                  <strong>对用户的价值：</strong>只看到您关心的内容，不会被无关信息干扰，提高阅读效率。
+                </div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">2024-01-01</div>
+              <div class="timeline-content">
+                <h3>多源订阅管理</h3>
+                <p>支持订阅多个信息源，支持 RSS 和博客两种类型，统一管理所有订阅。</p>
+                <div class="feature-value">
+                  <strong>对用户的价值：</strong>在一个地方管理所有信息源，无需访问多个网站，方便快捷。
+                </div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">2024-01-01</div>
+              <div class="timeline-content">
+                <h3>文章阅读体验</h3>
+                <p>支持按主题和信息源过滤，提供文章摘要生成和翻译功能，优化阅读体验。</p>
+                <div class="feature-value">
+                  <strong>对用户的价值：</strong>快速定位感兴趣的内容，支持多语言阅读，提升阅读效率。
+                </div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">2024-01-01</div>
+              <div class="timeline-content">
+                <h3>最新推文功能</h3>
+                <p>通过 Nitter 抓取 Twitter/X 推文，支持搜索和按用户过滤，方便关注特定账号。</p>
+                <div class="feature-value">
+                  <strong>对用户的价值：</strong>无需登录 Twitter，即可查看关注账号的最新推文，保护隐私。
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 更新历史页签内容 -->
+      <div id="changelogTab" class="features-tab-content">
+        <div class="section">
+          <div id="changelogContent" class="changelog-content">
+            <div class="loading">加载更新历史中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1719,8 +2220,15 @@
       } else {
         // 如果没有 event，通过 page 参数找到对应的菜单项
         const menuItems = document.querySelectorAll('.menu-item');
+        const pageIndexMap = {
+          'subscriptions': 0,
+          'articles': 1,
+          'tweets': 2,
+          'guide': 3,
+          'features': 4
+        };
         menuItems.forEach((item, index) => {
-          if ((page === 'subscriptions' && index === 0) || (page === 'articles' && index === 1)) {
+          if (pageIndexMap[page] === index) {
             item.classList.add('active');
           }
         });
@@ -1738,6 +2246,8 @@
         localStorage.removeItem('dashboardViewingArticleId');
         loadTopics();
         loadRecommendationHistory(); // 加载推荐历史
+      } else if (page === 'tweets') {
+        loadTweets();
       } else if (page === 'articles') {
         // 如果当前在文章详情页面，先返回列表页面
         const articleDetailView = document.getElementById('articleDetailView');
@@ -1770,6 +2280,9 @@
             console.error('❌ 加载主题页签失败:', err);
           });
         }
+      } else if (page === 'features') {
+        // 加载更新历史
+        loadChangelog();
       }
     }
 
@@ -1779,6 +2292,107 @@
         localStorage.removeItem('authToken');
         localStorage.removeItem('userInfo');
         window.location.href = '/login.html';
+      }
+    }
+
+    // 切换特性介绍页签
+    function switchFeaturesTab(tab, event) {
+      // 更新页签按钮状态
+      document.querySelectorAll('.features-tab').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      if (event && event.target) {
+        event.target.classList.add('active');
+      } else {
+        // 如果没有 event，通过 tab 参数找到对应的按钮
+        document.querySelectorAll('.features-tab').forEach((btn, index) => {
+          if ((tab === 'major' && index === 0) || (tab === 'changelog' && index === 1)) {
+            btn.classList.add('active');
+          }
+        });
+      }
+
+      // 更新页签内容显示
+      document.querySelectorAll('.features-tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      if (tab === 'major') {
+        document.getElementById('majorFeaturesTab').classList.add('active');
+      } else if (tab === 'changelog') {
+        document.getElementById('changelogTab').classList.add('active');
+        loadChangelog();
+      }
+    }
+
+    // 加载更新历史
+    async function loadChangelog() {
+      const changelogContent = document.getElementById('changelogContent');
+      if (!changelogContent) return;
+
+      try {
+        changelogContent.innerHTML = '<div class="loading">加载更新历史中...</div>';
+        
+        const response = await fetch('/changelog.json');
+        if (!response.ok) {
+          throw new Error('无法加载更新历史');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.updates || data.updates.length === 0) {
+          changelogContent.innerHTML = '<div class="empty-state">暂无更新历史</div>';
+          return;
+        }
+
+        let html = '';
+        data.updates.forEach(update => {
+          html += '<div class="changelog-item">';
+          html += '<div class="changelog-header">';
+          html += `<span class="changelog-version">版本 ${update.version}</span>`;
+          html += `<span class="changelog-date">${update.date}</span>`;
+          html += '</div>';
+          
+          if (update.features && update.features.length > 0) {
+            html += '<div class="changelog-section">';
+            html += '<div class="changelog-section-title">✨ 新增功能</div>';
+            html += '<ul>';
+            update.features.forEach(feature => {
+              html += `<li>${feature}</li>`;
+            });
+            html += '</ul>';
+            html += '</div>';
+          }
+          
+          if (update.improvements && update.improvements.length > 0) {
+            html += '<div class="changelog-section">';
+            html += '<div class="changelog-section-title">🚀 改进和优化</div>';
+            html += '<ul>';
+            update.improvements.forEach(improvement => {
+              html += `<li>${improvement}</li>`;
+            });
+            html += '</ul>';
+            html += '</div>';
+          }
+          
+          if (update.fixes && update.fixes.length > 0) {
+            html += '<div class="changelog-section">';
+            html += '<div class="changelog-section-title">🐛 Bug 修复</div>';
+            html += '<ul>';
+            update.fixes.forEach(fix => {
+              html += `<li>${fix}</li>`;
+            });
+            html += '</ul>';
+            html += '</div>';
+          }
+          
+          html += '</div>';
+        });
+        
+        changelogContent.innerHTML = html;
+      } catch (error) {
+        console.error('加载更新历史失败:', error);
+        changelogContent.innerHTML = '<div class="empty-state">加载更新历史失败，请稍后重试</div>';
       }
     }
 
@@ -4659,6 +5273,272 @@
       }
     });
 
+    // ========== 推文管理 ==========
+    
+    let currentTweetsPage = 1;
+    const tweetsPageSize = 20;
+    let allTweets = [];
+    let tweetsUsers = new Set();
+
+    // 加载推文
+    async function loadTweets(page = 1) {
+      const loadingEl = document.getElementById('tweetsLoading');
+      const containerEl = document.getElementById('tweetsContainer');
+      const listEl = document.getElementById('tweetsList');
+      const paginationEl = document.getElementById('tweetsPagination');
+      const searchInput = document.getElementById('tweetsSearchInput');
+      const userFilter = document.getElementById('tweetsUserFilter');
+      
+      try {
+        loadingEl.style.display = 'block';
+        containerEl.style.display = 'none';
+        
+        // 构建API URL
+        let url = `${API_BASE_URL}/news/list?page=${page}&pageSize=${tweetsPageSize}`;
+        const searchKeyword = searchInput?.value || '';
+        const selectedUser = userFilter?.value || '';
+        
+        const response = await fetch(url, {
+          headers: getHeaders()
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // 过滤出Twitter/X推文
+          let tweets = result.data || [];
+          if (Array.isArray(tweets)) {
+            // 如果是按日期分组的格式，需要展开
+            const allItems = [];
+            tweets.forEach(dateGroup => {
+              if (dateGroup.news && Array.isArray(dateGroup.news)) {
+                dateGroup.news.forEach(news => {
+                  allItems.push({...news, date: dateGroup.date});
+                });
+              }
+            });
+            tweets = allItems;
+          }
+          
+          // 过滤推文：URL包含nitter/twitter/x.com，或source以@开头
+          tweets = tweets.filter(tweet => {
+            const url = (tweet.url || '').toLowerCase();
+            const source = (tweet.source || '').trim();
+            return url.includes('nitter') || 
+                   url.includes('twitter.com') || 
+                   url.includes('x.com') ||
+                   source.startsWith('@') ||
+                   source.includes('Twitter') ||
+                   source.includes('X');
+          });
+          
+          // 搜索过滤
+          if (searchKeyword) {
+            const keyword = searchKeyword.toLowerCase();
+            tweets = tweets.filter(tweet => {
+              const title = (tweet.title || '').toLowerCase();
+              const summary = (tweet.summary || '').toLowerCase();
+              return title.includes(keyword) || summary.includes(keyword);
+            });
+          }
+          
+          // 用户过滤
+          if (selectedUser) {
+            tweets = tweets.filter(tweet => {
+              const source = (tweet.source || '').trim();
+              return source === selectedUser || source.includes(selectedUser);
+            });
+          }
+          
+          allTweets = tweets;
+          
+          // 更新用户列表
+          tweetsUsers.clear();
+          tweets.forEach(tweet => {
+            const source = (tweet.source || '').trim();
+            if (source && (source.startsWith('@') || source.includes('Twitter') || source.includes('X'))) {
+              tweetsUsers.add(source);
+            }
+          });
+          
+          // 更新用户筛选下拉框
+          if (userFilter) {
+            const currentValue = userFilter.value;
+            userFilter.innerHTML = '<option value="">所有用户</option>';
+            Array.from(tweetsUsers).sort().forEach(user => {
+              const option = document.createElement('option');
+              option.value = user;
+              option.textContent = user;
+              if (user === currentValue) {
+                option.selected = true;
+              }
+              userFilter.appendChild(option);
+            });
+          }
+          
+          // 渲染推文
+          listEl.innerHTML = '';
+          
+          if (tweets.length === 0) {
+            listEl.innerHTML = `
+              <div class="empty-tweets">
+                <div class="empty-tweets-icon">🐦</div>
+                <p>暂无推文</p>
+                <p style="font-size: 14px; color: #999; margin-top: 8px;">
+                  ${searchKeyword ? '没有找到匹配的推文' : '还没有抓取到推文，请先在订阅管理中添加Twitter/X订阅源'}
+                </p>
+              </div>
+            `;
+          } else {
+            tweets.forEach(tweet => {
+              const tweetEl = createTweetElement(tweet);
+              listEl.appendChild(tweetEl);
+            });
+          }
+          
+          // 分页（简化版，因为我们已经过滤了）
+          paginationEl.innerHTML = `
+            <span style="color: #536471;">显示 ${tweets.length} 条推文</span>
+          `;
+          
+          loadingEl.style.display = 'none';
+          containerEl.style.display = 'block';
+          currentTweetsPage = page;
+        }
+      } catch (error) {
+        console.error('加载推文失败:', error);
+        loadingEl.style.display = 'none';
+        showMessage('加载推文失败: ' + error.message, 'error', 'tweetsMessage');
+      }
+    }
+    
+    // 创建推文元素
+    function createTweetElement(tweet) {
+      const tweetEl = document.createElement('div');
+      tweetEl.className = 'tweet';
+      
+      // 提取用户名和头像
+      let username = 'Unknown';
+      let handle = '';
+      const source = (tweet.source || '').trim();
+      
+      if (source.startsWith('@')) {
+        handle = source;
+        username = source.substring(1).charAt(0).toUpperCase() + source.substring(2);
+      } else if (tweet.url) {
+        const match = tweet.url.match(/(?:twitter\.com|x\.com|nitter[^/]+)\/([a-zA-Z0-9_]+)/);
+        if (match) {
+          handle = '@' + match[1];
+          username = match[1].charAt(0).toUpperCase() + match[1].substring(1);
+        }
+      }
+      
+      // 格式化时间
+      const time = formatTweetTime(tweet.publish_date || tweet.date);
+      
+      // 获取头像首字母
+      const avatarLetter = username.charAt(0).toUpperCase();
+      
+      // 处理内容（移除HTML标签，保留换行）
+      let content = tweet.title || tweet.summary || '';
+      content = content.replace(/<[^>]*>/g, '').trim();
+      
+      // 处理图片
+      let imageHtml = '';
+      if (tweet.image_url) {
+        imageHtml = `<img src="${tweet.image_url}" alt="Tweet image" class="tweet-image" onerror="this.style.display='none'">`;
+      }
+      
+      tweetEl.innerHTML = `
+        <div class="tweet-header">
+          <div class="tweet-avatar">${avatarLetter}</div>
+          <div class="tweet-user-info">
+            <div class="tweet-username">
+              ${escapeHtml(username)}
+              <span class="tweet-handle">${escapeHtml(handle)}</span>
+              <span class="tweet-time">· ${time}</span>
+            </div>
+          </div>
+        </div>
+        <div class="tweet-content">${escapeHtml(content)}</div>
+        ${imageHtml}
+        <div class="tweet-footer">
+          <div class="tweet-action" onclick="event.stopPropagation(); window.open('${tweet.url || '#'}', '_blank')">
+            <span class="tweet-action-icon">🔗</span>
+            <span>查看原文</span>
+          </div>
+          <div class="tweet-action" onclick="event.stopPropagation(); viewTweetDetail(${tweet.id})">
+            <span class="tweet-action-icon">📖</span>
+            <span>查看详情</span>
+          </div>
+        </div>
+      `;
+      
+      // 点击推文跳转到详情
+      tweetEl.addEventListener('click', (e) => {
+        if (!e.target.closest('.tweet-action')) {
+          viewTweetDetail(tweet.id);
+        }
+      });
+      
+      return tweetEl;
+    }
+    
+    // 格式化推文时间
+    function formatTweetTime(dateStr) {
+      if (!dateStr) return '';
+      
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now - date;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      
+      if (seconds < 60) {
+        return '刚刚';
+      } else if (minutes < 60) {
+        return `${minutes}分钟前`;
+      } else if (hours < 24) {
+        return `${hours}小时前`;
+      } else if (days < 7) {
+        return `${days}天前`;
+      } else {
+        return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+      }
+    }
+    
+    // 查看推文详情
+    function viewTweetDetail(tweetId) {
+      window.location.href = `/article.html?id=${tweetId}`;
+    }
+    
+    // 显示消息
+    function showMessage(text, type, containerId = 'message') {
+      const messageEl = document.getElementById(containerId);
+      if (!messageEl) return;
+      
+      messageEl.textContent = text;
+      messageEl.className = `message ${type} show`;
+      
+      setTimeout(() => {
+        messageEl.classList.remove('show');
+      }, 5000);
+    }
+    
+    // 转义HTML
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     // 页面加载时
     window.onload = async function() {
       await initUser();
@@ -4670,12 +5550,17 @@
       await loadRefreshStatus();
       startArticlesAutoRefresh();
       
-      // 恢复页面状态
-      const savedPage = localStorage.getItem('dashboardCurrentPage');
-      const savedArticleId = localStorage.getItem('dashboardViewingArticleId');
-      const savedTopicIndex = localStorage.getItem('dashboardCurrentTopicIndex');
-      
-      if (savedPage) {
+      // 处理 URL hash 导航
+      const hash = window.location.hash.substring(1);
+      if (hash === 'guide' || hash === 'features') {
+        switchPage(hash);
+      } else {
+        // 恢复页面状态
+        const savedPage = localStorage.getItem('dashboardCurrentPage');
+        const savedArticleId = localStorage.getItem('dashboardViewingArticleId');
+        const savedTopicIndex = localStorage.getItem('dashboardCurrentTopicIndex');
+        
+        if (savedPage) {
         // 切换到保存的页面
         switchPage(savedPage);
         
@@ -4699,6 +5584,7 @@
             }
           }, 800);
         }
+      }
       }
     };
   </script>
