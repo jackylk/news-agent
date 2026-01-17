@@ -427,8 +427,12 @@
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return `${window.location.protocol}//${window.location.host}/api`;
       }
+      // Railway 后端地址
       return 'https://news-agent-production-c5db.up.railway.app/api';
     })();
+    
+    // 在控制台输出API地址，方便调试
+    console.log('[管理员页面] API基础地址:', API_BASE_URL);
 
     let adminToken = '';
     let currentNewsPage = 1;
