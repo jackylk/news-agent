@@ -2,6 +2,11 @@ const axios = require('axios');
 const RSSParser = require('rss-parser');
 const cheerio = require('cheerio');
 const News = require('../models/News');
+const CrawlerFactory = require('./crawlers/CrawlerFactory');
+const RSSCrawler = require('./crawlers/RSSCrawler');
+const TwitterCrawler = require('./crawlers/TwitterCrawler');
+const BlogCrawler = require('./crawlers/BlogCrawler');
+const NewsWebsiteCrawler = require('./crawlers/NewsWebsiteCrawler');
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
@@ -1086,38 +1091,22 @@ class NewsCollector {
         
         let result = { count: 0, articles: [] };
         const normalizedSourceType = (source_type || '').toLowerCase();
-        const lowerUrl = source_url.toLowerCase();
         
-        // 判断信息源类型并调用相应的收集方法
-        // 首先检查是否是Twitter/X源
-        if (normalizedSourceType === 'twitter' || normalizedSourceType === 'x' || 
-            lowerUrl.includes('twitter.com/') || lowerUrl.includes('x.com/') ||
-            lowerUrl.includes('nitter.') || extractTwitterUsername(source_url)) {
-          // Twitter/X推文源
-          console.log(`[收集源 ${index + 1}/${totalSources}] 处理Twitter/X源: ${source_name}${currentTopicKeywords ? ` (主题: ${currentTopicKeywords})` : ''}`);
+        // 使用CrawlerFactory创建合适的爬虫
+        const detectedType = CrawlerFactory.detectSourceType(normalizedSourceType, source_url);
+        console.log(`[收集源 ${index + 1}/${totalSources}] 处理${detectedType}源: ${source_name}${currentTopicKeywords ? ` (主题: ${currentTopicKeywords})` : ''}`);
+        
+        // 根据检测到的类型调用相应的收集方法
+        if (detectedType === 'twitter') {
           result = await this.collectFromTwitterForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
-        } else if (normalizedSourceType === 'rss' || normalizedSourceType === 'feed' || 
-            normalizedSourceType === 'xml' || normalizedSourceType === 'atom' ||
-            lowerUrl.includes('/rss') || lowerUrl.includes('/feed') || 
-            lowerUrl.includes('/atom') || lowerUrl.endsWith('.xml') ||
-            lowerUrl.endsWith('.rss') || lowerUrl.endsWith('.atom')) {
-          // RSS/Feed/XML/Atom源
-          console.log(`[收集源 ${index + 1}/${totalSources}] 处理Feed源 (${normalizedSourceType || 'auto'}): ${source_name}${currentTopicKeywords ? ` (主题: ${currentTopicKeywords})` : ''}`);
+        } else if (detectedType === 'rss') {
           result = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category, 3, onProgress, currentTopicKeywords);
-        } else if (normalizedSourceType === 'blog' || 
-                   lowerUrl.includes('/blog') || lowerUrl.includes('blog.') ||
-                   lowerUrl.includes('medium.com') || lowerUrl.includes('substack.com')) {
-          // 博客类型
-          console.log(`[收集源 ${index + 1}/${totalSources}] 处理博客源: ${source_name}${currentTopicKeywords ? ` (主题: ${currentTopicKeywords})` : ''}`);
+        } else if (detectedType === 'blog') {
           result = await this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
-        } else if (normalizedSourceType === 'news' || 
-                   lowerUrl.includes('/news') || lowerUrl.includes('news.')) {
-          // 新闻网站类型
-          console.log(`[收集源 ${index + 1}/${totalSources}] 处理新闻网站: ${source_name}${currentTopicKeywords ? ` (主题: ${currentTopicKeywords})` : ''}`);
+        } else if (detectedType === 'news') {
           result = await this.collectFromNewsWebsiteForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
         } else {
-          // 其他类型（website、social等），尝试作为博客或新闻网站处理
-          console.log(`[收集源 ${index + 1}/${totalSources}] 处理网站源 (${normalizedSourceType || 'auto'}): ${source_name}${currentTopicKeywords ? ` (主题: ${currentTopicKeywords})` : ''}`);
+          // 默认使用博客爬虫
           result = await this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
         }
         
@@ -1251,64 +1240,24 @@ class NewsCollector {
     let lastError = null;
     let collectedCount = 0;
     const collectedArticles = []; // 用于批量收集
+    const rssCrawler = new RSSCrawler();
 
     // 重试逻辑
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 1) {
           console.log(`第 ${attempt} 次尝试连接 ${feedUrl}...`);
-          // 每次重试前等待递增的时间
           await this.sleep(attempt * 1000);
         }
 
-        // 对于InfoQ等特殊RSS源，先尝试直接获取XML内容
-        let feed;
-        try {
-          feed = await parser.parseURL(feedUrl);
-        } catch (parseError) {
-          // 如果解析失败，尝试先获取原始XML，然后手动解析
-          if (parseError.message && (parseError.message.includes('Unable to parse XML') || parseError.message.includes('parse') || parseError.message.includes('XML'))) {
-            console.log(`RSS解析失败，尝试直接获取XML内容: ${feedUrl}`);
-            try {
-              const xmlResponse = await axios.get(feedUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                  'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-                  'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8',
-                },
-                timeout: 30000,
-                maxRedirects: 5,
-                responseType: 'text',
-              });
-              
-              // 清理XML内容，移除可能导致解析问题的字符
-              let xmlContent = xmlResponse.data;
-              // 移除BOM
-              if (xmlContent.charCodeAt(0) === 0xFEFF) {
-                xmlContent = xmlContent.slice(1);
-              }
-              // 确保XML声明正确
-              if (!xmlContent.trim().startsWith('<?xml')) {
-                xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlContent;
-              }
-              
-              // 使用清理后的XML重新解析
-              feed = await parser.parseString(xmlContent);
-              console.log(`成功通过直接获取XML解析RSS源: ${feedUrl}`);
-            } catch (xmlError) {
-              console.error(`直接获取XML也失败: ${xmlError.message}`);
-              throw parseError; // 抛出原始错误
-            }
-          } else {
-            throw parseError;
-          }
-        }
+        // 使用新的RSS爬虫提取文章
+        const articles = await rssCrawler.extractFromFeed(feedUrl);
 
-        for (const item of feed.items) {
-          const url = item.link || item.guid || '';
+        for (const article of articles) {
+          const url = article.url || '';
           if (!url) continue;
 
-          // 检查文章是否已存在（需要检查 user_id 和 topic_keywords 的组合）
+          // 检查文章是否已存在
           const exists = await new Promise((resolve, reject) => {
             News.exists(url, userId, topicKeywords, (err, res) => {
               if (err) reject(err);
@@ -1317,28 +1266,25 @@ class NewsCollector {
           });
 
           if (!exists) {
-            const content = await this.extractContent(item, url);
-            const summary = this.extractSummary(item, content);
-
             const newsData = {
-              title: item.title || '无标题',
-              content: content,
-              summary: summary,
-              source: sourceName || feed.title || '未知来源',
+              title: article.title || '无标题',
+              content: article.content || '',
+              summary: article.summary || '',
+              source: sourceName || '未知来源',
               category: category || '未分类',
               url: url,
-              image_url: this.extractImage(item),
-              publish_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+              image_url: article.image_url || '',
+              publish_date: article.publish_date || new Date().toISOString(),
               user_id: userId,
               topic_keywords: topicKeywords || null,
-              is_relevant_to_topic: null // 稍后在批量过滤时设置
+              is_relevant_to_topic: null
             };
 
             // 如果有主题关键词，先收集到数组，稍后批量过滤
             if (topicKeywords && topicKeywords.trim()) {
               collectedArticles.push(newsData);
             } else {
-              // 没有主题关键词，直接保存（旧逻辑）
+              // 没有主题关键词，直接保存
               await new Promise((resolve, reject) => {
                 News.create(newsData, (err, result) => {
                   if (err) reject(err);
@@ -1346,7 +1292,6 @@ class NewsCollector {
                     collectedCount++;
                     console.log(`[用户${userId}] 已收集: ${newsData.title}`);
                     
-                    // 实时发送收集到的文章
                     if (onProgress && result) {
                       onProgress({
                         type: 'articleCollected',
@@ -1376,7 +1321,6 @@ class NewsCollector {
         const errorMsg = error.message || error.toString();
         console.error(`从RSS源 ${feedUrl} 收集失败 (尝试 ${attempt}/${maxRetries}):`, errorMsg);
         
-        // 如果是网络相关错误且还有重试机会，继续重试
         if (attempt < maxRetries && (
           errorMsg.includes('socket') ||
           errorMsg.includes('TLS') ||
@@ -1389,7 +1333,6 @@ class NewsCollector {
           continue;
         }
         
-        // 如果不是网络错误或已达到最大重试次数，返回空结果
         if (attempt === maxRetries) {
           console.error(`从RSS源 ${feedUrl} 收集失败，已重试 ${maxRetries} 次，跳过该源`);
           return { count: 0, articles: [] };
@@ -1397,7 +1340,6 @@ class NewsCollector {
       }
     }
     
-    // 如果所有重试都失败
     console.error(`从RSS源 ${feedUrl} 收集失败，已重试 ${maxRetries} 次`);
     return { count: 0, articles: [] };
   }
@@ -1407,150 +1349,95 @@ class NewsCollector {
   async collectFromTwitterForUser(twitterUrlOrUsername, userId, sourceName, category, onProgress = null, topicKeywords = null) {
     console.log(`开始从Twitter/X ${twitterUrlOrUsername} 收集推文（用户 ${userId}）...`);
     let collectedCount = 0;
-    const collectedArticles = []; // 用于批量收集
+    const collectedArticles = [];
+    const twitterCrawler = new TwitterCrawler();
 
-    // 提取Twitter用户名
-    const username = extractTwitterUsername(twitterUrlOrUsername);
-    if (!username) {
-      console.error(`无法从 "${twitterUrlOrUsername}" 提取Twitter用户名`);
-      return { count: 0, articles: [] };
-    }
+    try {
+      // 使用新的Twitter爬虫提取推文
+      const articles = await twitterCrawler.extractContent(twitterUrlOrUsername);
 
-    // 获取Nitter实例列表（从数据库或配置）
-    const nitterInstances = await getNitterInstances();
-    if (!nitterInstances || nitterInstances.length === 0) {
-      console.error('没有可用的Nitter实例');
-      return { count: 0, articles: [] };
-    }
+      for (const article of articles) {
+        const url = article.url || '';
+        if (!url) continue;
 
-    // 尝试使用不同的Nitter实例获取RSS
-    let lastError = null;
-    for (const nitterInstance of nitterInstances) {
-      try {
-        const rssUrl = getTwitterRSSUrl(username, nitterInstance);
-        if (!rssUrl) {
-          continue;
+        // 检查文章是否已存在
+        const exists = await new Promise((resolve, reject) => {
+          News.exists(url, userId, topicKeywords, (err, res) => {
+            if (err) reject(err);
+            else resolve(res);
+          });
+        });
+
+        if (!exists) {
+          const newsData = {
+            title: article.title || '无标题',
+            content: article.content || '',
+            summary: article.summary || '',
+            source: sourceName || `@${twitterCrawler.extractTwitterUsername(twitterUrlOrUsername)}` || '未知来源',
+            category: category || '社交媒体',
+            url: url,
+            image_url: article.image_url || '',
+            publish_date: article.publish_date || new Date().toISOString(),
+            user_id: userId,
+            topic_keywords: topicKeywords || null,
+            is_relevant_to_topic: null
+          };
+
+          if (topicKeywords && topicKeywords.trim()) {
+            collectedArticles.push(newsData);
+          } else {
+            await new Promise((resolve, reject) => {
+              News.create(newsData, (err, result) => {
+                if (err) reject(err);
+                else {
+                  collectedCount++;
+                  console.log(`[用户${userId}] 已收集: ${newsData.title}`);
+                  
+                  if (onProgress && result) {
+                    onProgress({
+                      type: 'articleCollected',
+                      article: {
+                        id: result.id,
+                        ...newsData,
+                        date: newsData.publish_date
+                      }
+                    });
+                  }
+                  
+                  resolve(result);
+                }
+              });
+            });
+          }
         }
-
-        console.log(`尝试使用Nitter实例: ${nitterInstance}`);
-        
-        // 使用RSS收集方法获取推文
-        const result = await this.collectFromRSSFeedForUser(
-          rssUrl, 
-          userId, 
-          sourceName || `@${username}`, 
-          category || '社交媒体', 
-          2, // 最多重试2次（因为会尝试多个实例）
-          onProgress, 
-          topicKeywords
-        );
-
-        // 如果成功收集到数据，返回结果
-        if (result && (result.count > 0 || (result.articles && result.articles.length > 0))) {
-          console.log(`成功从Nitter实例 ${nitterInstance} 收集到推文`);
-          return result;
-        }
-      } catch (error) {
-        lastError = error;
-        const errorMsg = error.message || error.toString();
-        console.warn(`Nitter实例 ${nitterInstance} 失败: ${errorMsg}`);
-        
-        // 继续尝试下一个实例
-        continue;
       }
-    }
 
-    // 如果所有实例都失败
-    console.error(`所有Nitter实例都失败，无法收集Twitter用户 @${username} 的推文`);
-    if (lastError) {
-      console.error('最后一个错误:', lastError.message);
+      return {
+        count: topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount,
+        articles: collectedArticles
+      };
+    } catch (error) {
+      console.error(`从Twitter/X收集推文失败: ${error.message}`);
+      return { count: 0, articles: [] };
     }
-    
-    return { count: 0, articles: [] };
   }
 
   // 从博客收集（带用户ID）
   async collectFromBlogForUser(blogUrl, userId, sourceName, category, onProgress = null, topicKeywords = null) {
     console.log(`开始从博客 ${blogUrl} 收集文章（用户 ${userId}）...`);
     let collectedCount = 0;
-    const collectedArticles = []; // 用于批量收集
+    const collectedArticles = [];
+    const blogCrawler = new BlogCrawler();
 
     try {
-      // 获取博客主页
-      const response = await axios.get(blogUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-        },
-        timeout: 30000,
-        maxRedirects: 5,
-      });
+      // 获取文章链接列表
+      const articleLinks = await blogCrawler.extractArticleLinks(blogUrl, { maxLinks: 20 });
+      console.log(`找到 ${articleLinks.length} 个可能的文章链接`);
 
-      const $ = cheerio.load(response.data);
-      const articleLinks = new Set();
-
-      // 多种方式查找文章链接
-      const linkSelectors = [
-        'article a[href]',
-        '.post a[href]',
-        '.entry a[href]',
-        '.blog-post a[href]',
-        'h2 a[href]',
-        'h3 a[href]',
-        '.post-title a[href]',
-        '.entry-title a[href]',
-        'a[href*="/blog/"]',
-        'a[href*="/post/"]',
-        'a[href*="/article/"]',
-        'a[href*="/entry/"]',
-        'a[href*="/news/"]',
-        'a[href*="/p/"]', // Medium等平台
-      ];
-
-      linkSelectors.forEach(selector => {
-        $(selector).each((i, elem) => {
-          const href = $(elem).attr('href');
-          if (!href) return;
-
-          let articleUrl = href;
-          if (href.startsWith('/')) {
-            try {
-              const urlObj = new URL(blogUrl);
-              articleUrl = `${urlObj.protocol}//${urlObj.host}${href}`;
-            } catch (e) {
-              return;
-            }
-          } else if (!href.startsWith('http')) {
-            articleUrl = `${blogUrl.replace(/\/$/, '')}/${href.replace(/^\//, '')}`;
-          }
-
-          // 过滤掉非文章链接
-          if (articleUrl && 
-              !articleUrl.includes('#') && 
-              !articleUrl.includes('mailto:') &&
-              !articleUrl.includes('javascript:') &&
-              (articleUrl.includes('/blog/') || 
-               articleUrl.includes('/post/') || 
-               articleUrl.includes('/article/') ||
-               articleUrl.includes('/entry/') ||
-               articleUrl.includes('/news/') ||
-               articleUrl.includes('/p/') ||
-               /\/\d{4}\/\d{2}\//.test(articleUrl))) { // 日期格式的URL
-            articleLinks.add(articleUrl);
-          }
-        });
-      });
-
-      console.log(`找到 ${articleLinks.size} 个可能的文章链接`);
-
-      // 处理每篇文章（限制最多20篇）
-      const linksArray = Array.from(articleLinks).slice(0, 20);
-      for (const articleUrl of linksArray) {
+      // 处理每篇文章
+      for (const articleUrl of articleLinks) {
         try {
-          // 检查是否已存在（需要检查 user_id 和 topic_keywords 的组合）
+          // 检查是否已存在
           const exists = await new Promise((resolve, reject) => {
             News.exists(articleUrl, userId, topicKeywords, (err, res) => {
               if (err) reject(err);
@@ -1562,20 +1449,19 @@ class NewsCollector {
             continue;
           }
 
-          // 提取文章内容
-          const articleData = await this.extractArticleFromBlogUrl(articleUrl, sourceName, category, userId);
+          // 使用新的博客爬虫提取文章内容
+          const articleData = await blogCrawler.extractContent(articleUrl);
           
           if (articleData && articleData.title && articleData.content) {
-            // 设置用户ID和主题关键词
+            articleData.source = sourceName || '未知来源';
+            articleData.category = category || '未分类';
             articleData.user_id = userId;
             articleData.topic_keywords = topicKeywords || null;
-            articleData.is_relevant_to_topic = null; // 稍后在批量过滤时设置
+            articleData.is_relevant_to_topic = null;
             
-            // 如果有主题关键词，先收集到数组，稍后批量过滤
             if (topicKeywords && topicKeywords.trim()) {
               collectedArticles.push(articleData);
             } else {
-              // 没有主题关键词，直接保存（旧逻辑）
               await new Promise((resolve, reject) => {
                 News.create(articleData, (err, result) => {
                   if (err) {
@@ -1585,7 +1471,6 @@ class NewsCollector {
                     collectedCount++;
                     console.log(`已收集: ${articleData.title}`);
                     
-                    // 实时发送收集到的文章
                     if (onProgress && result) {
                       onProgress({
                         type: 'articleCollected',
@@ -1604,7 +1489,6 @@ class NewsCollector {
             }
           }
 
-          // 避免请求过快
           await this.sleep(1500);
         } catch (error) {
           console.error(`处理文章 ${articleUrl} 失败:`, error.message);
@@ -1626,88 +1510,18 @@ class NewsCollector {
   async collectFromNewsWebsiteForUser(newsUrl, userId, sourceName, category, onProgress = null, topicKeywords = null) {
     console.log(`开始从新闻网站 ${newsUrl} 收集文章（用户 ${userId}）...`);
     let collectedCount = 0;
-    const collectedArticles = []; // 用于批量收集
+    const collectedArticles = [];
+    const newsCrawler = new NewsWebsiteCrawler();
 
     try {
-      // 获取新闻网站主页或列表页
-      const response = await axios.get(newsUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-        },
-        timeout: 30000,
-        maxRedirects: 5,
-      });
+      // 获取文章链接列表
+      const articleLinks = await newsCrawler.extractArticleLinks(newsUrl, { maxLinks: 30 });
+      console.log(`找到 ${articleLinks.length} 个可能的新闻文章链接`);
 
-      const $ = cheerio.load(response.data);
-      const articleLinks = new Set();
-
-      // 多种方式查找新闻文章链接（针对新闻网站的特殊选择器）
-      const linkSelectors = [
-        'article a[href]',
-        '.news-item a[href]',
-        '.article-item a[href]',
-        '.story a[href]',
-        '.post a[href]',
-        'h2 a[href]',
-        'h3 a[href]',
-        '.headline a[href]',
-        '.title a[href]',
-        'a[href*="/news/"]',
-        'a[href*="/article/"]',
-        'a[href*="/story/"]',
-        'a[href*="/post/"]',
-        'a[href*="/2024/"]', // 日期格式
-        'a[href*="/2023/"]',
-        '[data-article-url]',
-        '[data-story-url]',
-      ];
-
-      linkSelectors.forEach(selector => {
-        $(selector).each((i, elem) => {
-          const href = $(elem).attr('href') || $(elem).attr('data-article-url') || $(elem).attr('data-story-url');
-          if (!href) return;
-
-          let articleUrl = href;
-          if (href.startsWith('/')) {
-            try {
-              const urlObj = new URL(newsUrl);
-              articleUrl = `${urlObj.protocol}//${urlObj.host}${href}`;
-            } catch (e) {
-              return;
-            }
-          } else if (!href.startsWith('http')) {
-            articleUrl = `${newsUrl.replace(/\/$/, '')}/${href.replace(/^\//, '')}`;
-          }
-
-          // 过滤掉非文章链接
-          if (articleUrl && 
-              !articleUrl.includes('#') && 
-              !articleUrl.includes('mailto:') &&
-              !articleUrl.includes('javascript:') &&
-              !articleUrl.includes('/tag/') &&
-              !articleUrl.includes('/category/') &&
-              !articleUrl.includes('/author/') &&
-              (articleUrl.includes('/news/') || 
-               articleUrl.includes('/article/') ||
-               articleUrl.includes('/story/') ||
-               articleUrl.includes('/post/') ||
-               /\/\d{4}\/\d{2}\//.test(articleUrl))) { // 日期格式的URL
-            articleLinks.add(articleUrl);
-          }
-        });
-      });
-
-      console.log(`找到 ${articleLinks.size} 个可能的新闻文章链接`);
-
-      // 处理每篇文章（限制最多30篇）
-      const linksArray = Array.from(articleLinks).slice(0, 30);
-      for (const articleUrl of linksArray) {
+      // 处理每篇文章
+      for (const articleUrl of articleLinks) {
         try {
-          // 检查是否已存在（需要检查 user_id 和 topic_keywords 的组合）
+          // 检查是否已存在
           const exists = await new Promise((resolve, reject) => {
             News.exists(articleUrl, userId, topicKeywords, (err, res) => {
               if (err) reject(err);
@@ -1719,20 +1533,19 @@ class NewsCollector {
             continue;
           }
 
-          // 提取文章内容
-          const articleData = await this.extractArticleFromBlogUrl(articleUrl, sourceName, category, userId);
+          // 使用新的新闻网站爬虫提取文章内容
+          const articleData = await newsCrawler.extractContent(articleUrl);
           
           if (articleData && articleData.title && articleData.content) {
-            // 设置用户ID和主题关键词
+            articleData.source = sourceName || '未知来源';
+            articleData.category = category || '未分类';
             articleData.user_id = userId;
             articleData.topic_keywords = topicKeywords || null;
-            articleData.is_relevant_to_topic = null; // 稍后在批量过滤时设置
+            articleData.is_relevant_to_topic = null;
             
-            // 如果有主题关键词，先收集到数组，稍后批量过滤
             if (topicKeywords && topicKeywords.trim()) {
               collectedArticles.push(articleData);
             } else {
-              // 没有主题关键词，直接保存（旧逻辑）
               await new Promise((resolve, reject) => {
                 News.create(articleData, (err, result) => {
                   if (err) {
@@ -1742,7 +1555,6 @@ class NewsCollector {
                     collectedCount++;
                     console.log(`已收集: ${articleData.title}`);
                     
-                    // 实时发送收集到的文章
                     if (onProgress && result) {
                       onProgress({
                         type: 'articleCollected',
@@ -1761,7 +1573,6 @@ class NewsCollector {
             }
           }
 
-          // 避免请求过快
           await this.sleep(1500);
         } catch (error) {
           console.error(`处理文章 ${articleUrl} 失败:`, error.message);

@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^3.0.3",
     "pg": "^8.11.3",
+    "puppeteer": "^21.5.0",
     "rss-parser": "^3.13.0"
   },
   "devDependencies": {

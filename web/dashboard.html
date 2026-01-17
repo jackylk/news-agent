@@ -598,6 +598,90 @@
       margin-left: auto;
     }
 
+    /* 手动添加信息源区域样式 */
+    .manual-add-source {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .manual-add-source h5 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .manual-add-source-form {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .manual-add-source-form .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .manual-add-source-form .form-group label {
+      font-size: 13px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .manual-add-source-form .form-group input {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      transition: border-color 0.3s;
+    }
+
+    .manual-add-source-form .form-group input:focus {
+      outline: none;
+      border-color: #8B5CF6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+
+    .manual-add-source-form .form-group input[type="url"] {
+      flex: 2;
+      min-width: 300px;
+    }
+
+    .manual-add-source-btn {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+
+    .manual-add-source-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    .manual-add-source-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .btn-secondary {
       padding: 12px 24px;
       background-color: #6c757d;
@@ -2854,6 +2938,26 @@
         </div>
       `;
       
+        // 手动添加信息源区域
+        const manualAddSourceHtml = `
+          <div class="manual-add-source" id="manualAddSource-${newTabIndex}">
+            <h5>📝 手动添加信息源</h5>
+            <div class="manual-add-source-form">
+              <div class="form-group">
+                <label for="manualSourceName-${newTabIndex}">信息源名称</label>
+                <input type="text" id="manualSourceName-${newTabIndex}" placeholder="请输入信息源名称" onkeypress="if(event.key==='Enter') document.getElementById('manualSourceUrl-${newTabIndex}').focus()" />
+              </div>
+              <div class="form-group" style="flex: 2; min-width: 300px;">
+                <label for="manualSourceUrl-${newTabIndex}">信息源URL</label>
+                <input type="url" id="manualSourceUrl-${newTabIndex}" placeholder="https://example.com/feed.xml" onkeypress="if(event.key==='Enter') handleManualAddSource(${newTabIndex})" />
+              </div>
+              <button class="manual-add-source-btn" onclick="handleManualAddSource(${newTabIndex})" id="manualAddBtn-${newTabIndex}">
+                添加并订阅
+              </button>
+            </div>
+          </div>
+        `;
+      
       // 推荐信息源表格结构（初始为空，等待数据）
       const recommendationsHtml = `
         <div class="recommendations-filters" id="filters-${newTabIndex}" style="display: none;">
@@ -2891,7 +2995,7 @@
         <p id="recommendationsEmpty-${newTabIndex}" style="color: #999; padding: 20px; text-align: center;">正在获取推荐信息源，请稍候...</p>
       `;
       
-      panel.innerHTML = processLogsHtml + recommendationsHtml;
+      panel.innerHTML = processLogsHtml + manualAddSourceHtml + recommendationsHtml;
       
       // 取消其他面板的active状态
       Array.from(tabsContent.children).forEach((p, idx) => {
@@ -3072,6 +3176,117 @@
       const selectAll = document.getElementById('selectAll');
       const checkboxes = document.querySelectorAll('.source-checkbox');
       checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    }
+
+    // 处理手动添加信息源
+    async function handleManualAddSource(tabIndex) {
+      const sourceNameInput = document.getElementById(`manualSourceName-${tabIndex}`);
+      const sourceUrlInput = document.getElementById(`manualSourceUrl-${tabIndex}`);
+      const addBtn = document.getElementById(`manualAddBtn-${tabIndex}`);
+      
+      if (!sourceNameInput || !sourceUrlInput) {
+        showMessage('找不到输入框元素', 'error');
+        return;
+      }
+      
+      const sourceName = sourceNameInput.value.trim();
+      const sourceUrl = sourceUrlInput.value.trim();
+      
+      // 验证输入
+      if (!sourceName) {
+        showMessage('请输入信息源名称', 'error');
+        sourceNameInput.focus();
+        return;
+      }
+      
+      if (!sourceUrl) {
+        showMessage('请输入信息源URL', 'error');
+        sourceUrlInput.focus();
+        return;
+      }
+      
+      // 验证URL格式
+      try {
+        new URL(sourceUrl);
+      } catch (e) {
+        showMessage('请输入有效的URL格式', 'error');
+        sourceUrlInput.focus();
+        return;
+      }
+      
+      // 获取当前主题关键词
+      const panel = document.getElementById(`panel-${tabIndex}`);
+      if (!panel) {
+        showMessage('找不到主题信息', 'error');
+        return;
+      }
+      
+      const history = JSON.parse(panel.dataset.history || '{}');
+      const topicKeywords = history.topic_keywords || '';
+      
+      if (!topicKeywords || !topicKeywords.trim()) {
+        showMessage('无法添加：缺少主题关键词', 'error');
+        return;
+      }
+      
+      // 禁用按钮
+      addBtn.disabled = true;
+      addBtn.textContent = '添加中...';
+      
+      try {
+        // 判断信息源类型（简单判断：如果URL包含rss/feed/xml等，认为是RSS，否则是blog）
+        let sourceType = 'rss';
+        const urlLower = sourceUrl.toLowerCase();
+        if (!urlLower.includes('rss') && !urlLower.includes('feed') && !urlLower.includes('.xml') && !urlLower.includes('atom')) {
+          sourceType = 'blog';
+        }
+        
+        const subscriptionData = {
+          sourceName: sourceName,
+          sourceUrl: sourceUrl,
+          sourceType: sourceType,
+          topicKeywords: topicKeywords
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ subscriptions: [subscriptionData] })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(`成功添加并订阅信息源：${sourceName}`, 'success');
+          
+          // 清空输入框
+          sourceNameInput.value = '';
+          sourceUrlInput.value = '';
+          
+          // 重新加载订阅列表
+          await loadUserSubscriptions();
+          
+          // 如果该页签有推荐信息源，重新渲染以更新状态
+          if (history.recommended_sources && history.recommended_sources.length > 0) {
+            await renderRecommendationsInTab(tabIndex, history.recommended_sources);
+          }
+          
+          // 如果文章阅读页面的主题页签已加载，刷新它们
+          const articlesTopicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+          if (articlesTopicsTabsHeader && articlesTopicsTabsHeader.children.length > 0) {
+            console.log('📚 手动添加信息源后，刷新文章阅读页面的主题页签...');
+            await loadArticlesTopicsTabs();
+          }
+        } else {
+          showMessage(result.message || '添加订阅失败', 'error');
+        }
+      } catch (error) {
+        console.error('手动添加信息源失败:', error);
+        showMessage('添加订阅失败: ' + error.message, 'error');
+      } finally {
+        addBtn.disabled = false;
+        addBtn.textContent = '添加并订阅';
+      }
     }
 
     // 订阅选中的信息源
@@ -4111,6 +4326,26 @@
           `;
         }
         
+        // 手动添加信息源区域
+        const manualAddSourceHtml = `
+          <div class="manual-add-source" id="manualAddSource-${index}">
+            <h5>📝 手动添加信息源</h5>
+            <div class="manual-add-source-form">
+              <div class="form-group">
+                <label for="manualSourceName-${index}">信息源名称</label>
+                <input type="text" id="manualSourceName-${index}" placeholder="请输入信息源名称" onkeypress="if(event.key==='Enter') document.getElementById('manualSourceUrl-${index}').focus()" />
+              </div>
+              <div class="form-group" style="flex: 2; min-width: 300px;">
+                <label for="manualSourceUrl-${index}">信息源URL</label>
+                <input type="url" id="manualSourceUrl-${index}" placeholder="https://example.com/feed.xml" onkeypress="if(event.key==='Enter') handleManualAddSource(${index})" />
+              </div>
+              <button class="manual-add-source-btn" onclick="handleManualAddSource(${index})" id="manualAddBtn-${index}">
+                添加并订阅
+              </button>
+            </div>
+          </div>
+        `;
+        
         // 推荐信息源表格（包含过滤器和地区列）
         let recommendationsHtml = '';
         if (history.recommended_sources && history.recommended_sources.length > 0) {
@@ -4160,7 +4395,7 @@
           recommendationsHtml = '<p style="color: #999;">暂无推荐信息源</p>';
         }
         
-        panel.innerHTML = processLogsHtml + recommendationsHtml;
+        panel.innerHTML = processLogsHtml + manualAddSourceHtml + recommendationsHtml;
         tabsContent.appendChild(panel);
         
         // 渲染该主题的推荐过程和推荐信息源
