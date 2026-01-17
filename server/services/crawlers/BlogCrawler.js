@@ -60,17 +60,34 @@ class BlogCrawler extends BaseCrawler {
     // 提取标题
     const title = this.extractTitle($, url);
 
-    // 提取内容
-    let content = this.extractContentFromHTML($, url);
+    // 提取内容（保留HTML格式）
+    let content = this.extractContentFromHTML($, url, true);
     content = this.cleanContent(content);
 
     // 如果内容不足，尝试更宽松的选择器
-    if (!content || content.length < 500) {
+    if (!content || (typeof content === 'string' && content.replace(/<[^>]*>/g, '').trim().length < 500)) {
       // 尝试从body提取，但移除更多无关元素
-      $('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player, .widget, .sidebar-widget, .footer-widget').remove();
-      const bodyText = $('body').text().trim();
-      if (bodyText.length > content.length) {
-        content = bodyText.substring(0, 20000);
+      const bodyClone = $('body').clone();
+      bodyClone.find('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player, .widget, .sidebar-widget, .footer-widget').remove();
+      
+      // 移除危险属性
+      bodyClone.find('*').each((i, el) => {
+        const $el = $(el);
+        Object.keys(el.attribs || {}).forEach(attr => {
+          if (attr.startsWith('on') || 
+              (attr === 'href' && $el.attr('href') && $el.attr('href').startsWith('javascript:')) ||
+              (attr === 'src' && $el.attr('src') && $el.attr('src').startsWith('javascript:'))) {
+            $el.removeAttr(attr);
+          }
+        });
+      });
+      
+      const bodyHtml = bodyClone.html() || '';
+      const bodyTextLength = bodyClone.text().trim().length;
+      const currentTextLength = typeof content === 'string' ? content.replace(/<[^>]*>/g, '').trim().length : 0;
+      
+      if (bodyTextLength > currentTextLength) {
+        content = bodyHtml.substring(0, 50000); // 限制HTML长度
         content = this.cleanContent(content);
       }
     }

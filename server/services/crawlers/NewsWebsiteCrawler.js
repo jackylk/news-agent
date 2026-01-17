@@ -59,17 +59,34 @@ class NewsWebsiteCrawler extends BaseCrawler {
     // 提取标题（新闻网站特定的选择器）
     const title = this.extractNewsTitle($, url);
 
-    // 提取内容（新闻网站特定的选择器）
-    let content = this.extractNewsContent($, url);
+    // 提取内容（新闻网站特定的选择器，保留HTML格式）
+    let content = this.extractNewsContent($, url, true);
     content = this.cleanContent(content);
 
     // 如果内容不足，尝试更宽松的选择器
-    if (!content || content.length < 500) {
+    if (!content || (typeof content === 'string' && content.replace(/<[^>]*>/g, '').trim().length < 500)) {
       // 尝试从body提取，但移除更多无关元素
-      $('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player, .widget, .sidebar-widget, .footer-widget, .newsletter-signup, .trending, .popular').remove();
-      const bodyText = $('body').text().trim();
-      if (bodyText.length > content.length) {
-        content = bodyText.substring(0, 20000);
+      const bodyClone = $('body').clone();
+      bodyClone.find('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player, .widget, .sidebar-widget, .footer-widget, .newsletter-signup, .trending, .popular').remove();
+      
+      // 移除危险属性
+      bodyClone.find('*').each((i, el) => {
+        const $el = $(el);
+        Object.keys(el.attribs || {}).forEach(attr => {
+          if (attr.startsWith('on') || 
+              (attr === 'href' && $el.attr('href') && $el.attr('href').startsWith('javascript:')) ||
+              (attr === 'src' && $el.attr('src') && $el.attr('src').startsWith('javascript:'))) {
+            $el.removeAttr(attr);
+          }
+        });
+      });
+      
+      const bodyHtml = bodyClone.html() || '';
+      const bodyTextLength = bodyClone.text().trim().length;
+      const currentTextLength = typeof content === 'string' ? content.replace(/<[^>]*>/g, '').trim().length : 0;
+      
+      if (bodyTextLength > currentTextLength) {
+        content = bodyHtml.substring(0, 50000); // 限制HTML长度
         content = this.cleanContent(content);
       }
     }
@@ -147,12 +164,13 @@ class NewsWebsiteCrawler extends BaseCrawler {
   }
 
   /**
-   * 提取新闻内容（针对新闻网站优化）
+   * 提取新闻内容（针对新闻网站优化，保留HTML格式）
    * @param {cheerio.CheerioAPI} $ - cheerio实例
    * @param {string} url - 文章URL
+   * @param {boolean} preserveFormat - 是否保留HTML格式，默认true
    * @returns {string} 文章内容
    */
-  extractNewsContent($, url = '') {
+  extractNewsContent($, url = '', preserveFormat = true) {
     // 新闻网站特定的内容选择器
     const newsContentSelectors = [
       '.article-content',
@@ -180,19 +198,43 @@ class NewsWebsiteCrawler extends BaseCrawler {
     for (const selector of newsContentSelectors) {
       const contentEl = $(selector).first();
       if (contentEl.length > 0) {
-        // 移除不需要的元素
-        contentEl.find('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player, .newsletter-signup, .trending, .popular').remove();
+        // 克隆元素以避免修改原DOM
+        const clone = contentEl.clone();
         
-        // 提取文本内容
-        const content = contentEl.text().trim();
-        if (content && content.length > 500) {
-          return content;
+        // 移除不需要的元素
+        clone.find('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player, .newsletter-signup, .trending, .popular').remove();
+        
+        // 移除危险属性但保留格式属性
+        clone.find('*').each((i, el) => {
+          const $el = $(el);
+          Object.keys(el.attribs || {}).forEach(attr => {
+            if (attr.startsWith('on') || 
+                (attr === 'href' && $el.attr('href') && $el.attr('href').startsWith('javascript:')) ||
+                (attr === 'src' && $el.attr('src') && $el.attr('src').startsWith('javascript:'))) {
+              $el.removeAttr(attr);
+            }
+          });
+        });
+        
+        if (preserveFormat) {
+          // 保留HTML格式
+          let htmlContent = clone.html() || '';
+          const textLength = clone.text().trim().length;
+          if (textLength > 500) {
+            return htmlContent;
+          }
+        } else {
+          // 只提取文本内容
+          const content = clone.text().trim();
+          if (content && content.length > 500) {
+            return content;
+          }
         }
       }
     }
 
     // Fallback: 使用基类方法
-    return this.extractContentFromHTML($, url);
+    return this.extractContentFromHTML($, url, preserveFormat);
   }
 
   /**

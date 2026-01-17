@@ -81,12 +81,13 @@ class BaseCrawler {
   }
 
   /**
-   * 从HTML中提取文章内容
+   * 从HTML中提取文章内容（保留HTML格式）
    * @param {cheerio.CheerioAPI} $ - cheerio实例
    * @param {string} url - 文章URL
-   * @returns {string} 文章内容（纯文本）
+   * @param {boolean} preserveFormat - 是否保留HTML格式，默认true
+   * @returns {string} 文章内容（HTML或纯文本）
    */
-  extractContentFromHTML($, url = '') {
+  extractContentFromHTML($, url = '', preserveFormat = true) {
     const contentSelectors = [
       'article',
       '[role="article"]',
@@ -118,25 +119,73 @@ class BaseCrawler {
     for (const selector of contentSelectors) {
       const contentEl = $(selector).first();
       if (contentEl.length > 0) {
-        // 移除不需要的元素
-        contentEl.find('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player').remove();
+        // 克隆元素以避免修改原DOM
+        const clone = contentEl.clone();
         
-        // 提取文本内容
-        const content = contentEl.text().trim();
-        if (content && content.length > 500) {
-          return content;
+        // 移除不需要的元素
+        clone.find('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player').remove();
+        
+        // 移除危险属性但保留格式属性
+        clone.find('*').each((i, el) => {
+          const $el = $(el);
+          // 移除事件处理器和javascript链接
+          Object.keys(el.attribs || {}).forEach(attr => {
+            if (attr.startsWith('on') || 
+                (attr === 'href' && $el.attr('href') && $el.attr('href').startsWith('javascript:')) ||
+                (attr === 'src' && $el.attr('src') && $el.attr('src').startsWith('javascript:'))) {
+              $el.removeAttr(attr);
+            }
+          });
+        });
+        
+        if (preserveFormat) {
+          // 保留HTML格式
+          let htmlContent = clone.html() || '';
+          // 检查内容长度（去除HTML标签后的文本长度）
+          const textLength = clone.text().trim().length;
+          if (textLength > 500) {
+            return htmlContent;
+          }
+        } else {
+          // 只提取文本内容
+          const content = clone.text().trim();
+          if (content && content.length > 500) {
+            return content;
+          }
         }
       }
     }
 
     // Fallback: 从body提取
-    $('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player').remove();
-    const bodyText = $('body').text().trim();
-    if (bodyText.length > 500) {
-      return bodyText.substring(0, 20000);
+    const bodyClone = $('body').clone();
+    bodyClone.find('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player').remove();
+    
+    // 移除危险属性
+    bodyClone.find('*').each((i, el) => {
+      const $el = $(el);
+      Object.keys(el.attribs || {}).forEach(attr => {
+        if (attr.startsWith('on') || 
+            (attr === 'href' && $el.attr('href') && $el.attr('href').startsWith('javascript:')) ||
+            (attr === 'src' && $el.attr('src') && $el.attr('src').startsWith('javascript:'))) {
+          $el.removeAttr(attr);
+        }
+      });
+    });
+    
+    if (preserveFormat) {
+      const bodyHtml = bodyClone.html() || '';
+      const bodyTextLength = bodyClone.text().trim().length;
+      if (bodyTextLength > 500) {
+        return bodyHtml.substring(0, 50000); // 限制HTML长度
+      }
+      return bodyHtml;
+    } else {
+      const bodyText = bodyClone.text().trim();
+      if (bodyText.length > 500) {
+        return bodyText.substring(0, 20000);
+      }
+      return bodyText;
     }
-
-    return bodyText;
   }
 
   /**
@@ -332,7 +381,17 @@ class BaseCrawler {
    */
   cleanContent(content) {
     if (!content) return '';
-    return content.replace(/\s+/g, ' ').trim();
+    // 如果内容是HTML，不破坏格式，只清理多余的空白
+    if (content.includes('<') && content.includes('>')) {
+      // HTML内容：只清理标签之间的多余空白，保留标签内的格式
+      return content
+        .replace(/>\s+</g, '><') // 标签之间的空白
+        .replace(/\s+/g, ' ') // 连续的空白字符
+        .trim();
+    } else {
+      // 纯文本：清理所有多余空白
+      return content.replace(/\s+/g, ' ').trim();
+    }
   }
 
   /**

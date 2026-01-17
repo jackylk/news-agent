@@ -229,8 +229,26 @@ class PuppeteerHelper {
             );
             unwanted.forEach(node => node.remove());
 
-            content = clone.textContent.trim();
-            if (content && content.length > 500) {
+            // 移除危险属性但保留格式
+            const allElements = clone.querySelectorAll('*');
+            allElements.forEach(node => {
+              // 移除事件处理器
+              Array.from(node.attributes || []).forEach(attr => {
+                if (attr.name.startsWith('on')) {
+                  node.removeAttribute(attr.name);
+                } else if (attr.name === 'href' && attr.value && attr.value.startsWith('javascript:')) {
+                  node.removeAttribute('href');
+                } else if (attr.name === 'src' && attr.value && attr.value.startsWith('javascript:')) {
+                  node.removeAttribute('src');
+                }
+              });
+            });
+
+            // 保留HTML格式
+            const htmlContent = clone.innerHTML.trim();
+            const textLength = clone.textContent.trim().length;
+            if (textLength > 500) {
+              content = htmlContent;
               break;
             }
           }
@@ -242,7 +260,28 @@ class PuppeteerHelper {
             'script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player'
           );
           unwanted.forEach(node => node.remove());
-          content = body.textContent.trim();
+          
+          // 移除危险属性
+          const allElements = body.querySelectorAll('*');
+          allElements.forEach(node => {
+            Array.from(node.attributes || []).forEach(attr => {
+              if (attr.name.startsWith('on')) {
+                node.removeAttribute(attr.name);
+              } else if (attr.name === 'href' && attr.value && attr.value.startsWith('javascript:')) {
+                node.removeAttribute('href');
+              } else if (attr.name === 'src' && attr.value && attr.value.startsWith('javascript:')) {
+                node.removeAttribute('src');
+              }
+            });
+          });
+          
+          const bodyHtml = body.innerHTML.trim();
+          const bodyTextLength = body.textContent.trim().length;
+          if (bodyTextLength > 500) {
+            content = bodyHtml.substring(0, 50000); // 限制长度
+          } else {
+            content = bodyHtml;
+          }
         }
 
         // 提取图片
