@@ -28,8 +28,9 @@ Nitter 是一个开源的 Twitter/X 前端替代工具，可以将 Twitter 用�
 1. **创建Nitter GitHub仓库**
 
    - 在GitHub上创建新仓库（例如：`nitter-instance`）
-   - 将 `nitter-instance/` 目录中的文件推送到仓库
+   - 将Nitter配置文件推送到仓库
    - 文件包括：`railway.json`、`Dockerfile`、`nitter.conf`、`docker-compose.yml`、`README.md`
+   - **注意**：这是一个独立的GitHub仓库，与主项目分离
 
 2. **在Railway项目中添加Redis服务**
 

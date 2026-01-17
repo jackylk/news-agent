@@ -1594,80 +1594,110 @@
       display: block;
     }
 
-    /* 时间线样式 */
-    .timeline {
-      position: relative;
-      padding-left: 40px;
+    /* 特性卡片网格样式 */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 20px;
     }
 
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 15px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: linear-gradient(180deg, #8B5CF6 0%, #EC4899 100%);
-    }
-
-    .timeline-item {
-      position: relative;
-      margin-bottom: 32px;
-      padding-left: 40px;
-    }
-
-    .timeline-item::before {
-      content: '';
-      position: absolute;
-      left: -25px;
-      top: 8px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
-      border: 4px solid white;
-      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
-    }
-
-    .timeline-date {
-      font-size: 13px;
-      color: #8B5CF6;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .timeline-content {
+    .feature-card {
       background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-      border: 1px solid #e9ecef;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.1);
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
     }
 
-    .timeline-content h3 {
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #8B5CF6 0%, #EC4899 100%);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .feature-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .feature-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    .feature-card:hover .feature-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .feature-title {
       margin: 0 0 12px 0;
       color: #333;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 600;
+      line-height: 1.3;
     }
 
-    .timeline-content p {
-      margin: 0 0 16px 0;
+    .feature-description {
+      margin: 0 0 20px 0;
       color: #666;
       line-height: 1.6;
+      font-size: 14px;
+      flex-grow: 1;
     }
 
     .feature-value {
-      padding: 12px;
-      background: #f8f9fa;
-      border-radius: 6px;
-      border-left: 3px solid #8B5CF6;
-      margin-top: 12px;
+      margin-top: auto;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+      border-radius: 12px;
+      border: 1px solid rgba(139, 92, 246, 0.15);
     }
 
-    .feature-value strong {
-      color: #8B5CF6;
+    .feature-value-label {
+      font-size: 13px;
       font-weight: 600;
+      color: #8B5CF6;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feature-value-text {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .feature-card {
+        padding: 24px;
+      }
     }
 
     /* 更新历史样式 */
@@ -2069,67 +2099,64 @@
 
       <!-- 重大特性页签内容 -->
       <div id="majorFeaturesTab" class="features-tab-content active">
-        <div class="section">
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-date">2024-01-01</div>
-              <div class="timeline-content">
-                <h3>用户认证系统</h3>
-                <p>完整的用户注册、登录和认证系统，使用 JWT token 进行身份验证，确保用户数据安全。</p>
-                <div class="feature-value">
-                  <strong>对用户的价值：</strong>保护个人隐私，每个用户只能看到自己订阅的内容，数据安全可靠。
-                </div>
-              </div>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔐</div>
+            <h3 class="feature-title">用户认证系统</h3>
+            <p class="feature-description">完整的用户注册、登录和认证系统，使用 JWT token 进行身份验证，确保用户数据安全。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">保护个人隐私，每个用户只能看到自己订阅的内容，数据安全可靠。</div>
             </div>
-            <div class="timeline-item">
-              <div class="timeline-date">2024-01-01</div>
-              <div class="timeline-content">
-                <h3>AI 智能推荐信息源</h3>
-                <p>基于 DeepSeek AI 的智能推荐系统，根据用户输入的关键词自动推荐高质量的信息源。</p>
-                <div class="feature-value">
-                  <strong>对用户的价值：</strong>无需手动搜索，AI 自动为您找到最相关的优质信息源，节省大量时间。
-                </div>
-              </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3 class="feature-title">AI 智能推荐信息源</h3>
+            <p class="feature-description">基于 DeepSeek AI 的智能推荐系统，根据用户输入的关键词自动推荐高质量的信息源。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">无需手动搜索，AI 自动为您找到最相关的优质信息源，节省大量时间。</div>
             </div>
-            <div class="timeline-item">
-              <div class="timeline-date">2024-01-01</div>
-              <div class="timeline-content">
-                <h3>个性化新闻收集</h3>
-                <p>系统根据每个用户的订阅自动收集新闻，每 10 分钟更新一次，确保内容及时性。</p>
-                <div class="feature-value">
-                  <strong>对用户的价值：</strong>只看到您关心的内容，不会被无关信息干扰，提高阅读效率。
-                </div>
-              </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📰</div>
+            <h3 class="feature-title">个性化新闻收集</h3>
+            <p class="feature-description">系统根据每个用户的订阅自动收集新闻，每 10 分钟更新一次，确保内容及时性。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">只看到您关心的内容，不会被无关信息干扰，提高阅读效率。</div>
             </div>
-            <div class="timeline-item">
-              <div class="timeline-date">2024-01-01</div>
-              <div class="timeline-content">
-                <h3>多源订阅管理</h3>
-                <p>支持订阅多个信息源，支持 RSS 和博客两种类型，统一管理所有订阅。</p>
-                <div class="feature-value">
-                  <strong>对用户的价值：</strong>在一个地方管理所有信息源，无需访问多个网站，方便快捷。
-                </div>
-              </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📋</div>
+            <h3 class="feature-title">多源订阅管理</h3>
+            <p class="feature-description">支持订阅多个信息源，支持 RSS 和博客两种类型，统一管理所有订阅。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">在一个地方管理所有信息源，无需访问多个网站，方便快捷。</div>
             </div>
-            <div class="timeline-item">
-              <div class="timeline-date">2024-01-01</div>
-              <div class="timeline-content">
-                <h3>文章阅读体验</h3>
-                <p>支持按主题和信息源过滤，提供文章摘要生成和翻译功能，优化阅读体验。</p>
-                <div class="feature-value">
-                  <strong>对用户的价值：</strong>快速定位感兴趣的内容，支持多语言阅读，提升阅读效率。
-                </div>
-              </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📖</div>
+            <h3 class="feature-title">文章阅读体验</h3>
+            <p class="feature-description">支持按主题和信息源过滤，提供文章摘要生成和翻译功能，优化阅读体验。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">快速定位感兴趣的内容，支持多语言阅读，提升阅读效率。</div>
             </div>
-            <div class="timeline-item">
-              <div class="timeline-date">2024-01-01</div>
-              <div class="timeline-content">
-                <h3>最新推文功能</h3>
-                <p>通过 Nitter 抓取 Twitter/X 推文，支持搜索和按用户过滤，方便关注特定账号。</p>
-                <div class="feature-value">
-                  <strong>对用户的价值：</strong>无需登录 Twitter，即可查看关注账号的最新推文，保护隐私。
-                </div>
-              </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🐦</div>
+            <h3 class="feature-title">最新推文功能</h3>
+            <p class="feature-description">通过 Nitter 抓取 Twitter/X 推文，支持搜索和按用户过滤，方便关注特定账号。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">无需登录 Twitter，即可查看关注账号的最新推文，保护隐私。</div>
             </div>
           </div>
         </div>
