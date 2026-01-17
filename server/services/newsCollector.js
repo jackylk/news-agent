@@ -1068,6 +1068,139 @@ class NewsCollector {
     const subscriptionTopicKeywords = subscriptions.length > 0 && subscriptions[0].topic_keywords 
       ? subscriptions[0].topic_keywords 
       : null;
+    
+    // 用于实时处理文章的队列（每30篇处理一次）
+    const BATCH_SIZE = 30;
+    const pendingArticles = [];
+    const processingPromises = []; // 跟踪正在处理的批次
+    let batchCounter = 0; // 批次计数器
+    
+    // 异步处理一批文章的相关性判断和保存
+    const processArticleBatch = async (articles, batchIndex) => {
+      if (!articles || articles.length === 0) return;
+      
+      const finalTopicKeywords = subscriptionTopicKeywords || topicKeywords;
+      if (!finalTopicKeywords || !finalTopicKeywords.trim()) {
+        // 没有主题关键词，直接保存所有文章
+        for (const articleData of articles) {
+          articleData.user_id = userId;
+          articleData.topic_keywords = null;
+          articleData.is_relevant_to_topic = null;
+          
+          await new Promise((resolve, reject) => {
+            News.create(articleData, (err, result) => {
+              if (err) {
+                if (err.code === '23505' || err.message.includes('duplicate key')) {
+                  resolve(null);
+                } else {
+                  reject(err);
+                }
+              } else if (result) {
+                totalCollected++;
+                if (onProgress) {
+                  onProgress({
+                    type: 'articleCollected',
+                    article: {
+                      id: result.id,
+                      ...articleData,
+                      date: articleData.publish_date
+                    }
+                  });
+                }
+                resolve(result);
+              } else {
+                resolve(null);
+              }
+            });
+          });
+        }
+        return;
+      }
+      
+      console.log(`[DeepSeek过滤-批次${batchIndex}] 开始判断 ${articles.length} 篇文章的相关性...`);
+      
+      try {
+        const relevanceResults = await this.batchCheckArticleRelevance(articles, finalTopicKeywords);
+        const relevantArticles = articles.filter((_, index) => relevanceResults[index]);
+        const irrelevantCount = articles.length - relevantArticles.length;
+        
+        console.log(`[DeepSeek过滤-批次${batchIndex}] 判断完成：相关 ${relevantArticles.length} 篇，不相关 ${irrelevantCount} 篇`);
+        
+        // 保存相关文章
+        for (const articleData of relevantArticles) {
+          articleData.user_id = userId;
+          articleData.topic_keywords = finalTopicKeywords;
+          articleData.is_relevant_to_topic = true;
+          
+          await new Promise((resolve, reject) => {
+            News.create(articleData, (err, result) => {
+              if (err) {
+                if (err.code === '23505' || err.message.includes('duplicate key')) {
+                  resolve(null);
+                } else {
+                  console.error(`保存文章失败 ${articleData.url}:`, err.message);
+                  reject(err);
+                }
+              } else if (result) {
+                totalCollected++;
+                console.log(`[用户${userId}] 已保存相关文章: ${articleData.title}`);
+                
+                if (onProgress) {
+                  onProgress({
+                    type: 'articleCollected',
+                    article: {
+                      id: result.id,
+                      ...articleData,
+                      date: articleData.publish_date,
+                      is_relevant_to_topic: true
+                    }
+                  });
+                }
+                resolve(result);
+              } else {
+                resolve(null);
+              }
+            });
+          });
+        }
+      } catch (error) {
+        console.error(`[DeepSeek过滤-批次${batchIndex}] 处理失败:`, error.message);
+        // 如果判断失败，保守策略：保存所有文章
+        for (const articleData of articles) {
+          articleData.user_id = userId;
+          articleData.topic_keywords = finalTopicKeywords;
+          articleData.is_relevant_to_topic = true;
+          
+          try {
+            await new Promise((resolve, reject) => {
+              News.create(articleData, (err, result) => {
+                if (err && err.code !== '23505' && !err.message.includes('duplicate key')) {
+                  reject(err);
+                } else {
+                  if (result) {
+                    totalCollected++;
+                    if (onProgress) {
+                      onProgress({
+                        type: 'articleCollected',
+                        article: {
+                          id: result.id,
+                          ...articleData,
+                          date: articleData.publish_date,
+                          is_relevant_to_topic: true
+                        }
+                      });
+                    }
+                  }
+                  resolve(result);
+                }
+              });
+            });
+          } catch (saveErr) {
+            console.error(`保存文章失败:`, saveErr.message);
+          }
+        }
+      }
+    };
 
     for (let index = 0; index < subscriptions.length; index++) {
       const subscription = subscriptions[index];
@@ -1110,9 +1243,62 @@ class NewsCollector {
           result = await this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
         }
         
-        // 收集文章到数组（如果有主题关键词，先不保存，等批量过滤）
+        // 收集文章到数组
         if (result.articles && result.articles.length > 0) {
           allCollectedArticles.push(...result.articles);
+          
+          // 如果有主题关键词，将文章添加到待处理队列
+          const currentTopicKeywords = topic_keywords || topicKeywords || subscriptionTopicKeywords;
+          if (currentTopicKeywords && currentTopicKeywords.trim()) {
+            pendingArticles.push(...result.articles);
+            
+            // 当队列达到30篇时，立即异步处理
+            while (pendingArticles.length >= BATCH_SIZE) {
+              const batch = pendingArticles.splice(0, BATCH_SIZE);
+              batchCounter++;
+              const currentBatchIndex = batchCounter;
+              
+              // 异步处理，不阻塞收集过程
+              const processPromise = processArticleBatch(batch, currentBatchIndex).catch(err => {
+                console.error(`处理批次 ${currentBatchIndex} 时出错:`, err.message);
+              });
+              processingPromises.push(processPromise);
+            }
+          } else {
+            // 没有主题关键词，直接保存
+            for (const articleData of result.articles) {
+              articleData.user_id = userId;
+              articleData.topic_keywords = null;
+              articleData.is_relevant_to_topic = null;
+              
+              await new Promise((resolve, reject) => {
+                News.create(articleData, (err, result) => {
+                  if (err) {
+                    if (err.code === '23505' || err.message.includes('duplicate key')) {
+                      resolve(null);
+                    } else {
+                      reject(err);
+                    }
+                  } else if (result) {
+                    totalCollected++;
+                    if (onProgress) {
+                      onProgress({
+                        type: 'articleCollected',
+                        article: {
+                          id: result.id,
+                          ...articleData,
+                          date: articleData.publish_date
+                        }
+                      });
+                    }
+                    resolve(result);
+                  } else {
+                    resolve(null);
+                  }
+                });
+              });
+            }
+          }
         }
         
         // 如果没有主题关键词，直接保存（旧逻辑）
@@ -1153,79 +1339,32 @@ class NewsCollector {
       }
     }
 
-    // 如果有主题关键词且收集到了文章，进行批量过滤
-    // 使用订阅中的主题关键词（所有订阅应该属于同一个主题）
+    // 处理剩余的不足30篇的文章
     const finalTopicKeywords = subscriptionTopicKeywords || topicKeywords;
+    if (finalTopicKeywords && finalTopicKeywords.trim() && pendingArticles.length > 0) {
+      batchCounter++;
+      const processPromise = processArticleBatch(pendingArticles, batchCounter).catch(err => {
+        console.error(`处理最后一批文章时出错:`, err.message);
+      });
+      processingPromises.push(processPromise);
+    }
+    
+    // 等待所有正在处理的批次完成
+    if (processingPromises.length > 0) {
+      console.log(`等待 ${processingPromises.length} 个批次处理完成...`);
+      await Promise.all(processingPromises);
+      console.log('所有批次处理完成');
+    }
+    
+    // 发送最终过滤统计信息（如果有主题关键词）
     if (finalTopicKeywords && finalTopicKeywords.trim() && allCollectedArticles.length > 0) {
-      console.log(`\n[DeepSeek过滤] ============================================`);
-      console.log(`[DeepSeek过滤] 主题关键词: "${finalTopicKeywords}"`);
-      console.log(`[DeepSeek过滤] 收集到的文章总数: ${allCollectedArticles.length}`);
-      console.log(`[DeepSeek过滤] 开始调用 DeepSeek API 进行批量相关性判断...`);
-      
-      const relevanceResults = await this.batchCheckArticleRelevance(allCollectedArticles, finalTopicKeywords);
-      
-      // 只保存相关的文章
-      const relevantArticles = allCollectedArticles.filter((_, index) => relevanceResults[index]);
-      const irrelevantCount = allCollectedArticles.length - relevantArticles.length;
-      
-      console.log(`[DeepSeek过滤] 判断完成！`);
-      console.log(`[DeepSeek过滤] 相关文章: ${relevantArticles.length} 篇`);
-      console.log(`[DeepSeek过滤] 不相关文章: ${irrelevantCount} 篇（已过滤）`);
-      console.log(`[DeepSeek过滤] ============================================\n`);
-      
-      // 保存相关文章
-      for (const articleData of relevantArticles) {
-        // 确保文章数据包含用户ID和主题关键词
-        articleData.user_id = userId;
-        articleData.topic_keywords = finalTopicKeywords;
-        articleData.is_relevant_to_topic = true;
-        
-        await new Promise((resolve, reject) => {
-          News.create(articleData, (err, result) => {
-            if (err) {
-              // 检查是否是重复键错误
-              if (err.code === '23505' || err.message.includes('duplicate key')) {
-                console.log(`文章已存在，跳过: ${articleData.url}`);
-                resolve(null); // 忽略重复文章，不报错
-              } else {
-                console.error(`保存文章失败 ${articleData.url}:`, err.message);
-                reject(err);
-              }
-              } else if (result) {
-              // 只有成功插入新文章时才计数和发送进度
-              totalCollected++;
-              console.log(`[用户${userId}] 已保存相关文章: ${articleData.title}`);
-              
-              // 实时发送收集到的文章
-              if (onProgress) {
-                onProgress({
-                  type: 'articleCollected',
-                  article: {
-                    id: result.id,
-                    ...articleData,
-                    date: articleData.publish_date,
-                    is_relevant_to_topic: true
-                  }
-                });
-              }
-              
-              resolve(result);
-            } else {
-              // result为null表示文章已存在（ON CONFLICT DO NOTHING）
-              console.log(`文章已存在，跳过: ${articleData.url}`);
-              resolve(null);
-            }
-          });
-        });
-      }
-      
-      // 发送过滤统计信息
+      // 这里可以发送一个汇总统计，但具体数字已经在各批次中处理了
       if (onProgress) {
         onProgress({
           type: 'filterStats',
           total: allCollectedArticles.length,
-          relevant: relevantArticles.length,
-          irrelevant: irrelevantCount,
+          relevant: totalCollected, // 实际保存的数量
+          irrelevant: allCollectedArticles.length - totalCollected,
           topicKeywords: finalTopicKeywords
         });
       }
