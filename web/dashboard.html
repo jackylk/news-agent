@@ -1782,6 +1782,9 @@
 
     // 切换页面
     function switchPage(page, event) {
+      // 保存当前页面到 localStorage
+      localStorage.setItem('dashboardCurrentPage', page);
+      
       // 更新菜单状态
       document.querySelectorAll('.menu-item').forEach(item => {
         item.classList.remove('active');
@@ -1806,6 +1809,8 @@
 
       // 加载对应页面数据
       if (page === 'subscriptions') {
+        // 切换到订阅管理页面时，清除文章详情状态
+        localStorage.removeItem('dashboardViewingArticleId');
         loadTopics();
         loadRecommendationHistory(); // 加载推荐历史
       } else if (page === 'articles') {
@@ -2956,6 +2961,11 @@
       // 获取当前活动的主题页签索引（如果未设置，默认为0）
       const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
       
+      // 保存文章详情状态到 localStorage
+      localStorage.setItem('dashboardCurrentPage', 'articles');
+      localStorage.setItem('dashboardViewingArticleId', id.toString());
+      localStorage.setItem('dashboardCurrentTopicIndex', currentTabIndex.toString());
+      
       // 隐藏当前活动页签的统计信息栏、信息源过滤卡片、搜索框
       const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
       const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
@@ -3105,6 +3115,9 @@
 
     // 返回列表
     function backToList() {
+      // 清除文章详情状态
+      localStorage.removeItem('dashboardViewingArticleId');
+      
       // 获取当前活动的主题页签索引（如果未设置，默认为0）
       const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
       
@@ -4645,6 +4658,37 @@
       await loadArticles(); // 保留原有的loadArticles用于兼容
       await loadRefreshStatus();
       startArticlesAutoRefresh();
+      
+      // 恢复页面状态
+      const savedPage = localStorage.getItem('dashboardCurrentPage');
+      const savedArticleId = localStorage.getItem('dashboardViewingArticleId');
+      const savedTopicIndex = localStorage.getItem('dashboardCurrentTopicIndex');
+      
+      if (savedPage) {
+        // 切换到保存的页面
+        switchPage(savedPage);
+        
+        // 如果是在文章阅读页面，且保存了文章ID，则恢复文章详情
+        if (savedPage === 'articles' && savedArticleId) {
+          // 恢复主题页签索引
+          if (savedTopicIndex) {
+            const topicIndex = parseInt(savedTopicIndex, 10);
+            window.currentArticlesTopicIndex = topicIndex;
+            switchArticlesTopicTab(topicIndex);
+          }
+          
+          // 等待文章列表加载完成后再显示文章详情
+          setTimeout(async () => {
+            try {
+              await viewArticle(parseInt(savedArticleId, 10));
+            } catch (error) {
+              console.error('恢复文章详情失败:', error);
+              // 如果文章不存在或加载失败，清除保存的状态
+              localStorage.removeItem('dashboardViewingArticleId');
+            }
+          }, 800);
+        }
+      }
     };
   </script>
 </body>
