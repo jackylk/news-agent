@@ -362,6 +362,11 @@
       background-color: #f5f5f5;
       opacity: 0.6;
       color: #999;
+      display: none; /* 默认隐藏无效信息源 */
+    }
+    
+    .recommendations-table.show-invalid tr.invalid-row {
+      display: table-row; /* 当表格有show-invalid类时显示无效信息源 */
     }
     
     .recommendations-table tr.invalid-row:hover {
@@ -375,6 +380,23 @@
     
     .recommendations-table tr.invalid-row .source-checkbox:disabled {
       cursor: not-allowed;
+    }
+
+    .invalid-sources-toggle {
+      margin-left: 16px;
+      padding: 6px 12px;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #6c757d;
+      transition: all 0.2s;
+    }
+
+    .invalid-sources-toggle:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
     }
 
     .checkbox-cell {
@@ -3391,8 +3413,12 @@
                 </select>
               </div>
               <div class="recommendations-stats" id="recommendationsStats-${index}"></div>
+              <button class="invalid-sources-toggle" id="toggleInvalid-${index}" onclick="toggleInvalidSources(${index})" style="display: none;">
+                <span id="toggleInvalidText-${index}">显示无效信息源</span>
+                <span id="toggleInvalidCount-${index}"></span>
+              </button>
             </div>
-            <table class="recommendations-table">
+            <table class="recommendations-table" id="recommendationsTable-${index}">
               <thead>
                 <tr>
                   <th class="checkbox-cell"></th>
@@ -3509,14 +3535,52 @@
         filteredSources = filteredSources.filter(s => (s.sourceType || 'rss') === typeFilter);
       }
       
+      // 分离有效和无效的信息源
+      const validSources = filteredSources.filter(s => s.isValid !== false);
+      const invalidSources = filteredSources.filter(s => s.isValid === false);
+      
       // 排序：有效的排在前面，无效的排在后面，未验证的排在中间
-      filteredSources.sort((a, b) => {
-        const aValid = a.isValid === true ? 0 : (a.isValid === false ? 2 : 1);
-        const bValid = b.isValid === true ? 0 : (b.isValid === false ? 2 : 1);
+      validSources.sort((a, b) => {
+        const aValid = a.isValid === true ? 0 : 1;
+        const bValid = b.isValid === true ? 0 : 1;
         return aValid - bValid;
       });
       
-      tbody.innerHTML = filteredSources.map((source, idx) => {
+      invalidSources.sort((a, b) => {
+        const aName = (a.sourceName || '').toLowerCase();
+        const bName = (b.sourceName || '').toLowerCase();
+        return aName.localeCompare(bName);
+      });
+      
+      // 更新无效信息源切换按钮
+      const toggleBtn = document.getElementById(`toggleInvalid-${tabIndex}`);
+      const toggleText = document.getElementById(`toggleInvalidText-${tabIndex}`);
+      const toggleCount = document.getElementById(`toggleInvalidCount-${tabIndex}`);
+      const recommendationsTable = document.getElementById(`recommendationsTable-${tabIndex}`);
+      
+      if (invalidSources.length > 0) {
+        if (toggleBtn) toggleBtn.style.display = 'inline-block';
+        if (toggleCount) toggleCount.textContent = ` (${invalidSources.length})`;
+        
+        // 检查当前是否显示无效信息源
+        const isShowingInvalid = window[`showInvalidSources_${tabIndex}`] || false;
+        if (toggleText) {
+          toggleText.textContent = isShowingInvalid ? '隐藏无效信息源' : '显示无效信息源';
+        }
+        if (recommendationsTable) {
+          if (isShowingInvalid) {
+            recommendationsTable.classList.add('show-invalid');
+          } else {
+            recommendationsTable.classList.remove('show-invalid');
+          }
+        }
+      } else {
+        if (toggleBtn) toggleBtn.style.display = 'none';
+        if (recommendationsTable) recommendationsTable.classList.remove('show-invalid');
+      }
+      
+      // 渲染有效的信息源
+      const validRows = validSources.map((source, idx) => {
         const isSubscribed = userSubscriptions.includes(source.sourceName);
         const region = source.region || '国外';
         const regionClass = region === '国内' ? 'region-domestic' : 'region-foreign';
@@ -3543,9 +3607,9 @@
         
         const sourceData = escapeHtml(JSON.stringify(source));
         return `
-          <tr class="${rowClass}">
+          <tr>
             <td class="checkbox-cell">
-              <input type="checkbox" class="source-checkbox" data-index="${idx}" data-tab="${tabIndex}" data-source-name="${escapeHtml(source.sourceName)}" data-source='${sourceData}' ${checkboxChecked} ${checkboxDisabled} onchange="handleSourceCheckboxChangeInTab(this, ${tabIndex})">
+              <input type="checkbox" class="source-checkbox" data-index="${idx}" data-tab="${tabIndex}" data-source-name="${escapeHtml(source.sourceName)}" data-source='${sourceData}' ${isSubscribed ? 'checked' : ''} onchange="handleSourceCheckboxChangeInTab(this, ${tabIndex})">
             </td>
             <td>
               <div class="source-name">${escapeHtml(source.sourceName)}</div>
@@ -3570,10 +3634,72 @@
         `;
       }).join('');
       
+      // 渲染无效的信息源
+      const invalidRows = invalidSources.map((source, idx) => {
+        const region = source.region || '国外';
+        const regionClass = region === '国内' ? 'region-domestic' : 'region-foreign';
+        
+        const errorMsg = source.validationError ? ` title="${escapeHtml(source.validationError)}"` : '';
+        const validityHtml = `<span class="source-validity invalid"${errorMsg}>✗ 无效</span>`;
+        
+        const sourceData = escapeHtml(JSON.stringify(source));
+        return `
+          <tr class="invalid-row">
+            <td class="checkbox-cell">
+              <input type="checkbox" class="source-checkbox" disabled>
+            </td>
+            <td>
+              <div class="source-name">${escapeHtml(source.sourceName)}</div>
+              <div class="source-url">${escapeHtml(source.sourceUrl)}</div>
+            </td>
+            <td>
+              <span class="source-type">${escapeHtml(source.sourceType || 'rss')}</span>
+            </td>
+            <td>
+              <span class="source-region ${regionClass}">${escapeHtml(region)}</span>
+            </td>
+            <td class="source-description">${escapeHtml(source.description || '')}</td>
+            <td>
+              ${validityHtml}
+            </td>
+            <td>
+              <span class="source-status not-subscribed">未订阅</span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      
+      tbody.innerHTML = validRows + invalidRows;
+      
       // 更新统计信息
       const statsEl = document.getElementById(`recommendationsStats-${tabIndex}`);
       if (statsEl) {
-        statsEl.textContent = `显示 ${filteredSources.length} / 共 ${sources.length} 个信息源`;
+        const validCount = validSources.length;
+        const invalidCount = invalidSources.length;
+        const totalCount = sources.length;
+        statsEl.textContent = `显示 ${validCount} 个有效信息源${invalidCount > 0 ? `，${invalidCount} 个无效信息源` : ''} / 共 ${totalCount} 个信息源`;
+      }
+    }
+
+    // 切换显示/隐藏无效信息源
+    function toggleInvalidSources(tabIndex) {
+      // 切换状态
+      window[`showInvalidSources_${tabIndex}`] = !(window[`showInvalidSources_${tabIndex}`] || false);
+      
+      // 更新表格的show-invalid类
+      const recommendationsTable = document.getElementById(`recommendationsTable-${tabIndex}`);
+      if (recommendationsTable) {
+        if (window[`showInvalidSources_${tabIndex}`]) {
+          recommendationsTable.classList.add('show-invalid');
+        } else {
+          recommendationsTable.classList.remove('show-invalid');
+        }
+      }
+      
+      // 更新按钮文本
+      const toggleText = document.getElementById(`toggleInvalidText-${tabIndex}`);
+      if (toggleText) {
+        toggleText.textContent = window[`showInvalidSources_${tabIndex}`] ? '隐藏无效信息源' : '显示无效信息源';
       }
     }
 
