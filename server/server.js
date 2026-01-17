@@ -145,13 +145,13 @@ app.post('/api/collect', async (req, res) => {
           return res.end();
         }
         
-        // 4. 从用户订阅中筛选出属于该主题的订阅
-        const allSubscriptionsResult = await db.query(
-          'SELECT * FROM user_subscriptions WHERE user_id = $1',
-          [userId]
+        // 4. 从用户订阅中筛选出属于该主题的订阅（必须匹配主题关键词）
+        const subscriptionsResult = await db.query(
+          'SELECT * FROM user_subscriptions WHERE user_id = $1 AND topic_keywords = $2',
+          [userId, topicKeywords]
         );
         
-        subscriptionsToCollect = allSubscriptionsResult.rows.filter(sub => 
+        subscriptionsToCollect = subscriptionsResult.rows.filter(sub => 
           recommendedSourceNames.includes(sub.source_name)
         );
         

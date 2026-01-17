@@ -2237,15 +2237,37 @@
     }
 
     // 加载用户订阅列表
-    async function loadUserSubscriptions() {
+    async function loadUserSubscriptions(topicKeywords = null) {
       try {
-        const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
+        let url = `${API_BASE_URL}/user/subscriptions`;
+        if (topicKeywords && topicKeywords.trim()) {
+          url += `?topicKeywords=${encodeURIComponent(topicKeywords)}`;
+        }
+        
+        const response = await fetch(url, {
           headers: getHeaders()
         });
         const result = await response.json();
 
         if (result.success) {
-          userSubscriptions = result.data.map(sub => sub.source_name);
+          // 如果指定了主题，只返回该主题的订阅；否则返回所有订阅
+          if (topicKeywords && topicKeywords.trim()) {
+            userSubscriptions = result.data.map(sub => sub.source_name);
+          } else {
+            // 存储所有订阅，但按主题分组
+            if (!window.allUserSubscriptions) {
+              window.allUserSubscriptions = {};
+            }
+            result.data.forEach(sub => {
+              const topic = sub.topic_keywords || '';
+              if (!window.allUserSubscriptions[topic]) {
+                window.allUserSubscriptions[topic] = [];
+              }
+              window.allUserSubscriptions[topic].push(sub.source_name);
+            });
+            // 为了兼容性，仍然设置 userSubscriptions 为所有订阅的 source_name
+            userSubscriptions = result.data.map(sub => sub.source_name);
+          }
         }
       } catch (error) {
         console.error('加载订阅列表失败:', error);
@@ -3517,7 +3539,28 @@
         return;
       }
       
-      await loadUserSubscriptions();
+      // 获取当前主题的关键词
+      const panel = document.getElementById(`panel-${tabIndex}`);
+      const history = panel ? JSON.parse(panel.dataset.history || '{}') : {};
+      const topicKeywords = history.topic_keywords || null;
+      
+      // 按主题加载订阅（如果有主题）
+      if (topicKeywords) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/user/subscriptions?topicKeywords=${encodeURIComponent(topicKeywords)}`, {
+            headers: getHeaders()
+          });
+          const result = await response.json();
+          if (result.success) {
+            userSubscriptions = result.data.map(sub => sub.source_name);
+          }
+        } catch (error) {
+          console.error('加载主题订阅失败:', error);
+          await loadUserSubscriptions(); // 降级到加载所有订阅
+        }
+      } else {
+        await loadUserSubscriptions();
+      }
       
       // 更新类型过滤器选项
       const types = [...new Set(sources.map(s => s.sourceType || 'rss'))];
@@ -3945,13 +3988,26 @@
         if (!panel) return;
         
         const history = JSON.parse(panel.dataset.history || '{}');
+        const topicKeywords = history.topic_keywords || '';
         
         if (isChecked) {
-          // 订阅
+          // 订阅（必须包含主题关键词）
+          if (!topicKeywords || !topicKeywords.trim()) {
+            checkbox.checked = false;
+            showMessage('无法订阅：缺少主题关键词', 'error');
+            checkbox.disabled = false;
+            return;
+          }
+          
+          const subscriptionData = {
+            ...source,
+            topicKeywords: topicKeywords
+          };
+          
           const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ subscriptions: [source] })
+            body: JSON.stringify({ subscriptions: [subscriptionData] })
           });
           
           const result = await response.json();

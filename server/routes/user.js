@@ -418,9 +418,10 @@ router.post('/subscriptions', (req, res) => {
   });
 });
 
-// 获取用户订阅列表
+// 获取用户订阅列表（可选：按主题过滤）
 router.get('/subscriptions', (req, res) => {
-  User.getSubscriptions(req.user.id, (err, subscriptions) => {
+  const topicKeywords = req.query.topicKeywords || null;
+  User.getSubscriptions(req.user.id, topicKeywords, (err, subscriptions) => {
     if (err) {
       return res.status(500).json({
         success: false,
@@ -436,7 +437,7 @@ router.get('/subscriptions', (req, res) => {
   });
 });
 
-// 删除用户订阅
+// 删除用户订阅（需要指定主题关键词）
 router.delete('/subscriptions/:sourceName', (req, res) => {
   const sourceName = decodeURIComponent(req.params.sourceName);
   

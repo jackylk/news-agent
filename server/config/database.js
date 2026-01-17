@@ -234,10 +234,51 @@ async function initDatabase() {
         source_url TEXT NOT NULL,
         source_type VARCHAR(50) NOT NULL,
         category VARCHAR(100),
+        topic_keywords TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, source_name)
+        UNIQUE(user_id, source_name, topic_keywords)
       )
     `);
+    
+    // 为现有表添加 topic_keywords 字段（如果表已存在但没有该字段）
+    try {
+      await client.query(`
+        ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS topic_keywords TEXT
+      `);
+      
+      // 如果字段刚添加且表中已有数据，需要为现有数据设置默认值
+      // 这里我们设置一个特殊值表示"未指定主题"，但实际使用中应该避免这种情况
+      await client.query(`
+        UPDATE user_subscriptions 
+        SET topic_keywords = '' 
+        WHERE topic_keywords IS NULL
+      `);
+      
+      // 修改 UNIQUE 约束（需要先删除旧的，再创建新的）
+      // 注意：PostgreSQL 不支持直接修改约束，需要先删除再创建
+      // 但为了避免错误，我们只在约束不存在时创建
+      try {
+        await client.query(`
+          ALTER TABLE user_subscriptions 
+          DROP CONSTRAINT IF EXISTS user_subscriptions_user_id_source_name_key
+        `);
+      } catch (err) {
+        // 约束可能不存在或名称不同，忽略错误
+      }
+      
+      // 创建新的唯一约束
+      try {
+        await client.query(`
+          CREATE UNIQUE INDEX IF NOT EXISTS user_subscriptions_user_id_source_name_topic_key 
+          ON user_subscriptions(user_id, source_name, topic_keywords)
+        `);
+      } catch (err) {
+        // 索引可能已存在，忽略错误
+      }
+    } catch (err) {
+      // 字段可能已存在，忽略错误
+      console.log('添加 topic_keywords 字段时出现错误（可能已存在）:', err.message);
+    }
 
     // 修改新闻表，添加 user_id 字段
     try {

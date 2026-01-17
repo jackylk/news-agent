@@ -496,15 +496,18 @@ class User {
   
   // 添加用户订阅
   static addSubscription(userId, subscription, callback) {
-    const { sourceName, sourceUrl, sourceType, category } = subscription;
+    const { sourceName, sourceUrl, sourceType, category, topicKeywords } = subscription;
+    if (!topicKeywords || !topicKeywords.trim()) {
+      return callback(new Error('topicKeywords 是必需的'), null);
+    }
     const sql = `
-      INSERT INTO user_subscriptions (user_id, source_name, source_url, source_type, category)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (user_id, source_name) DO NOTHING
+      INSERT INTO user_subscriptions (user_id, source_name, source_url, source_type, category, topic_keywords)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (user_id, source_name, topic_keywords) DO NOTHING
       RETURNING id
     `;
     
-    db.query(sql, [userId, sourceName, sourceUrl, sourceType, category || null])
+    db.query(sql, [userId, sourceName, sourceUrl, sourceType, category || null, topicKeywords])
       .then(result => {
         callback(null, result.rows[0]);
       })
@@ -517,49 +520,55 @@ class User {
       return callback(null, []);
     }
     
-    const values = subscriptions.map(sub => 
-      `(${userId}, '${sub.sourceName.replace(/'/g, "''")}', '${sub.sourceUrl.replace(/'/g, "''")}', '${sub.sourceType}', ${sub.category ? `'${sub.category.replace(/'/g, "''")}'` : 'NULL'})`
-    ).join(',');
+    // 验证所有订阅都有 topicKeywords
+    const invalidSubs = subscriptions.filter(sub => !sub.topicKeywords || !sub.topicKeywords.trim());
+    if (invalidSubs.length > 0) {
+      return callback(new Error('所有订阅必须包含 topicKeywords'), null);
+    }
     
-    const sql = `
-      INSERT INTO user_subscriptions (user_id, source_name, source_url, source_type, category)
-      VALUES ${values}
-      ON CONFLICT (user_id, source_name) DO NOTHING
-      RETURNING id, source_name
-    `;
-    
-    db.query(sql, [])
-      .then(result => {
-        callback(null, result.rows);
-      })
-      .catch(err => {
-        // 如果批量插入失败，尝试逐个插入
-        let successCount = 0;
-        let errors = [];
-        
-        const insertPromises = subscriptions.map(sub => {
-          return new Promise((resolve) => {
-            User.addSubscription(userId, sub, (err, result) => {
-              if (err) {
-                errors.push(err.message);
-              } else {
-                successCount++;
-              }
-              resolve();
-            });
-          });
-        });
-        
-        Promise.all(insertPromises).then(() => {
-          callback(null, { successCount, errors });
+    // 使用参数化查询更安全
+    const insertPromises = subscriptions.map(sub => {
+      return new Promise((resolve) => {
+        User.addSubscription(userId, sub, (err, result) => {
+          if (err) {
+            resolve({ error: err.message, sourceName: sub.sourceName });
+          } else {
+            resolve({ success: true, id: result?.id, sourceName: sub.sourceName });
+          }
         });
       });
+    });
+    
+    Promise.all(insertPromises).then(results => {
+      const success = results.filter(r => r.success);
+      const errors = results.filter(r => r.error);
+      callback(null, { 
+        successCount: success.length, 
+        errors: errors.map(e => e.error),
+        results: results
+      });
+    });
   }
   
-  // 获取用户订阅列表
-  static getSubscriptions(userId, callback) {
-    const sql = 'SELECT * FROM user_subscriptions WHERE user_id = $1 ORDER BY created_at DESC';
-    db.query(sql, [userId])
+  // 获取用户订阅列表（可选：按主题过滤）
+  static getSubscriptions(userId, topicKeywords = null, callback) {
+    // 如果 callback 是第二个参数（旧调用方式），调整参数
+    if (typeof topicKeywords === 'function') {
+      callback = topicKeywords;
+      topicKeywords = null;
+    }
+    
+    let sql = 'SELECT * FROM user_subscriptions WHERE user_id = $1';
+    const params = [userId];
+    
+    if (topicKeywords && topicKeywords.trim()) {
+      sql += ' AND topic_keywords = $2';
+      params.push(topicKeywords);
+    }
+    
+    sql += ' ORDER BY created_at DESC';
+    
+    db.query(sql, params)
       .then(result => {
         callback(null, result.rows);
       })
@@ -583,10 +592,23 @@ class User {
       .catch(err => callback(err, null));
   }
   
-  // 删除用户订阅
-  static removeSubscription(userId, sourceName, callback) {
-    const sql = 'DELETE FROM user_subscriptions WHERE user_id = $1 AND source_name = $2';
-    db.query(sql, [userId, sourceName])
+  // 删除用户订阅（需要指定主题关键词）
+  static removeSubscription(userId, sourceName, topicKeywords, callback) {
+    // 如果 callback 是第三个参数（旧调用方式），调整参数
+    if (typeof topicKeywords === 'function') {
+      callback = topicKeywords;
+      topicKeywords = null;
+    }
+    
+    let sql = 'DELETE FROM user_subscriptions WHERE user_id = $1 AND source_name = $2';
+    const params = [userId, sourceName];
+    
+    if (topicKeywords && topicKeywords.trim()) {
+      sql += ' AND topic_keywords = $3';
+      params.push(topicKeywords);
+    }
+    
+    db.query(sql, params)
       .then(result => {
         callback(null, { deleted: result.rowCount > 0 });
       })
