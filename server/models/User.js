@@ -639,13 +639,15 @@ class User {
       .catch(err => callback(err, null));
   }
 
-  // 获取用户所有主题的推荐历史
+  // 获取用户所有主题的推荐历史（只返回仍然存在的主题）
   static getAllRecommendationHistory(userId, callback) {
+    // 只返回那些主题仍然存在于 user_topics 表中的推荐历史
     const sql = `
-      SELECT id, topic_keywords, process_logs, recommended_sources, created_at, updated_at
-      FROM recommendation_history
-      WHERE user_id = $1
-      ORDER BY updated_at DESC
+      SELECT rh.id, rh.topic_keywords, rh.process_logs, rh.recommended_sources, rh.created_at, rh.updated_at
+      FROM recommendation_history rh
+      INNER JOIN user_topics ut ON rh.user_id = ut.user_id AND rh.topic_keywords = ut.topic_keywords
+      WHERE rh.user_id = $1
+      ORDER BY rh.updated_at DESC
     `;
     
     db.query(sql, [userId])

@@ -2435,14 +2435,23 @@
             message += `（已删除 ${result.deletedSubscriptionCount || 0} 个订阅，${result.deletedArticleCount || 0} 篇文章）`;
           }
           showMessage(message, 'success');
+          
+          console.log(`🗑️  主题 "${keywords}" 删除成功，开始刷新页面...`);
+          
           // 重新加载主题列表
           await loadTopics();
-          // 重新加载所有推荐历史（这样对应的页签会被移除）
+          
+          // 强制刷新推荐历史（确保删除的页签被移除）
+          console.log('🔄 刷新推荐历史页签...');
           await loadAllRecommendationHistory();
+          
           // 如果当前在文章阅读页面，刷新文章列表
           if (document.getElementById('articlesPage').classList.contains('active')) {
+            console.log('🔄 刷新文章阅读页面的主题页签...');
             await loadArticlesTopicsTabs();
           }
+          
+          console.log('✅ 页面刷新完成');
         } else {
           showMessage(result.message || '删除失败', 'error');
         }
@@ -3295,21 +3304,30 @@
     // 加载所有主题的推荐历史并渲染页签
     async function loadAllRecommendationHistory() {
       try {
+        console.log('📖 开始加载所有推荐历史...');
         const response = await fetch(`${API_BASE_URL}/user/topics/recommend/history/all`, {
           headers: getHeaders(),
           cache: 'no-cache'
         });
         const result = await response.json();
 
+        console.log('📖 推荐历史响应:', result);
+
         if (result.success && result.data && result.data.length > 0) {
           const histories = result.data;
+          console.log(`📖 找到 ${histories.length} 条推荐历史，开始渲染页签...`);
+          console.log('📖 推荐历史主题列表:', histories.map(h => h.topic_keywords));
+          
+          // 清空并重新渲染页签
           renderTopicsTabs(histories);
           document.getElementById('topicsTabsSection').style.display = 'block';
+          console.log('✅ 推荐历史页签渲染完成');
         } else {
+          console.log('📖 没有推荐历史，隐藏页签容器');
           document.getElementById('topicsTabsSection').style.display = 'none';
         }
       } catch (error) {
-        console.error('加载推荐历史失败:', error);
+        console.error('❌ 加载推荐历史失败:', error);
         document.getElementById('topicsTabsSection').style.display = 'none';
       }
     }
@@ -3319,13 +3337,24 @@
       const tabsHeader = document.getElementById('topicsTabsHeader');
       const tabsContent = document.getElementById('topicsTabsContent');
       
-      if (!tabsHeader || !tabsContent) return;
+      if (!tabsHeader || !tabsContent) {
+        console.warn('⚠️  页签容器不存在，无法渲染');
+        return;
+      }
+      
+      console.log(`🎨 开始渲染 ${histories?.length || 0} 个主题的页签...`);
       
       // 清空现有内容
       tabsHeader.innerHTML = '';
       tabsContent.innerHTML = '';
       
       if (!histories || histories.length === 0) {
+        console.log('ℹ️  没有推荐历史，清空页签并隐藏容器');
+        // 如果没有推荐历史，隐藏页签容器
+        const topicsTabsSection = document.getElementById('topicsTabsSection');
+        if (topicsTabsSection) {
+          topicsTabsSection.style.display = 'none';
+        }
         return;
       }
       
