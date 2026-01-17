@@ -338,6 +338,44 @@ async function initDatabase() {
       // 字段可能已存在，忽略错误
     }
 
+    // 确保存在唯一约束（用于ON CONFLICT）
+    try {
+      // 检查约束是否已存在（检查包含这三个列的唯一约束）
+      const constraintCheck = await client.query(`
+        SELECT tc.constraint_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.constraint_column_usage ccu 
+          ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.table_name = 'news' 
+        AND tc.constraint_type = 'UNIQUE'
+        GROUP BY tc.constraint_name
+        HAVING 
+          COUNT(CASE WHEN ccu.column_name = 'user_id' THEN 1 END) > 0 AND
+          COUNT(CASE WHEN ccu.column_name = 'topic_keywords' THEN 1 END) > 0 AND
+          COUNT(CASE WHEN ccu.column_name = 'url' THEN 1 END) > 0
+      `);
+      
+      if (constraintCheck.rows.length === 0) {
+        // 如果约束不存在，创建它
+        try {
+          await client.query(`
+            ALTER TABLE news 
+            ADD CONSTRAINT news_user_topic_url_unique 
+            UNIQUE (user_id, topic_keywords, url)
+          `);
+          console.log('✅ 已创建 news 表的唯一约束: news_user_topic_url_unique');
+        } catch (addErr) {
+          // 如果添加失败，可能是约束已存在但查询没找到，或者有其他问题
+          console.warn('⚠️ 创建唯一约束时出现问题:', addErr.message);
+        }
+      } else {
+        console.log(`✅ news 表的唯一约束已存在: ${constraintCheck.rows[0].constraint_name}`);
+      }
+    } catch (err) {
+      // 查询出错，记录但不中断
+      console.warn('⚠️ 检查唯一约束时出现问题:', err.message);
+    }
+
     // 创建索引
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_user_id ON news(user_id)

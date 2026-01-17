@@ -16,6 +16,8 @@ class News {
   // 插入新闻
   static create(newsData, callback) {
     const { title, content, summary, source, category, url, image_url, publish_date, user_id, topic_keywords, is_relevant_to_topic } = newsData;
+    
+    // 先尝试使用 ON CONFLICT（如果约束存在）
     const sql = `
       INSERT INTO news (title, content, summary, source, category, url, image_url, publish_date, user_id, topic_keywords, is_relevant_to_topic)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -33,7 +35,42 @@ class News {
         }
       })
       .catch(err => {
-        callback(err, null);
+        // 如果错误是约束不存在，回退到先检查是否存在的方式
+        if (err.message && err.message.includes('no unique or exclusion constraint')) {
+          console.warn('⚠️ 唯一约束不存在，使用备用方法检查重复文章');
+          // 使用备用方法：先检查是否存在
+          News.exists(url, user_id, topic_keywords, (existsErr, exists) => {
+            if (existsErr) {
+              callback(existsErr, null);
+            } else if (exists) {
+              // 文章已存在，返回null
+              callback(null, null);
+            } else {
+              // 文章不存在，直接插入（不使用ON CONFLICT）
+              const insertSql = `
+                INSERT INTO news (title, content, summary, source, category, url, image_url, publish_date, user_id, topic_keywords, is_relevant_to_topic)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                RETURNING id
+              `;
+              
+              db.query(insertSql, [title, content, summary, source, category || '科技', url, image_url, publish_date, user_id || null, topic_keywords || null, is_relevant_to_topic !== undefined ? is_relevant_to_topic : null])
+                .then(insertResult => {
+                  callback(null, { id: insertResult.rows[0].id, ...newsData });
+                })
+                .catch(insertErr => {
+                  // 如果插入时还是遇到重复键错误，说明在检查和插入之间被其他进程插入了
+                  if (insertErr.code === '23505' || insertErr.message.includes('duplicate key')) {
+                    callback(null, null); // 视为已存在，不报错
+                  } else {
+                    callback(insertErr, null);
+                  }
+                });
+            }
+          });
+        } else {
+          // 其他错误，直接返回
+          callback(err, null);
+        }
       });
   }
 
