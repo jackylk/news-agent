@@ -1867,23 +1867,42 @@ class NewsCollector {
 
     console.log(`[DeepSeek过滤] 开始批量判断 ${articles.length} 篇文章与主题 "${topicKeywords}" 的相关性...`);
 
-    try {
-      // 构建提示词，只包含所有文章的标题和摘要（不发送全文）
-      const articlesInfo = articles.map((article, index) => {
-        const title = article.title || '无标题';
-        // 优先使用摘要，如果没有摘要则只取内容前200字符作为临时摘要
-        let summary = article.summary || '';
-        if (!summary && article.content) {
-          // 只取前200字符，避免发送全文
-          summary = article.content.substring(0, 200).trim();
-          if (article.content.length > 200) {
-            summary += '...';
-          }
-        }
-        return `${index + 1}. 标题: ${title}\n   摘要: ${summary || '无摘要'}`;
-      }).join('\n\n');
+    // 分批处理，每批30篇文章
+    const BATCH_SIZE = 30;
+    const batches = [];
+    for (let i = 0; i < articles.length; i += BATCH_SIZE) {
+      batches.push(articles.slice(i, i + BATCH_SIZE));
+    }
 
-      const prompt = `请判断以下文章列表中的每篇文章是否与主题关键词 "${topicKeywords}" 相关。
+    console.log(`[DeepSeek过滤] 将 ${articles.length} 篇文章分成 ${batches.length} 批处理，每批最多 ${BATCH_SIZE} 篇`);
+
+    const allResults = [];
+    const totalStartTime = Date.now();
+
+    try {
+      // 逐批处理
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        const batchStartTime = Date.now();
+        
+        console.log(`[DeepSeek过滤] 处理第 ${batchIndex + 1}/${batches.length} 批，包含 ${batch.length} 篇文章...`);
+
+        // 构建提示词，只包含当前批次文章的标题和摘要（不发送全文）
+        const articlesInfo = batch.map((article, index) => {
+          const title = article.title || '无标题';
+          // 优先使用摘要，如果没有摘要则只取内容前200字符作为临时摘要
+          let summary = article.summary || '';
+          if (!summary && article.content) {
+            // 只取前200字符，避免发送全文
+            summary = article.content.substring(0, 200).trim();
+            if (article.content.length > 200) {
+              summary += '...';
+            }
+          }
+          return `${index + 1}. 标题: ${title}\n   摘要: ${summary || '无摘要'}`;
+        }).join('\n\n');
+
+        const prompt = `请判断以下文章列表中的每篇文章是否与主题关键词 "${topicKeywords}" 相关。
 
 文章列表：
 ${articlesInfo}
@@ -1895,76 +1914,91 @@ ${articlesInfo}
 
 只返回JSON数组，不要添加任何其他文字说明。`;
 
-      const startTime = Date.now();
-      
-      const response = await axios.post(
-        'https://api.deepseek.com/v1/chat/completions',
-        {
-          model: 'deepseek-chat',
-          messages: [
-            {
-              role: 'system',
-              content: '你是一个专业的内容相关性判断助手。请根据用户提供的主题关键词，判断每篇文章是否与主题相关。只返回有效的JSON数组，数组中的每个元素是布尔值（true表示相关，false表示不相关），不要添加任何其他文字说明。'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 8000, // 增加token数量以支持大量文章的相关性判断
-          temperature: 0.3
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            'Content-Type': 'application/json'
+        const response = await axios.post(
+          'https://api.deepseek.com/v1/chat/completions',
+          {
+            model: 'deepseek-chat',
+            messages: [
+              {
+                role: 'system',
+                content: '你是一个专业的内容相关性判断助手。请根据用户提供的主题关键词，判断每篇文章是否与主题相关。只返回有效的JSON数组，数组中的每个元素是布尔值（true表示相关，false表示不相关），不要添加任何其他文字说明。'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            max_tokens: 2000, // 每批30篇文章，2000 tokens足够
+            temperature: 0.3
           },
-          timeout: 60000 // 60秒超时
+          {
+            headers: {
+              'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 60000 // 60秒超时
+          }
+        );
+
+        const batchDuration = Date.now() - batchStartTime;
+        console.log(`[DeepSeek过滤] 第 ${batchIndex + 1} 批API调用完成，耗时: ${batchDuration}ms`);
+
+        if (response.data && response.data.choices && response.data.choices.length > 0) {
+          const content = response.data.choices[0].message.content.trim();
+          console.log(`[DeepSeek过滤] 第 ${batchIndex + 1} 批API响应长度: ${content.length} 字符`);
+
+          // 尝试解析JSON数组
+          let batchResults;
+          try {
+            // 移除可能的markdown代码块标记
+            const jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            batchResults = JSON.parse(jsonContent);
+          } catch (parseError) {
+            console.error(`[DeepSeek过滤] 第 ${batchIndex + 1} 批JSON解析失败:`, parseError.message);
+            console.error(`[DeepSeek过滤] 第 ${batchIndex + 1} 批响应内容:`, content);
+            // 如果解析失败，该批所有文章都视为相关（保守策略）
+            batchResults = batch.map(() => true);
+          }
+
+          if (!Array.isArray(batchResults)) {
+            console.error(`[DeepSeek过滤] 第 ${batchIndex + 1} 批返回结果不是数组:`, typeof batchResults);
+            batchResults = batch.map(() => true);
+          }
+
+          if (batchResults.length !== batch.length) {
+            console.warn(`[DeepSeek过滤] 第 ${batchIndex + 1} 批返回结果数量(${batchResults.length})与文章数量(${batch.length})不匹配，使用保守策略`);
+            batchResults = batch.map(() => true);
+          }
+
+          // 确保所有结果都是布尔值
+          const booleanResults = batchResults.map(r => Boolean(r));
+          const relevantCount = booleanResults.filter(r => r).length;
+          const irrelevantCount = booleanResults.filter(r => !r).length;
+          
+          console.log(`[DeepSeek过滤] 第 ${batchIndex + 1} 批判断结果: 相关 ${relevantCount} 篇，不相关 ${irrelevantCount} 篇`);
+          
+          // 合并到总结果中
+          allResults.push(...booleanResults);
+        } else {
+          console.error(`[DeepSeek过滤] 第 ${batchIndex + 1} 批API响应格式异常`);
+          // 如果响应异常，该批所有文章都视为相关（保守策略）
+          allResults.push(...batch.map(() => true));
         }
-      );
 
-      const duration = Date.now() - startTime;
-      console.log(`[DeepSeek过滤] API调用完成，耗时: ${duration}ms`);
-
-      if (response.data && response.data.choices && response.data.choices.length > 0) {
-        const content = response.data.choices[0].message.content.trim();
-        console.log(`[DeepSeek过滤] API响应长度: ${content.length} 字符`);
-
-        // 尝试解析JSON数组
-        let results;
-        try {
-          // 移除可能的markdown代码块标记
-          const jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          results = JSON.parse(jsonContent);
-        } catch (parseError) {
-          console.error('[DeepSeek过滤] JSON解析失败:', parseError.message);
-          console.error('[DeepSeek过滤] 响应内容:', content);
-          // 如果解析失败，返回所有文章都相关（保守策略）
-          return articles.map(() => true);
+        // 批次之间稍作延迟，避免API限流
+        if (batchIndex < batches.length - 1) {
+          await this.sleep(500); // 每批之间等待500ms
         }
-
-        if (!Array.isArray(results)) {
-          console.error('[DeepSeek过滤] 返回结果不是数组:', typeof results);
-          return articles.map(() => true);
-        }
-
-        if (results.length !== articles.length) {
-          console.warn(`[DeepSeek过滤] 返回结果数量(${results.length})与文章数量(${articles.length})不匹配，使用保守策略`);
-          return articles.map(() => true);
-        }
-
-        // 确保所有结果都是布尔值
-        const booleanResults = results.map(r => Boolean(r));
-        const relevantCount = booleanResults.filter(r => r).length;
-        const irrelevantCount = booleanResults.filter(r => !r).length;
-        
-        console.log(`[DeepSeek过滤] 判断结果: 相关 ${relevantCount} 篇，不相关 ${irrelevantCount} 篇`);
-        
-        return booleanResults;
-      } else {
-        console.error('[DeepSeek过滤] API响应格式异常');
-        return articles.map(() => true);
       }
+
+      const totalDuration = Date.now() - totalStartTime;
+      const totalRelevant = allResults.filter(r => r).length;
+      const totalIrrelevant = allResults.filter(r => !r).length;
+      
+      console.log(`[DeepSeek过滤] 所有批次处理完成，总耗时: ${totalDuration}ms`);
+      console.log(`[DeepSeek过滤] 最终判断结果: 相关 ${totalRelevant} 篇，不相关 ${totalIrrelevant} 篇`);
+      
+      return allResults;
     } catch (error) {
       console.error('[DeepSeek过滤] API调用失败:', error.message);
       if (error.response) {
