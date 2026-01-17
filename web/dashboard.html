@@ -1069,61 +1069,6 @@
       box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
     }
 
-    .articles-search-box {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      padding: 20px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    .articles-search-box input {
-      flex: 1;
-      padding: 14px 20px;
-      border: 2px solid #e9ecef;
-      border-radius: 10px;
-      font-size: 15px;
-      transition: all 0.3s;
-      background: #f8f9fa;
-    }
-
-    .articles-search-box input:focus {
-      outline: none;
-      border-color: #8B5CF6;
-      background: white;
-      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-    }
-
-    .btn-search,
-    .btn-clear-search {
-      padding: 14px 28px;
-      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      transition: all 0.3s;
-      box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4);
-    }
-
-    .btn-clear-search {
-      background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-      box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
-    }
-
-    .btn-search:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
-    }
-
-    .btn-clear-search:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
-    }
 
     .articles-list-view {
       display: block;
@@ -1699,7 +1644,6 @@
     let allArticles = []; // 存储所有文章数据
     let filteredArticles = []; // 当前过滤后的文章
     let currentSourceFilter = null; // 当前选中的信息源
-    let currentSearchKeyword = ''; // 当前搜索关键词
     let savedScrollPosition = 0; // 保存滚动位置
     let currentTopicFilter = null; // 当前选中的主题
     let userTopics = []; // 用户主题列表
@@ -1820,14 +1764,12 @@
           // 获取当前活动的主题页签索引（如果未设置，默认为0）
           const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
           
-          // 显示当前活动页签的统计信息栏、信息源过滤卡片、搜索框
+          // 显示当前活动页签的统计信息栏、信息源过滤卡片
           const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
           const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
-          const searchBox = document.querySelector(`#articlesTopicPanel-${currentTabIndex} .articles-search-box`);
           
           if (statsBar) statsBar.style.display = 'flex';
           if (sourceFilterCards) sourceFilterCards.style.display = 'flex';
-          if (searchBox) searchBox.style.display = 'flex';
           
           // 隐藏详情视图，显示列表视图
           articleDetailView.style.display = 'none';
@@ -2862,45 +2804,13 @@
       applyFilters();
     }
 
-    // 搜索文章
-    function searchArticles() {
-      const keyword = document.getElementById('articlesSearchInput').value.trim();
-      currentSearchKeyword = keyword;
-      
-      if (keyword) {
-        document.getElementById('clearSearchBtn').style.display = 'inline-block';
-      } else {
-        document.getElementById('clearSearchBtn').style.display = 'none';
-      }
-      
-      applyFilters();
-    }
-
-    // 清除搜索
-    function clearSearch() {
-      document.getElementById('articlesSearchInput').value = '';
-      currentSearchKeyword = '';
-      document.getElementById('clearSearchBtn').style.display = 'none';
-      applyFilters();
-    }
-
-    // 应用过滤和搜索
+    // 应用过滤
     function applyFilters() {
       let filtered = [...allArticles];
       
       // 按信息源过滤
       if (currentSourceFilter) {
         filtered = filtered.filter(a => a.source === currentSourceFilter);
-      }
-      
-      // 按关键词搜索
-      if (currentSearchKeyword) {
-        const keyword = currentSearchKeyword.toLowerCase();
-        filtered = filtered.filter(a => 
-          a.title.toLowerCase().includes(keyword) ||
-          (a.summary && a.summary.toLowerCase().includes(keyword)) ||
-          (a.content && a.content.toLowerCase().includes(keyword))
-        );
       }
       
       filteredArticles = filtered;
@@ -2966,14 +2876,12 @@
       localStorage.setItem('dashboardViewingArticleId', id.toString());
       localStorage.setItem('dashboardCurrentTopicIndex', currentTabIndex.toString());
       
-      // 隐藏当前活动页签的统计信息栏、信息源过滤卡片、搜索框
+      // 隐藏当前活动页签的统计信息栏、信息源过滤卡片
       const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
       const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
-      const searchBox = document.querySelector(`#articlesTopicPanel-${currentTabIndex} .articles-search-box`);
       
       if (statsBar) statsBar.style.display = 'none';
       if (sourceFilterCards) sourceFilterCards.style.display = 'none';
-      if (searchBox) searchBox.style.display = 'none';
       
       // 隐藏当前活动页签的列表视图，隐藏主题页签容器，显示详情视图
       const currentListView = document.getElementById(`articlesListView-${currentTabIndex}`);
@@ -3121,14 +3029,12 @@
       // 获取当前活动的主题页签索引（如果未设置，默认为0）
       const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
       
-      // 显示当前活动页签的统计信息栏、信息源过滤卡片、搜索框
+      // 显示当前活动页签的统计信息栏、信息源过滤卡片
       const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
       const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
-      const searchBox = document.querySelector(`#articlesTopicPanel-${currentTabIndex} .articles-search-box`);
       
       if (statsBar) statsBar.style.display = 'flex';
       if (sourceFilterCards) sourceFilterCards.style.display = 'flex';
-      if (searchBox) searchBox.style.display = 'flex';
       
       // 隐藏详情视图，显示主题页签容器和当前活动页签的列表视图
       document.getElementById('articleDetailView').style.display = 'none';
@@ -4199,18 +4105,6 @@
             <!-- 动态加载信息源 -->
           </div>
 
-          <!-- 搜索框 -->
-          <div class="articles-search-box">
-            <input 
-              type="text" 
-              id="articlesSearchInput-${index}" 
-              placeholder="搜索文章关键词..."
-              onkeypress="if(event.key==='Enter') searchArticlesInTab(${index})"
-            >
-            <button class="btn-search" onclick="searchArticlesInTab(${index})">搜索</button>
-            <button class="btn-clear-search" onclick="clearSearchInTab(${index})" id="clearSearchBtn-${index}" style="display: none;">清除</button>
-          </div>
-
           <!-- 文章列表视图 -->
           <div id="articlesListView-${index}" class="articles-list-view">
             <div id="articlesList-${index}" class="articles-list">
@@ -4417,34 +4311,6 @@
       }
     }
     
-    // 在特定页签中搜索文章
-    function searchArticlesInTab(tabIndex) {
-      const keyword = document.getElementById(`articlesSearchInput-${tabIndex}`)?.value.trim() || '';
-      const clearBtn = document.getElementById(`clearSearchBtn-${tabIndex}`);
-      
-      if (keyword) {
-        if (clearBtn) clearBtn.style.display = 'inline-block';
-      } else {
-        if (clearBtn) clearBtn.style.display = 'none';
-      }
-      
-      if (currentTopicFilter) {
-        applyFiltersForTab(currentTopicFilter, tabIndex);
-      }
-    }
-    
-    // 在特定页签中清除搜索
-    function clearSearchInTab(tabIndex) {
-      const input = document.getElementById(`articlesSearchInput-${tabIndex}`);
-      const clearBtn = document.getElementById(`clearSearchBtn-${tabIndex}`);
-      if (input) input.value = '';
-      if (clearBtn) clearBtn.style.display = 'none';
-      
-      if (currentTopicFilter) {
-        applyFiltersForTab(currentTopicFilter, tabIndex);
-      }
-    }
-    
     // 为特定页签应用过滤和搜索
     function applyFiltersForTab(topicKeywords, tabIndex, sourceFilter = null) {
       const articlesListEl = document.getElementById(`articlesList-${tabIndex}`);
@@ -4466,17 +4332,6 @@
         filtered = filtered.filter(a => a.source === activeSource);
       }
       
-      // 按关键词搜索
-      const searchInput = document.getElementById(`articlesSearchInput-${tabIndex}`);
-      const keyword = searchInput?.value.trim() || '';
-      if (keyword) {
-        const keywordLower = keyword.toLowerCase();
-        filtered = filtered.filter(a => 
-          a.title.toLowerCase().includes(keywordLower) ||
-          (a.summary && a.summary.toLowerCase().includes(keywordLower)) ||
-          (a.content && a.content.toLowerCase().includes(keywordLower))
-        );
-      }
       
       // 渲染文章列表
       renderArticlesForTab(filtered, tabIndex);
