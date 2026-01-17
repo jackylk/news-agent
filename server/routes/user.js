@@ -444,26 +444,45 @@ router.get('/subscriptions', (req, res) => {
 // 删除用户订阅（需要指定主题关键词）
 router.delete('/subscriptions/:sourceName', (req, res) => {
   const sourceName = decodeURIComponent(req.params.sourceName);
+  const topicKeywords = req.query.topicKeywords ? decodeURIComponent(req.query.topicKeywords) : null;
   
-  User.removeSubscription(req.user.id, sourceName, (err, result) => {
+  // 先删除该信息源和主题对应的文章
+  const News = require('../models/News');
+  News.deleteByUserSourceAndTopic(req.user.id, sourceName, topicKeywords, (err, deletedArticleCount) => {
     if (err) {
-      return res.status(500).json({
-        success: false,
-        message: '删除订阅失败',
-        error: err.message
-      });
+      console.error('[删除订阅] 删除文章失败:', err);
+      // 即使删除文章失败，也继续删除订阅
+    } else {
+      console.log(`[删除订阅] 已删除 ${deletedArticleCount || 0} 篇相关文章`);
     }
     
-    if (!result.deleted) {
-      return res.status(404).json({
-        success: false,
-        message: '订阅不存在'
+    // 删除订阅
+    User.removeSubscription(req.user.id, sourceName, topicKeywords, (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: '删除订阅失败',
+          error: err.message
+        });
+      }
+      
+      if (!result.deleted) {
+        return res.status(404).json({
+          success: false,
+          message: '订阅不存在'
+        });
+      }
+      
+      let message = '订阅删除成功';
+      if (deletedArticleCount > 0) {
+        message += `，已删除 ${deletedArticleCount} 篇相关文章`;
+      }
+      
+      res.json({
+        success: true,
+        message: message,
+        deletedArticleCount: deletedArticleCount || 0
       });
-    }
-    
-    res.json({
-      success: true,
-      message: '订阅删除成功'
     });
   });
 });

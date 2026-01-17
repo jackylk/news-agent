@@ -582,6 +582,28 @@ class News {
       });
   }
 
+  // 删除特定用户、信息源和主题的文章
+  static deleteByUserSourceAndTopic(userId, sourceName, topicKeywords, callback) {
+    let sql = `DELETE FROM news WHERE user_id = $1 AND TRIM(source) = TRIM($2)`;
+    const params = [userId, sourceName];
+    
+    if (topicKeywords && topicKeywords.trim()) {
+      sql += ' AND topic_keywords = $3';
+      params.push(topicKeywords.trim());
+    }
+    
+    db.query(sql, params)
+      .then(result => {
+        const deletedCount = result.rowCount || 0;
+        console.log(`已删除用户 ${userId} 的信息源 "${sourceName}" (主题: "${topicKeywords || '全部'}") 的 ${deletedCount} 篇文章`);
+        callback(null, deletedCount);
+      })
+      .catch(err => {
+        console.error('删除用户信息源文章失败:', err);
+        callback(err, null);
+      });
+  }
+
   // 获取来源的详细信息（包括新闻数量、最新更新时间等）
   static getSourceDetails(callback) {
     const sql = `

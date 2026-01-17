@@ -471,6 +471,7 @@
     .source-name {
       font-weight: 500;
       color: #333;
+      cursor: help;
     }
 
     .source-url {
@@ -479,6 +480,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      cursor: help;
     }
 
     .source-type {
@@ -3034,8 +3036,8 @@
               <input type="checkbox" class="source-checkbox" data-index="${recommendedSources.indexOf(source)}" data-source-name="${escapeHtml(source.sourceName)}" data-source='${sourceData}' ${isSubscribed ? 'checked' : ''} onchange="handleSourceCheckboxChange(this)">
             </td>
             <td>
-              <div class="source-name">${escapeHtml(source.sourceName)}</div>
-              <div class="source-url">${escapeHtml(source.sourceUrl)}</div>
+              <div class="source-name" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceName)}</div>
+              <div class="source-url" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceUrl)}</div>
             </td>
             <td>
               <span class="source-type">${escapeHtml(source.sourceType || 'rss')}</span>
@@ -4354,8 +4356,8 @@
               <input type="checkbox" class="source-checkbox" data-index="${idx}" data-tab="${tabIndex}" data-source-name="${escapeHtml(source.sourceName)}" data-source='${sourceData}' ${isSubscribed ? 'checked' : ''} onchange="handleSourceCheckboxChangeInTab(this, ${tabIndex})">
             </td>
             <td>
-              <div class="source-name">${escapeHtml(source.sourceName)}</div>
-              <div class="source-url">${escapeHtml(source.sourceUrl)}</div>
+              <div class="source-name" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceName)}</div>
+              <div class="source-url" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceUrl)}</div>
             </td>
             <td>
               <span class="source-type">${escapeHtml(source.sourceType || 'rss')}</span>
@@ -4391,8 +4393,8 @@
               <input type="checkbox" class="source-checkbox" disabled>
             </td>
             <td>
-              <div class="source-name">${escapeHtml(source.sourceName)}</div>
-              <div class="source-url">${escapeHtml(source.sourceUrl)}</div>
+              <div class="source-name" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceName)}</div>
+              <div class="source-url" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceUrl)}</div>
             </td>
             <td>
               <span class="source-type">${escapeHtml(source.sourceType || 'rss')}</span>
@@ -4538,9 +4540,15 @@
         // 如果取消全选，取消订阅所有信息源
         console.log(`📋 取消全选：开始取消订阅 ${checkboxes.length} 个信息源...`);
         
+        // 获取主题关键词
+        const panel = document.getElementById(`panel-${tabIndex}`);
+        const history = panel ? JSON.parse(panel.dataset.history || '{}') : {};
+        const topicKeywords = history.topic_keywords || '';
+        
         // 逐个取消订阅（因为 DELETE API 一次只能删除一个）
         let successCount = 0;
         let failCount = 0;
+        let totalDeletedArticles = 0;
         
         for (const cb of checkboxes) {
           const sourceJson = cb.dataset.source;
@@ -4549,7 +4557,13 @@
               const source = JSON.parse(sourceJson);
               const sourceName = encodeURIComponent(source.sourceName);
               
-              const response = await fetch(`${API_BASE_URL}/user/subscriptions/${sourceName}`, {
+              // 构建删除 URL，包含 topicKeywords
+              let deleteUrl = `${API_BASE_URL}/user/subscriptions/${sourceName}`;
+              if (topicKeywords && topicKeywords.trim()) {
+                deleteUrl += `?topicKeywords=${encodeURIComponent(topicKeywords.trim())}`;
+              }
+              
+              const response = await fetch(deleteUrl, {
                 method: 'DELETE',
                 headers: getHeaders()
               });
@@ -4558,6 +4572,7 @@
               
               if (result.success) {
                 successCount++;
+                totalDeletedArticles += (result.deletedArticleCount || 0);
               } else {
                 failCount++;
               }
@@ -4570,10 +4585,15 @@
         
         if (successCount > 0) {
           console.log(`✅ 成功取消订阅 ${successCount} 个信息源`);
+          let message = `已取消订阅 ${successCount} 个信息源`;
+          if (totalDeletedArticles > 0) {
+            message += `，已删除 ${totalDeletedArticles} 篇相关文章`;
+          }
           if (failCount > 0) {
-            showMessage(`已取消订阅 ${successCount} 个信息源，${failCount} 个失败`, 'warning');
+            message += `，${failCount} 个失败`;
+            showMessage(message, 'warning');
           } else {
-            showMessage(`已取消订阅 ${successCount} 个信息源`, 'success');
+            showMessage(message, 'success');
           }
           
           // 重新加载订阅列表和推荐信息源，更新状态
@@ -4635,7 +4655,8 @@
             showMessage(result.message || '订阅失败', 'error');
           }
         } else {
-          // 取消订阅
+          // 取消订阅（同时删除该信息源的文章）
+          // 注意：旧版推荐显示可能没有主题关键词，所以不传递 topicKeywords
           const sourceName = encodeURIComponent(source.sourceName);
           const response = await fetch(`${API_BASE_URL}/user/subscriptions/${sourceName}`, {
             method: 'DELETE',
@@ -4645,6 +4666,12 @@
           const result = await response.json();
           
           if (result.success) {
+            let message = result.message || '取消订阅成功';
+            if (result.deletedArticleCount > 0) {
+              message += `，已删除 ${result.deletedArticleCount} 篇相关文章`;
+            }
+            showMessage(message, 'success');
+            
             await loadUserSubscriptions();
             renderRecommendations(); // 重新渲染以更新状态
           } else {
@@ -4720,9 +4747,16 @@
             showMessage(result.message || '订阅失败', 'error');
           }
         } else {
-          // 取消订阅
+          // 取消订阅（同时删除该信息源的文章）
           const sourceName = encodeURIComponent(source.sourceName);
-          const response = await fetch(`${API_BASE_URL}/user/subscriptions/${sourceName}`, {
+          let deleteUrl = `${API_BASE_URL}/user/subscriptions/${sourceName}`;
+          
+          // 如果有主题关键词，添加到查询参数
+          if (topicKeywords && topicKeywords.trim()) {
+            deleteUrl += `?topicKeywords=${encodeURIComponent(topicKeywords.trim())}`;
+          }
+          
+          const response = await fetch(deleteUrl, {
             method: 'DELETE',
             headers: getHeaders()
           });
@@ -4730,6 +4764,12 @@
           const result = await response.json();
           
           if (result.success) {
+            let message = result.message || '取消订阅成功';
+            if (result.deletedArticleCount > 0) {
+              message += `，已删除 ${result.deletedArticleCount} 篇相关文章`;
+            }
+            showMessage(message, 'success');
+            
             await loadUserSubscriptions();
             // 重新渲染该页签的推荐信息源
             if (history.recommended_sources) {
