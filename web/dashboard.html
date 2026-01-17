@@ -1671,47 +1671,6 @@
     let userTopics = []; // 用户主题列表
     let topicRecommendationHistory = {}; // 主题推荐历史 {topic_keywords: {recommended_sources: [...]}}
     
-    // 文章列表缓存
-    const articlesCache = {
-      data: null, // 缓存的原始数据（按日期分组）
-      flatData: null, // 缓存的展平数据
-      timestamp: null, // 缓存时间戳
-      cacheDuration: 5 * 60 * 1000 // 缓存有效期：5分钟
-    };
-    
-    // 检查缓存是否有效
-    function isCacheValid() {
-      if (!articlesCache.data || !articlesCache.timestamp) {
-        return false;
-      }
-      const now = Date.now();
-      return (now - articlesCache.timestamp) < articlesCache.cacheDuration;
-    }
-    
-    // 清除缓存
-    function clearArticlesCache() {
-      articlesCache.data = null;
-      articlesCache.flatData = null;
-      articlesCache.timestamp = null;
-    }
-    
-    // 从缓存获取文章数据
-    function getArticlesFromCache() {
-      if (isCacheValid()) {
-        return {
-          data: articlesCache.data,
-          flatData: articlesCache.flatData
-        };
-      }
-      return null;
-    }
-    
-    // 设置缓存
-    function setArticlesCache(data, flatData) {
-      articlesCache.data = data;
-      articlesCache.flatData = flatData;
-      articlesCache.timestamp = Date.now();
-    }
 
     // 检查登录状态
     if (!authToken) {
@@ -1836,7 +1795,8 @@
     async function loadTopics() {
       try {
         const response = await fetch(`${API_BASE_URL}/user/topics`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
         const result = await response.json();
 
@@ -1941,17 +1901,35 @@
 
       const recommendBtn = document.getElementById('recommendBtn');
       recommendBtn.disabled = true;
-      recommendBtn.textContent = '正在获取推荐...';
+      recommendBtn.textContent = '正在保存主题...';
 
-      // 先保存主题（如果还没有保存）
-      await saveTopic(keywords);
-
-      // 立即创建新主题的页签并选中
-      const newTabIndex = createNewTopicTab(keywords);
-      if (newTabIndex >= 0) {
-        switchTopicTab(newTabIndex);
-        // 显示页签容器
-        document.getElementById('topicsTabsSection').style.display = 'block';
+      try {
+        // 先保存主题到数据库，确保已保存成功
+        const saveResult = await saveTopic(keywords);
+        
+        if (!saveResult || !saveResult.success) {
+          throw new Error('保存主题失败，请重试');
+        }
+        
+        console.log('✅ 主题已成功保存到数据库，继续获取推荐...');
+        
+        // 更新按钮文本
+        recommendBtn.textContent = '正在获取推荐...';
+        
+        // 立即创建新主题的页签并选中
+        const newTabIndex = createNewTopicTab(keywords);
+        if (newTabIndex >= 0) {
+          switchTopicTab(newTabIndex);
+          // 显示页签容器
+          document.getElementById('topicsTabsSection').style.display = 'block';
+        }
+      } catch (saveError) {
+        // 保存失败，显示错误并恢复按钮状态
+        console.error('保存主题失败:', saveError);
+        showMessage('保存主题失败: ' + saveError.message, 'error');
+        recommendBtn.disabled = false;
+        recommendBtn.textContent = '获取推荐';
+        return; // 停止后续操作
       }
 
       // 在页签中显示推荐过程（小字显示）
@@ -2286,15 +2264,41 @@
     // 保存主题
     async function saveTopic(keywords) {
       try {
+        console.log(`💾 开始保存主题到数据库: "${keywords}"`);
         const response = await fetch(`${API_BASE_URL}/user/topics`, {
           method: 'POST',
           headers: getHeaders(),
-          body: JSON.stringify({ keywords })
+          body: JSON.stringify({ keywords }),
+          cache: 'no-cache'
         });
-        // 重新加载主题列表
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.message || '保存主题失败');
+        }
+        
+        console.log(`✅ 主题已成功保存到数据库: "${keywords}"`);
+        
+        // 重新加载主题列表，确保获取最新数据
         await loadTopics();
+        
+        // 立即刷新文章阅读页面的主题页签，确保新主题的页签显示
+        const articlesTopicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+        if (articlesTopicsTabsHeader) {
+          console.log('📚 刷新文章阅读页面的主题页签...');
+          await loadArticlesTopicsTabs();
+        }
+        
+        return { success: true, topic: result.topic };
       } catch (error) {
-        console.error('保存主题失败:', error);
+        console.error('❌ 保存主题失败:', error);
+        throw error; // 抛出错误，让调用者知道保存失败
       }
     }
 
@@ -2501,7 +2505,8 @@
     async function loadRefreshStatus() {
       try {
         const response = await fetch(`${API_BASE_URL}/news/update-info`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
         const result = await response.json();
 
@@ -2621,7 +2626,6 @@
                 
                 // 实时添加收集到的文章
                 if (progress.type === 'articleCollected' && progress.article) {
-                  addArticleToCache(progress.article);
                   // 如果当前在文章阅读页面，立即显示新文章
                   if (tabIndex !== null && currentTopicFilter) {
                     // 检查文章是否属于当前主题
@@ -2663,9 +2667,6 @@
             
             // 等待几秒后重新加载文章列表
             setTimeout(async () => {
-              // 清除缓存，强制刷新
-              clearArticlesCache();
-              
               if (tabIndex !== null && currentTopicFilter) {
                 // 如果是在主题页签中，重新加载该主题的文章
                 await loadArticlesForTopic(currentTopicFilter, tabIndex, true);
@@ -2710,41 +2711,13 @@
     async function loadArticles(forceRefresh = false) {
       const articlesListEl = document.getElementById('articlesList');
       
-      // 检查缓存
-      if (!forceRefresh) {
-        const cached = getArticlesFromCache();
-        if (cached) {
-          // 使用缓存数据，立即显示
-          allArticles = cached.flatData;
-          
-          if (allArticles.length === 0) {
-            articlesListEl.innerHTML = '<div class="empty-state"><p>暂无文章，请先订阅信息源</p><p style="margin-top: 12px; font-size: 13px; color: #999;">系统每10分钟自动收集一次，请稍候</p></div>';
-            updateStats([]);
-            loadSourceCards([]);
-          } else {
-            // 更新统计信息
-            updateStats(allArticles);
-            
-            // 加载信息源卡片
-            const sources = [...new Set(allArticles.map(a => a.source))];
-            loadSourceCards(sources);
-            
-            // 应用当前过滤和搜索
-            applyFilters();
-          }
-          
-          // 后台刷新缓存（不阻塞UI）
-          refreshArticlesCache();
-          return;
-        }
-      }
-      
-      // 缓存无效或强制刷新，显示加载状态
+      // 显示加载状态
       articlesListEl.innerHTML = '<div class="loading">加载中...</div>';
 
       try {
         const response = await fetch(`${API_BASE_URL}/news/list`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
         const result = await response.json();
 
@@ -2761,9 +2734,6 @@
               });
             });
           });
-          
-          // 更新缓存
-          setArticlesCache(data, allArticles);
 
           if (allArticles.length === 0) {
             articlesListEl.innerHTML = '<div class="empty-state"><p>暂无文章，请先订阅信息源</p><p style="margin-top: 12px; font-size: 13px; color: #999;">系统每10分钟自动收集一次，请稍候</p></div>';
@@ -2788,35 +2758,6 @@
       }
     }
     
-    // 后台刷新缓存（不阻塞UI）
-    async function refreshArticlesCache() {
-      try {
-        const response = await fetch(`${API_BASE_URL}/news/list`, {
-          headers: getHeaders()
-        });
-        const result = await response.json();
-
-        if (result.success) {
-          const data = result.data;
-          
-          // 将所有文章展平到一个数组中
-          const flatData = [];
-          data.forEach(day => {
-            day.news.forEach(news => {
-              flatData.push({
-                ...news,
-                date: day.date
-              });
-            });
-          });
-          
-          // 更新缓存
-          setArticlesCache(data, flatData);
-        }
-      } catch (error) {
-        console.error('后台刷新缓存失败:', error);
-      }
-    }
 
     // 更新统计信息
     function updateStats(articles) {
@@ -2964,7 +2905,8 @@
       // 加载文章详情
       try {
         const response = await fetch(`${API_BASE_URL}/news/${id}`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
         const result = await response.json();
 
@@ -3343,8 +3285,7 @@
       articlesRefreshInterval = setInterval(() => {
         const articlesPage = document.getElementById('articlesPage');
         if (articlesPage.classList.contains('active')) {
-          // 自动刷新时清除缓存，确保获取最新数据
-          clearArticlesCache();
+          // 自动刷新，确保获取最新数据
           loadArticles(true);
           loadRefreshStatus();
         }
@@ -3355,7 +3296,8 @@
     async function loadAllRecommendationHistory() {
       try {
         const response = await fetch(`${API_BASE_URL}/user/topics/recommend/history/all`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
         const result = await response.json();
 
@@ -3563,7 +3505,8 @@
       if (topicKeywords) {
         try {
           const response = await fetch(`${API_BASE_URL}/user/subscriptions?topicKeywords=${encodeURIComponent(topicKeywords)}`, {
-            headers: getHeaders()
+            headers: getHeaders(),
+            cache: 'no-cache'
           });
           const result = await response.json();
           if (result.success) {
@@ -4133,7 +4076,8 @@
     async function loadRecommendationHistory() {
       try {
         const response = await fetch(`${API_BASE_URL}/user/topics/recommend/history`, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
         const result = await response.json();
 
@@ -4395,43 +4339,7 @@
         return;
       }
       
-      // 检查缓存
-      if (!forceRefresh) {
-        const cached = getArticlesFromCache();
-        if (cached) {
-          // 使用缓存数据，立即显示
-          let topicArticles = [];
-          cached.flatData.forEach(article => {
-            // 只包含属于该主题推荐信息源的文章，且主题关键词匹配
-            if ((sourceNames.length === 0 || sourceNames.includes(article.source)) &&
-                (!article.topic_keywords || article.topic_keywords === topicKeywords)) {
-              topicArticles.push(article);
-            }
-          });
-          
-          // 更新统计信息
-          updateStatsForTab(topicArticles, tabIndex);
-          
-          // 加载信息源卡片（只显示该主题相关的信息源）
-          const sources = [...new Set(topicArticles.map(a => a.source))];
-          loadSourceCardsForTab(sources, tabIndex);
-          
-          // 存储该主题的文章数据
-          if (!window.topicArticlesData) {
-            window.topicArticlesData = {};
-          }
-          window.topicArticlesData[topicKeywords] = topicArticles;
-          
-          // 应用当前过滤和搜索
-          applyFiltersForTab(topicKeywords, tabIndex);
-          
-          // 后台刷新缓存（不阻塞UI）
-          refreshArticlesCache();
-          return;
-        }
-      }
-      
-      // 缓存无效或强制刷新，显示加载状态
+      // 显示加载状态
       articlesListEl.innerHTML = '<div class="loading">加载中...</div>';
       
       try {
@@ -4442,7 +4350,8 @@
         }
         
         const response = await fetch(url, {
-          headers: getHeaders()
+          headers: getHeaders(),
+          cache: 'no-cache'
         });
         const result = await response.json();
         
@@ -4451,14 +4360,12 @@
           
           // 将所有文章展平到一个数组中
           let topicArticles = [];
-          const flatData = [];
           data.forEach(day => {
             day.news.forEach(news => {
               const article = {
                 ...news,
                 date: day.date
               };
-              flatData.push(article);
               
               // 只包含属于该主题推荐信息源的文章，且主题关键词匹配
               if ((sourceNames.length === 0 || sourceNames.includes(news.source)) &&
@@ -4467,9 +4374,6 @@
               }
             });
           });
-          
-          // 更新缓存
-          setArticlesCache(data, flatData);
           
           // 更新统计信息
           updateStatsForTab(topicArticles, tabIndex);
@@ -4626,20 +4530,6 @@
       return Object.values(groups).sort((a, b) => b.date - a.date);
     }
 
-    // 添加文章到缓存
-    function addArticleToCache(article) {
-      if (!articlesCache.flatData) {
-        articlesCache.flatData = [];
-      }
-      // 检查是否已存在
-      const exists = articlesCache.flatData.some(a => a.id === article.id || a.url === article.url);
-      if (!exists) {
-        articlesCache.flatData.push(article);
-        // 更新缓存时间戳
-        articlesCache.timestamp = Date.now();
-      }
-    }
-    
     // 添加文章到指定页签
     function addArticleToTab(tabIndex, article) {
       if (!window.topicArticlesData) {
