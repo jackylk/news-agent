@@ -245,6 +245,50 @@
       padding: 0 10px;
     }
 
+    /* 页签样式 */
+    .tabs {
+      margin-bottom: 20px;
+    }
+
+    .tabs-header {
+      display: flex;
+      gap: 10px;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 0;
+    }
+
+    .tab-button {
+      padding: 12px 20px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .tab-button:hover {
+      background: #f8f9fa;
+      color: #667eea;
+    }
+
+    .tab-button.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
     .empty-state {
       text-align: center;
       padding: 40px;
@@ -694,6 +738,33 @@
     let selectedNewsIds = new Set();
     let currentNitterInstanceId = null;
     let currentNitterTweetsPage = 1;
+
+    // 切换页签
+    function switchTab(tabName) {
+      // 更新页签按钮状态
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // 更新页签内容显示
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // 显示选中的页签内容
+      const targetTab = document.getElementById(`tab-${tabName}`);
+      if (targetTab) {
+        targetTab.classList.add('active');
+        // 找到对应的按钮并激活
+        const buttons = document.querySelectorAll('.tab-button');
+        const tabNames = ['overview', 'users', 'topics', 'subscriptions', 'nitter', 'news'];
+        buttons.forEach((btn, index) => {
+          if (tabNames[index] === tabName) {
+            btn.classList.add('active');
+          }
+        });
+      }
+    }
 
     // 保存管理员令牌到 localStorage
     function saveAdminToken(token) {
