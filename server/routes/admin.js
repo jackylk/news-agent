@@ -425,6 +425,34 @@ router.delete('/news', authenticateAdmin, (req, res) => {
   });
 });
 
+// 删除某个用户的所有文章
+router.delete('/news/user/:userId', authenticateAdmin, (req, res) => {
+  const userId = parseInt(req.params.userId);
+  
+  if (isNaN(userId)) {
+    return res.status(400).json({
+      success: false,
+      message: '无效的用户ID'
+    });
+  }
+  
+  News.deleteByUserId(userId, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: '删除用户文章失败',
+        error: err.message
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: `已删除用户 ${userId} 的 ${result.deletedCount} 篇文章`,
+      deletedCount: result.deletedCount
+    });
+  });
+});
+
 // ========== Nitter实例管理 ==========
 
 // 获取所有Nitter实例

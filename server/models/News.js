@@ -773,6 +773,33 @@ class News {
         callback(err, null);
       });
   }
+
+  // 删除所有新闻
+  static deleteAll(callback) {
+    const sql = 'DELETE FROM news';
+    db.query(sql)
+      .then(result => {
+        callback(null, { deletedCount: result.rowCount || 0 });
+      })
+      .catch(err => {
+        callback(err, null);
+      });
+  }
+
+  // 删除某个用户的所有文章
+  static deleteByUserId(userId, callback) {
+    const sql = 'DELETE FROM news WHERE user_id = $1';
+    db.query(sql, [userId])
+      .then(result => {
+        const deletedCount = result.rowCount || 0;
+        console.log(`已删除用户 ${userId} 的 ${deletedCount} 篇文章`);
+        callback(null, { deletedCount });
+      })
+      .catch(err => {
+        console.error('删除用户文章失败:', err);
+        callback(err, null);
+      });
+  }
 }
 
 module.exports = News;

@@ -515,6 +515,9 @@
           <button class="btn btn-delete" onclick="deleteSelectedNews()" id="deleteSelectedBtn" style="display: none;">
             删除选中
           </button>
+          <button class="btn btn-delete" onclick="showDeleteAllNewsModal()">
+            删除所有
+          </button>
         </div>
         <div id="newsLoading" class="loading">加载中...</div>
         <div class="table-container" id="newsTableContainer" style="display: none;">
@@ -542,6 +545,21 @@
         <div id="newsPagination" class="pagination"></div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除所有文章模态框 -->
+  <div id="deleteAllNewsModal" class="modal">
+    <div class="modal-content">
+      <h3>删除用户的所有文章</h3>
+      <p style="margin-bottom: 15px; color: #666;">请选择要删除文章的用户：</p>
+      <select id="deleteAllNewsUserSelect">
+        <option value="">请选择用户...</option>
+      </select>
+      <div class="modal-buttons">
+        <button class="btn-cancel" onclick="closeDeleteAllNewsModal()">取消</button>
+        <button class="btn-confirm" onclick="confirmDeleteAllNews()">确认删除</button>
       </div>
     </div>
   </div>
@@ -1706,6 +1724,108 @@
         console.error('加载推文失败:', error);
         loadingEl.style.display = 'none';
         showMessage('加载推文失败: ' + error.message, 'error');
+      }
+    }
+
+    // ========== 删除所有文章功能 ==========
+    
+    // 显示删除所有文章模态框
+    async function showDeleteAllNewsModal() {
+      const modal = document.getElementById('deleteAllNewsModal');
+      const select = document.getElementById('deleteAllNewsUserSelect');
+      
+      // 加载用户列表
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/users`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          const users = result.data || [];
+          select.innerHTML = '<option value="">请选择用户...</option>';
+          
+          users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.username} (ID: ${user.id}, 邮箱: ${user.email || '无'})`;
+            select.appendChild(option);
+          });
+        } else {
+          showMessage('加载用户列表失败', 'error');
+          return;
+        }
+      } catch (error) {
+        console.error('加载用户列表失败:', error);
+        showMessage('加载用户列表失败: ' + error.message, 'error');
+        return;
+      }
+      
+      modal.classList.add('show');
+    }
+    
+    // 关闭删除所有文章模态框
+    function closeDeleteAllNewsModal() {
+      const modal = document.getElementById('deleteAllNewsModal');
+      modal.classList.remove('show');
+      document.getElementById('deleteAllNewsUserSelect').value = '';
+    }
+    
+    // 确认删除用户的所有文章
+    async function confirmDeleteAllNews() {
+      const select = document.getElementById('deleteAllNewsUserSelect');
+      const userId = parseInt(select.value);
+      
+      if (!userId || isNaN(userId)) {
+        showMessage('请选择要删除文章的用户', 'error');
+        return;
+      }
+      
+      // 获取用户信息用于显示
+      const selectedOption = select.options[select.selectedIndex];
+      const username = selectedOption.textContent.split('(')[0].trim();
+      
+      if (!confirm(`⚠️  警告：您即将删除用户 "${username}" (ID: ${userId}) 的所有文章！\n\n此操作不可恢复！\n\n确定要继续吗？`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/news/user/${userId}`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(result.message || '删除成功', 'success');
+          closeDeleteAllNewsModal();
+          loadNews(currentNewsPage);
+          loadStats();
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除用户所有文章失败:', error);
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+    
+    // 点击模态框外部关闭
+    window.onclick = function(event) {
+      const modal = document.getElementById('deleteAllNewsModal');
+      if (event.target === modal) {
+        closeDeleteAllNewsModal();
       }
     }
 
