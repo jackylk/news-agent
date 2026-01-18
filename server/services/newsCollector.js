@@ -1420,9 +1420,19 @@ class NewsCollector {
         // 使用新的RSS爬虫提取文章
         const articles = await rssCrawler.extractFromFeed(feedUrl);
 
+        // 计算半年前的日期，用于过滤文章
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
         for (const article of articles) {
           const url = article.url || '';
           if (!url) continue;
+
+          // 检查发布日期，只保留半年内的文章
+          const publishDate = article.publish_date ? new Date(article.publish_date) : new Date();
+          if (publishDate < sixMonthsAgo) {
+            continue; // 跳过超过半年的文章
+          }
 
           // 检查文章是否已存在
           const exists = await new Promise((resolve, reject) => {
@@ -1620,6 +1630,14 @@ class NewsCollector {
           const articleData = await blogCrawler.extractContent(articleUrl);
           
           if (articleData && articleData.title && articleData.content) {
+            // 检查发布日期，只保留半年内的文章
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const publishDate = articleData.publish_date ? new Date(articleData.publish_date) : new Date();
+            if (publishDate < sixMonthsAgo) {
+              continue; // 跳过超过半年的文章
+            }
+            
             articleData.source = sourceName || '未知来源';
             articleData.category = category || '未分类';
             articleData.user_id = userId;
@@ -1704,6 +1722,14 @@ class NewsCollector {
           const articleData = await newsCrawler.extractContent(articleUrl);
           
           if (articleData && articleData.title && articleData.content) {
+            // 检查发布日期，只保留半年内的文章
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const publishDate = articleData.publish_date ? new Date(articleData.publish_date) : new Date();
+            if (publishDate < sixMonthsAgo) {
+              continue; // 跳过超过半年的文章
+            }
+            
             articleData.source = sourceName || '未知来源';
             articleData.category = category || '未分类';
             articleData.user_id = userId;

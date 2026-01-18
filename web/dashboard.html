@@ -3448,9 +3448,12 @@
       const maxDate = new Date(Math.max(...dates));
       
       const formatDate = (d) => {
-        const month = d.getMonth() + 1;
-        const day = d.getDate();
-        return `${month}月${day}日`;
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}年${month}月${day}日 ${hours}:${minutes}`;
       };
       
       if (minDate.toDateString() === maxDate.toDateString()) {
@@ -4238,7 +4241,12 @@
       if (!dateStr) return '-';
       try {
         const date = new Date(dateStr);
-        return date.toLocaleString('zh-CN');
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}年${month}月${day}日 ${hours}:${minutes}`;
       } catch (e) {
         return dateStr;
       }

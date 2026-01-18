@@ -143,7 +143,13 @@
           
           document.getElementById('articleTitle').textContent = article.title;
           document.getElementById('articleSource').textContent = `来源：${article.source || '未知'}`;
-          document.getElementById('articleDate').textContent = `发布时间：${new Date(article.publish_date).toLocaleString('zh-CN')}`;
+          const publishDate = new Date(article.publish_date);
+          const year = publishDate.getFullYear();
+          const month = String(publishDate.getMonth() + 1).padStart(2, '0');
+          const day = String(publishDate.getDate()).padStart(2, '0');
+          const hours = String(publishDate.getHours()).padStart(2, '0');
+          const minutes = String(publishDate.getMinutes()).padStart(2, '0');
+          document.getElementById('articleDate').textContent = `发布时间：${year}年${month}月${day}日 ${hours}:${minutes}`;
           
           // 格式化内容
           let content = originalContent

@@ -100,10 +100,20 @@ class RSSCrawler extends BaseCrawler {
         }
       }
 
+      // 计算半年前的日期
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
       const articles = [];
       for (const item of feed.items || []) {
         const url = item.link || item.guid || '';
         if (!url) continue;
+
+        // 检查发布日期，只保留半年内的文章
+        const publishDate = item.pubDate ? new Date(item.pubDate) : new Date();
+        if (publishDate < sixMonthsAgo) {
+          continue; // 跳过超过半年的文章
+        }
 
         const content = await this.extractContentFromRSSItem(item, url);
         const summary = this.extractSummaryFromRSSItem(item, content);
@@ -115,7 +125,7 @@ class RSSCrawler extends BaseCrawler {
           summary: summary,
           url: url,
           image_url: imageUrl,
-          publish_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+          publish_date: publishDate.toISOString(),
         });
       }
 
