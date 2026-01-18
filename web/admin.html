@@ -276,6 +276,22 @@
       margin: 0 2px;
     }
 
+    /* 表格记录数显示 */
+    .table-count {
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #495057;
+      border-left: 3px solid #667eea;
+    }
+
+    .table-count strong {
+      color: #667eea;
+      font-weight: 600;
+    }
+
     /* 模态框样式 */
     .modal {
       display: none;
@@ -428,9 +444,11 @@
         <div id="tab-users" class="tab-content">
           <div class="section">
             <h2>用户管理</h2>
-        <h2>用户管理</h2>
         <div id="usersLoading" class="loading">加载中...</div>
         <div class="table-container" id="usersTableContainer" style="display: none;">
+          <div class="table-count" id="usersTableCount" style="display: none;">
+            总记录数：<strong id="usersTotalCount">0</strong>
+          </div>
           <table>
             <thead>
               <tr>
@@ -457,6 +475,9 @@
             <h2>主题词管理</h2>
         <div id="topicsLoading" class="loading">加载中...</div>
         <div class="table-container" id="topicsTableContainer" style="display: none;">
+          <div class="table-count" id="topicsTableCount" style="display: none;">
+            总记录数：<strong id="topicsTotalCount">0</strong>
+          </div>
           <table>
             <thead>
               <tr>
@@ -482,6 +503,9 @@
             <h2>订阅管理</h2>
         <div id="subscriptionsLoading" class="loading">加载中...</div>
         <div class="table-container" id="subscriptionsTableContainer" style="display: none;">
+          <div class="table-count" id="subscriptionsTableCount" style="display: none;">
+            总记录数：<strong id="subscriptionsTotalCount">0</strong>
+          </div>
           <table>
             <thead>
               <tr>
@@ -518,6 +542,9 @@
             </div>
             <div id="nitterInstancesLoading" class="loading">加载中...</div>
             <div class="table-container" id="nitterInstancesTableContainer" style="display: none;">
+              <div class="table-count" id="nitterInstancesTableCount" style="display: none;">
+                总记录数：<strong id="nitterInstancesTotalCount">0</strong>
+              </div>
               <table>
                 <thead>
                   <tr>
@@ -552,6 +579,9 @@
             </div>
             <div id="nitterTweetsLoading" class="loading">加载中...</div>
             <div class="table-container" id="nitterTweetsTableContainer" style="display: none;">
+              <div class="table-count" id="nitterTweetsTableCount" style="display: none;">
+                总记录数：<strong id="nitterTweetsTotalCount">0</strong>
+              </div>
               <table>
                 <thead>
                   <tr>
@@ -595,6 +625,9 @@
         </div>
         <div id="newsLoading" class="loading">加载中...</div>
         <div class="table-container" id="newsTableContainer" style="display: none;">
+          <div class="table-count" id="newsTableCount" style="display: none;">
+            总记录数：<strong id="newsTotalCount">0</strong>
+          </div>
           <table>
             <thead>
               <tr>
@@ -894,6 +927,10 @@
           // 更新统计
           document.getElementById('totalUsers').textContent = users.length;
           
+          // 更新表格总记录数
+          document.getElementById('usersTotalCount').textContent = users.length;
+          document.getElementById('usersTableCount').style.display = 'block';
+          
           if (users.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">暂无用户</td></tr>';
           } else {
@@ -971,6 +1008,10 @@
           // 更新统计
           document.getElementById('totalTopics').textContent = topics.length;
           
+          // 更新表格总记录数
+          document.getElementById('topicsTotalCount').textContent = topics.length;
+          document.getElementById('topicsTableCount').style.display = 'block';
+          
           if (topics.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">暂无主题词</td></tr>';
           } else {
@@ -1036,6 +1077,10 @@
           
           // 更新统计
           document.getElementById('totalSubscriptions').textContent = subscriptions.length;
+          
+          // 更新表格总记录数
+          document.getElementById('subscriptionsTotalCount').textContent = subscriptions.length;
+          document.getElementById('subscriptionsTableCount').style.display = 'block';
           
           if (subscriptions.length === 0) {
             tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #999;">暂无订阅信息源</td></tr>';
@@ -1142,6 +1187,10 @@
           const { news, totalCount, totalPages } = result.data;
           const tbody = document.getElementById('newsBody');
           tbody.innerHTML = '';
+          
+          // 更新表格总记录数
+          document.getElementById('newsTotalCount').textContent = totalCount || 0;
+          document.getElementById('newsTableCount').style.display = 'block';
           
           if (news.length === 0) {
             tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #999;">暂无新闻</td></tr>';
@@ -1486,6 +1535,10 @@
           const instances = result.data || [];
           bodyEl.innerHTML = '';
           
+          // 更新表格总记录数
+          document.getElementById('nitterInstancesTotalCount').textContent = instances.length;
+          document.getElementById('nitterInstancesTableCount').style.display = 'block';
+          
           if (instances.length === 0) {
             bodyEl.innerHTML = '<tr><td colspan="7" class="empty-state">暂无Nitter实例，请添加</td></tr>';
           } else {
@@ -1743,6 +1796,10 @@
           });
           
           bodyEl.innerHTML = '';
+          
+          // 更新表格总记录数（显示过滤后的推文数量）
+          document.getElementById('nitterTweetsTotalCount').textContent = news.length;
+          document.getElementById('nitterTweetsTableCount').style.display = 'block';
           
           if (news.length === 0) {
             bodyEl.innerHTML = '<tr><td colspan="6" class="empty-state">暂无推文（或没有通过此Nitter实例抓取的推文）</td></tr>';
