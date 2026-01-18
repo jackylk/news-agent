@@ -2,6 +2,7 @@ const BaseCrawler = require('./BaseCrawler');
 const RSSParser = require('rss-parser');
 const cheerio = require('cheerio');
 const axios = require('axios');
+const XMLPreprocessor = require('./XMLPreprocessor');
 
 /**
  * RSS/Feed/XML/Atom源爬虫
@@ -9,8 +10,10 @@ const axios = require('axios');
 class RSSCrawler extends BaseCrawler {
   constructor(options = {}) {
     super();
+    // 增加超时时间到60秒（对于慢速源）
+    const timeout = options.timeout || 60000;
     this.parser = new RSSParser({
-      timeout: 30000,
+      timeout: timeout,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/rss+xml, application/xml, text/xml, */*',
@@ -20,7 +23,7 @@ class RSSCrawler extends BaseCrawler {
       },
       maxRedirects: 5,
       requestOptions: {
-        timeout: 30000,
+        timeout: timeout,
         rejectUnauthorized: false,
       },
       customFields: {
@@ -31,6 +34,7 @@ class RSSCrawler extends BaseCrawler {
       }
     });
     this.options = options;
+    this.timeout = timeout;
   }
 
   /**
@@ -53,101 +57,200 @@ class RSSCrawler extends BaseCrawler {
   }
 
   /**
-   * 从RSS Feed URL提取内容
+   * 判断是否为网络错误（需要重试）
+   * @param {Error} error - 错误对象
+   * @returns {boolean} 是否为网络错误
+   */
+  _isNetworkError(error) {
+    if (!error) return false;
+    const errorMsg = error.message || error.toString();
+    return (
+      errorMsg.includes('socket') ||
+      errorMsg.includes('TLS') ||
+      errorMsg.includes('ECONNRESET') ||
+      errorMsg.includes('ETIMEDOUT') ||
+      errorMsg.includes('ENOTFOUND') ||
+      errorMsg.includes('timeout') ||
+      errorMsg.includes('disconnected') ||
+      errorMsg.includes('network') ||
+      error.code === 'ECONNRESET' ||
+      error.code === 'ETIMEDOUT' ||
+      error.code === 'ENOTFOUND'
+    );
+  }
+
+  /**
+   * 判断是否为解析错误（可以尝试预处理）
+   * @param {Error} error - 错误对象
+   * @returns {boolean} 是否为解析错误
+   */
+  _isParseError(error) {
+    if (!error) return false;
+    const errorMsg = error.message || error.toString();
+    return (
+      errorMsg.includes('parse') ||
+      errorMsg.includes('XML') ||
+      errorMsg.includes('Unexpected') ||
+      errorMsg.includes('Non-whitespace') ||
+      errorMsg.includes('close tag') ||
+      errorMsg.includes('Invalid')
+    );
+  }
+
+  /**
+   * 从RSS Feed URL提取内容（带重试机制）
    * @param {string} feedUrl - RSS Feed URL
    * @param {Object} options - 可选参数
    * @returns {Promise<Array>} 文章列表
    */
   async extractFromFeed(feedUrl, options = {}) {
-    try {
-      let feed;
+    const maxRetries = options.maxRetries || 3;
+    let lastError = null;
+
+    // 重试循环
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        feed = await this.parser.parseURL(feedUrl);
-      } catch (parseError) {
-        // 如果解析失败，尝试直接获取XML并清理
-        console.log(`RSS解析失败，尝试直接获取XML内容: ${feedUrl}`);
+        if (attempt > 1) {
+          // 指数退避：1秒、2秒、4秒
+          const delay = Math.pow(2, attempt - 2) * 1000;
+          console.log(`第 ${attempt} 次尝试获取RSS Feed (等待 ${delay}ms): ${feedUrl}`);
+          await this.sleep(delay);
+        }
+
+        let feed;
+        let xmlResponse = null;
+        let contentType = null;
+
+        // 尝试1: 直接使用rss-parser解析
         try {
-          const xmlResponse = await axios.get(feedUrl, {
-            headers: this.defaultHeaders,
-            timeout: 30000,
-            maxRedirects: 5,
-            responseType: 'arraybuffer', // 使用arraybuffer避免编码问题
-          });
+          feed = await this.parser.parseURL(feedUrl);
+        } catch (parseError) {
+          // 如果解析失败，尝试直接获取XML并预处理
+          console.log(`RSS解析失败，尝试直接获取XML内容: ${feedUrl}`);
           
-          // 尝试不同的编码
-          let xmlContent;
-          const encodings = ['utf8', 'utf-8', 'gbk', 'gb2312', 'latin1'];
-          
-          for (const encoding of encodings) {
-            try {
-              xmlContent = Buffer.from(xmlResponse.data).toString(encoding);
-              
-              // 移除BOM
-              if (xmlContent.charCodeAt(0) === 0xFEFF) {
-                xmlContent = xmlContent.slice(1);
-              }
-              
-              // 移除开头的非XML字符
-              xmlContent = xmlContent.replace(/^[^\<]*/, '');
-              
-              // 确保XML声明正确
-              if (!xmlContent.trim().startsWith('<?xml')) {
-                xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlContent;
-              }
-              
-              // 尝试解析
-              feed = await this.parser.parseString(xmlContent);
-              console.log(`成功通过直接获取XML解析RSS源 (编码: ${encoding}): ${feedUrl}`);
-              break;
-            } catch (e) {
-              // 尝试下一个编码
+          try {
+            xmlResponse = await axios.get(feedUrl, {
+              headers: this.defaultHeaders,
+              timeout: this.timeout,
+              maxRedirects: 5,
+              responseType: 'arraybuffer',
+              validateStatus: (status) => status < 500, // 允许4xx状态码
+            });
+
+            contentType = xmlResponse.headers['content-type'] || '';
+
+            // 使用XMLPreprocessor预处理XML
+            const preprocessedXML = XMLPreprocessor.preprocess(xmlResponse.data, {
+              contentType: contentType
+            });
+
+            // 验证预处理后的XML
+            if (!XMLPreprocessor.isValidXML(preprocessedXML)) {
+              throw new Error('预处理后的XML格式无效');
+            }
+
+            // 尝试解析预处理后的XML
+            feed = await this.parser.parseString(preprocessedXML);
+            console.log(`成功通过预处理XML解析RSS源: ${feedUrl}`);
+          } catch (xmlError) {
+            // 如果是网络错误且还有重试机会，继续重试
+            if (this._isNetworkError(xmlError) && attempt < maxRetries) {
+              lastError = xmlError;
               continue;
             }
+            
+            // 如果是解析错误，尝试深度清理
+            if (this._isParseError(xmlError) && xmlResponse) {
+              console.log(`尝试深度清理XML: ${feedUrl}`);
+              try {
+                // 更激进的清理
+                let deepCleaned = Buffer.from(xmlResponse.data).toString('utf8');
+                deepCleaned = XMLPreprocessor.removeBOM(deepCleaned);
+                deepCleaned = deepCleaned.replace(/^[\s\u0000-\u001F\u007F-\u009F]*/, '');
+                deepCleaned = deepCleaned.replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, ''); // 移除控制字符
+                deepCleaned = XMLPreprocessor.normalizeXMLDeclaration(deepCleaned);
+                
+                if (XMLPreprocessor.isValidXML(deepCleaned)) {
+                  feed = await this.parser.parseString(deepCleaned);
+                  console.log(`成功通过深度清理XML解析RSS源: ${feedUrl}`);
+                } else {
+                  throw xmlError;
+                }
+              } catch (deepError) {
+                // 深度清理也失败
+                if (attempt < maxRetries && this._isNetworkError(xmlError)) {
+                  lastError = xmlError;
+                  continue;
+                }
+                throw xmlError;
+              }
+            } else {
+              // 其他错误，如果是网络错误且还有重试机会，继续重试
+              if (this._isNetworkError(xmlError) && attempt < maxRetries) {
+                lastError = xmlError;
+                continue;
+              }
+              throw xmlError;
+            }
           }
-          
-          if (!feed) {
-            throw new Error('所有编码尝试都失败');
+        }
+
+        // 计算半年前的日期
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const articles = [];
+        for (const item of feed.items || []) {
+          const url = item.link || item.guid || '';
+          if (!url) continue;
+
+          // 检查发布日期，只保留半年内的文章
+          const publishDate = item.pubDate ? new Date(item.pubDate) : new Date();
+          if (publishDate < sixMonthsAgo) {
+            continue; // 跳过超过半年的文章
           }
-        } catch (xmlError) {
-          console.error(`直接获取XML也失败: ${xmlError.message}`);
-          throw parseError;
+
+          const content = await this.extractContentFromRSSItem(item, url);
+          const summary = this.extractSummaryFromRSSItem(item, content);
+          const imageUrl = this.extractImageFromRSSItem(item);
+
+          articles.push({
+            title: item.title || '无标题',
+            content: content,
+            summary: summary,
+            url: url,
+            image_url: imageUrl,
+            publish_date: publishDate.toISOString(),
+          });
+        }
+
+        return articles;
+      } catch (error) {
+        lastError = error;
+        const errorMsg = error.message || error.toString();
+        
+        // 如果是网络错误且还有重试机会，继续重试
+        if (this._isNetworkError(error) && attempt < maxRetries) {
+          console.warn(`网络错误 (尝试 ${attempt}/${maxRetries}): ${errorMsg}`);
+          continue;
+        }
+        
+        // 如果是解析错误且还有重试机会，继续重试
+        if (this._isParseError(error) && attempt < maxRetries) {
+          console.warn(`解析错误 (尝试 ${attempt}/${maxRetries}): ${errorMsg}`);
+          continue;
+        }
+        
+        // 最后一次尝试或非网络/解析错误，抛出异常
+        if (attempt === maxRetries) {
+          console.error(`从RSS Feed提取内容失败 (已重试 ${maxRetries} 次) ${feedUrl}:`, errorMsg);
+          throw lastError || error;
         }
       }
-
-      // 计算半年前的日期
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-      const articles = [];
-      for (const item of feed.items || []) {
-        const url = item.link || item.guid || '';
-        if (!url) continue;
-
-        // 检查发布日期，只保留半年内的文章
-        const publishDate = item.pubDate ? new Date(item.pubDate) : new Date();
-        if (publishDate < sixMonthsAgo) {
-          continue; // 跳过超过半年的文章
-        }
-
-        const content = await this.extractContentFromRSSItem(item, url);
-        const summary = this.extractSummaryFromRSSItem(item, content);
-        const imageUrl = this.extractImageFromRSSItem(item);
-
-        articles.push({
-          title: item.title || '无标题',
-          content: content,
-          summary: summary,
-          url: url,
-          image_url: imageUrl,
-          publish_date: publishDate.toISOString(),
-        });
-      }
-
-      return articles;
-    } catch (error) {
-      console.error(`从RSS Feed提取内容失败 ${feedUrl}:`, error.message);
-      throw error;
     }
+
+    // 所有重试都失败
+    throw lastError || new Error(`从RSS Feed提取内容失败: ${feedUrl}`);
   }
 
   /**

@@ -1151,9 +1151,15 @@
       align-items: center;
     }
 
+    /* 只看相关文章checkbox外层容器 */
+    .relevant-filter-container {
+      margin-bottom: 16px;
+      padding: 0 20px;
+    }
+
     /* 只看相关文章checkbox容器 */
     .relevant-filter-checkbox {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
       padding: 8px 16px;
@@ -5367,13 +5373,16 @@
             </div>
           </div>
 
-          <!-- 信息源过滤卡片 -->
-          <div class="source-filter-cards" id="sourceFilterCards-${index}">
-            <!-- 只看相关文章checkbox -->
+          <!-- 只看相关文章checkbox容器 -->
+          <div class="relevant-filter-container">
             <div class="relevant-filter-checkbox" onclick="event.stopPropagation(); document.getElementById('relevantFilterCheckbox-${index}').click();">
               <input type="checkbox" id="relevantFilterCheckbox-${index}" ${showOnlyRelevantArticles ? 'checked' : ''} onchange="toggleRelevantFilter(${index})">
               <label for="relevantFilterCheckbox-${index}">只看相关文章</label>
             </div>
+          </div>
+
+          <!-- 信息源过滤卡片 -->
+          <div class="source-filter-cards" id="sourceFilterCards-${index}">
             <div class="source-card active" data-source="all" onclick="filterArticlesBySourceInTab(${index}, null)">
               <span>全部</span>
             </div>
@@ -5554,26 +5563,8 @@
       const container = document.getElementById(`sourceFilterCards-${tabIndex}`);
       if (!container) return;
       
-      // 保存checkbox元素（如果存在）
-      const existingCheckbox = container.querySelector('.relevant-filter-checkbox');
-      
-      // 清空所有卡片，包括"全部"，但保留checkbox
+      // 清空所有卡片，包括"全部"
       container.innerHTML = '';
-      
-      // 重新创建checkbox（如果之前存在）
-      if (existingCheckbox) {
-        const checkboxContainer = document.createElement('div');
-        checkboxContainer.className = 'relevant-filter-checkbox';
-        checkboxContainer.innerHTML = `
-          <input type="checkbox" id="relevantFilterCheckbox-${tabIndex}" ${showOnlyRelevantArticles ? 'checked' : ''} onchange="toggleRelevantFilter(${tabIndex})">
-          <label for="relevantFilterCheckbox-${tabIndex}">只看相关文章</label>
-        `;
-        checkboxContainer.onclick = (e) => {
-          e.stopPropagation();
-          document.getElementById(`relevantFilterCheckbox-${tabIndex}`).click();
-        };
-        container.appendChild(checkboxContainer);
-      }
       
       // 重新创建"全部"卡片
       const allCard = document.createElement('div');
