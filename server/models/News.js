@@ -175,7 +175,9 @@ class News {
             source: row.source,
             category: row.category || '科技',
             image_url: row.image_url,
-            publish_date: serializeDate(row.publish_date)
+            publish_date: serializeDate(row.publish_date),
+            topic_keywords: row.topic_keywords,
+            is_relevant_to_topic: row.is_relevant_to_topic
           });
         });
         
