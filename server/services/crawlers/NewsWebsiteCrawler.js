@@ -81,6 +81,42 @@ class NewsWebsiteCrawler extends BaseCrawler {
         });
       });
       
+      // 处理所有图片标签，将相对路径转换为绝对路径
+      bodyClone.find('img').each((i, img) => {
+        const $img = $(img);
+        const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url'];
+        let imageUrl = '';
+        
+        for (const attr of srcAttrs) {
+          imageUrl = $img.attr(attr) || '';
+          if (imageUrl) break;
+        }
+        
+        if (imageUrl) {
+          // 处理相对URL
+          if (imageUrl.startsWith('/')) {
+            try {
+              const urlObj = new URL(url);
+              imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+            } catch (e) {
+              return;
+            }
+          } else if (!imageUrl.startsWith('http')) {
+            try {
+              const baseUrl = new URL(url);
+              imageUrl = new URL(imageUrl, baseUrl).href;
+            } catch (e) {
+              return;
+            }
+          }
+          
+          // 统一设置到src属性
+          $img.attr('src', imageUrl);
+          // 移除懒加载属性
+          $img.removeAttr('data-src data-lazy-src data-original data-url loading');
+        }
+      });
+      
       const bodyHtml = bodyClone.html() || '';
       const bodyTextLength = bodyClone.text().trim().length;
       const currentTextLength = typeof content === 'string' ? content.replace(/<[^>]*>/g, '').trim().length : 0;
@@ -214,6 +250,42 @@ class NewsWebsiteCrawler extends BaseCrawler {
               $el.removeAttr(attr);
             }
           });
+        });
+        
+        // 处理所有图片标签，将相对路径转换为绝对路径
+        clone.find('img').each((i, img) => {
+          const $img = $(img);
+          const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url'];
+          let imageUrl = '';
+          
+          for (const attr of srcAttrs) {
+            imageUrl = $img.attr(attr) || '';
+            if (imageUrl) break;
+          }
+          
+          if (imageUrl) {
+            // 处理相对URL
+            if (imageUrl.startsWith('/')) {
+              try {
+                const urlObj = new URL(url);
+                imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+              } catch (e) {
+                return;
+              }
+            } else if (!imageUrl.startsWith('http')) {
+              try {
+                const baseUrl = new URL(url);
+                imageUrl = new URL(imageUrl, baseUrl).href;
+              } catch (e) {
+                return;
+              }
+            }
+            
+            // 统一设置到src属性
+            $img.attr('src', imageUrl);
+            // 移除懒加载属性
+            $img.removeAttr('data-src data-lazy-src data-original data-url loading');
+          }
         });
         
         if (preserveFormat) {

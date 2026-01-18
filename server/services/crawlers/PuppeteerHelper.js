@@ -244,6 +244,38 @@ class PuppeteerHelper {
               });
             });
 
+            // 处理图片标签，将相对路径转换为绝对路径，处理懒加载
+            const images = clone.querySelectorAll('img');
+            images.forEach(img => {
+              const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url'];
+              let imageUrl = '';
+              
+              for (const attr of srcAttrs) {
+                imageUrl = img.getAttribute(attr) || '';
+                if (imageUrl) break;
+              }
+              
+              if (imageUrl) {
+                try {
+                  if (imageUrl.startsWith('/')) {
+                    const urlObj = new URL(window.location.href);
+                    imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+                  } else if (!imageUrl.startsWith('http')) {
+                    imageUrl = new URL(imageUrl, window.location.href).href;
+                  }
+                  
+                  img.setAttribute('src', imageUrl);
+                  img.removeAttribute('data-src');
+                  img.removeAttribute('data-lazy-src');
+                  img.removeAttribute('data-original');
+                  img.removeAttribute('data-url');
+                  img.removeAttribute('loading');
+                } catch (e) {
+                  // URL处理失败，跳过
+                }
+              }
+            });
+
             // 保留HTML格式
             const htmlContent = clone.innerHTML.trim();
             const textLength = clone.textContent.trim().length;
@@ -273,6 +305,38 @@ class PuppeteerHelper {
                 node.removeAttribute('src');
               }
             });
+          });
+          
+          // 处理图片标签，将相对路径转换为绝对路径，处理懒加载
+          const images = body.querySelectorAll('img');
+          images.forEach(img => {
+            const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url'];
+            let imageUrl = '';
+            
+            for (const attr of srcAttrs) {
+              imageUrl = img.getAttribute(attr) || '';
+              if (imageUrl) break;
+            }
+            
+            if (imageUrl) {
+              try {
+                if (imageUrl.startsWith('/')) {
+                  const urlObj = new URL(window.location.href);
+                  imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+                } else if (!imageUrl.startsWith('http')) {
+                  imageUrl = new URL(imageUrl, window.location.href).href;
+                }
+                
+                img.setAttribute('src', imageUrl);
+                img.removeAttribute('data-src');
+                img.removeAttribute('data-lazy-src');
+                img.removeAttribute('data-original');
+                img.removeAttribute('data-url');
+                img.removeAttribute('loading');
+              } catch (e) {
+                // URL处理失败，跳过
+              }
+            }
           });
           
           const bodyHtml = body.innerHTML.trim();

@@ -139,7 +139,44 @@ class BaseCrawler {
         });
         
         if (preserveFormat) {
-          // 保留HTML格式
+          // 保留HTML格式，并处理图片URL
+          // 处理所有图片标签，将相对路径转换为绝对路径
+          clone.find('img').each((i, img) => {
+            const $img = $(img);
+            // 尝试多个可能的图片源属性
+            const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url'];
+            let imageUrl = '';
+            
+            for (const attr of srcAttrs) {
+              imageUrl = $img.attr(attr) || '';
+              if (imageUrl) break;
+            }
+            
+            if (imageUrl) {
+              // 处理相对URL
+              if (imageUrl.startsWith('/')) {
+                try {
+                  const urlObj = new URL(url);
+                  imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+                } catch (e) {
+                  return; // 跳过无效URL
+                }
+              } else if (!imageUrl.startsWith('http')) {
+                try {
+                  const baseUrl = new URL(url);
+                  imageUrl = new URL(imageUrl, baseUrl).href;
+                } catch (e) {
+                  return; // 跳过无效URL
+                }
+              }
+              
+              // 统一设置到src属性，确保图片能正常显示
+              $img.attr('src', imageUrl);
+              // 移除懒加载属性，避免前端问题
+              $img.removeAttr('data-src data-lazy-src data-original data-url loading');
+            }
+          });
+          
           let htmlContent = clone.html() || '';
           // 检查内容长度（去除HTML标签后的文本长度）
           const textLength = clone.text().trim().length;
@@ -173,6 +210,40 @@ class BaseCrawler {
     });
     
     if (preserveFormat) {
+      // 处理所有图片标签，将相对路径转换为绝对路径
+      bodyClone.find('img').each((i, img) => {
+        const $img = $(img);
+        const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url'];
+        let imageUrl = '';
+        
+        for (const attr of srcAttrs) {
+          imageUrl = $img.attr(attr) || '';
+          if (imageUrl) break;
+        }
+        
+        if (imageUrl) {
+          // 处理相对URL
+          if (imageUrl.startsWith('/')) {
+            try {
+              const urlObj = new URL(url);
+              imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+            } catch (e) {
+              return;
+            }
+          } else if (!imageUrl.startsWith('http')) {
+            try {
+              const baseUrl = new URL(url);
+              imageUrl = new URL(imageUrl, baseUrl).href;
+            } catch (e) {
+              return;
+            }
+          }
+          
+          $img.attr('src', imageUrl);
+          $img.removeAttr('data-src data-lazy-src data-original data-url loading');
+        }
+      });
+      
       const bodyHtml = bodyClone.html() || '';
       const bodyTextLength = bodyClone.text().trim().length;
       if (bodyTextLength > 500) {
