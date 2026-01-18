@@ -1148,6 +1148,53 @@
       background: white;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      align-items: center;
+    }
+
+    /* 只看相关文章checkbox容器 */
+    .relevant-filter-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #f8f9fa;
+      border: 2px solid #e9ecef;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+      font-weight: 500;
+      color: #495057;
+      user-select: none;
+    }
+
+    .relevant-filter-checkbox:hover {
+      border-color: #8B5CF6;
+      background: #f3e8ff;
+    }
+
+    .relevant-filter-checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #8B5CF6;
+      margin: 0;
+    }
+
+    .relevant-filter-checkbox input[type="checkbox"]:checked {
+      accent-color: #8B5CF6;
+    }
+
+    .relevant-filter-checkbox label {
+      cursor: pointer;
+      margin: 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: #495057;
+    }
+
+    .relevant-filter-checkbox:hover label {
+      color: #8B5CF6;
     }
 
     .source-card {
@@ -2325,6 +2372,7 @@
     let currentTopicFilter = null; // 当前选中的主题
     let userTopics = []; // 用户主题列表
     let topicRecommendationHistory = {}; // 主题推荐历史 {topic_keywords: {recommended_sources: [...]}}
+    let showOnlyRelevantArticles = true; // 是否只显示相关文章（默认选中）
     
 
     // 检查登录状态
@@ -3793,6 +3841,11 @@
       // 按信息源过滤
       if (currentSourceFilter) {
         filtered = filtered.filter(a => a.source === currentSourceFilter);
+      }
+      
+      // 按相关性过滤（只看相关文章）
+      if (showOnlyRelevantArticles) {
+        filtered = filtered.filter(a => a.is_relevant_to_topic === true);
       }
       
       filteredArticles = filtered;
@@ -5316,6 +5369,11 @@
 
           <!-- 信息源过滤卡片 -->
           <div class="source-filter-cards" id="sourceFilterCards-${index}">
+            <!-- 只看相关文章checkbox -->
+            <div class="relevant-filter-checkbox" onclick="event.stopPropagation(); document.getElementById('relevantFilterCheckbox-${index}').click();">
+              <input type="checkbox" id="relevantFilterCheckbox-${index}" ${showOnlyRelevantArticles ? 'checked' : ''} onchange="toggleRelevantFilter(${index})">
+              <label for="relevantFilterCheckbox-${index}">只看相关文章</label>
+            </div>
             <div class="source-card active" data-source="all" onclick="filterArticlesBySourceInTab(${index}, null)">
               <span>全部</span>
             </div>
@@ -5370,6 +5428,31 @@
         window.currentArticlesTopicIndex = index; // 保存当前活动页签索引
         // 重新加载该主题的文章
         loadArticlesForTopic(currentTopicFilter, index);
+      }
+    }
+
+    // 切换"只看相关文章"过滤
+    function toggleRelevantFilter(tabIndex) {
+      // 更新全局状态
+      showOnlyRelevantArticles = document.getElementById(`relevantFilterCheckbox-${tabIndex}`).checked;
+      
+      // 同步所有页签的checkbox状态（因为所有页签共享状态）
+      userTopics.forEach((topic, index) => {
+        const checkbox = document.getElementById(`relevantFilterCheckbox-${index}`);
+        if (checkbox) {
+          checkbox.checked = showOnlyRelevantArticles;
+        }
+      });
+      
+      // 获取当前活动页签索引
+      const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : tabIndex;
+      
+      // 重新应用过滤并渲染当前活动页签的文章列表
+      if (currentTopicFilter && userTopics[currentTabIndex]) {
+        applyFiltersForTab(currentTopicFilter, currentTabIndex);
+      } else {
+        // 如果没有主题过滤，使用applyFilters
+        applyFilters();
       }
     }
     
@@ -5471,8 +5554,26 @@
       const container = document.getElementById(`sourceFilterCards-${tabIndex}`);
       if (!container) return;
       
-      // 清空所有卡片，包括"全部"
+      // 保存checkbox元素（如果存在）
+      const existingCheckbox = container.querySelector('.relevant-filter-checkbox');
+      
+      // 清空所有卡片，包括"全部"，但保留checkbox
       container.innerHTML = '';
+      
+      // 重新创建checkbox（如果之前存在）
+      if (existingCheckbox) {
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.className = 'relevant-filter-checkbox';
+        checkboxContainer.innerHTML = `
+          <input type="checkbox" id="relevantFilterCheckbox-${tabIndex}" ${showOnlyRelevantArticles ? 'checked' : ''} onchange="toggleRelevantFilter(${tabIndex})">
+          <label for="relevantFilterCheckbox-${tabIndex}">只看相关文章</label>
+        `;
+        checkboxContainer.onclick = (e) => {
+          e.stopPropagation();
+          document.getElementById(`relevantFilterCheckbox-${tabIndex}`).click();
+        };
+        container.appendChild(checkboxContainer);
+      }
       
       // 重新创建"全部"卡片
       const allCard = document.createElement('div');
@@ -5534,6 +5635,10 @@
         filtered = filtered.filter(a => a.source === activeSource);
       }
       
+      // 按相关性过滤（只看相关文章）
+      if (showOnlyRelevantArticles) {
+        filtered = filtered.filter(a => a.is_relevant_to_topic === true);
+      }
       
       // 渲染文章列表
       renderArticlesForTab(filtered, tabIndex);

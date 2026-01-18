@@ -64,38 +64,52 @@ class RSSCrawler extends BaseCrawler {
       try {
         feed = await this.parser.parseURL(feedUrl);
       } catch (parseError) {
-        // 如果解析失败，尝试直接获取XML
-        if (parseError.message && (
-          parseError.message.includes('Unable to parse XML') || 
-          parseError.message.includes('parse') || 
-          parseError.message.includes('XML')
-        )) {
-          console.log(`RSS解析失败，尝试直接获取XML内容: ${feedUrl}`);
-          try {
-            const xmlResponse = await axios.get(feedUrl, {
-              headers: this.defaultHeaders,
-              timeout: 30000,
-              maxRedirects: 5,
-              responseType: 'text',
-            });
-            
-            let xmlContent = xmlResponse.data;
-            // 移除BOM
-            if (xmlContent.charCodeAt(0) === 0xFEFF) {
-              xmlContent = xmlContent.slice(1);
+        // 如果解析失败，尝试直接获取XML并清理
+        console.log(`RSS解析失败，尝试直接获取XML内容: ${feedUrl}`);
+        try {
+          const xmlResponse = await axios.get(feedUrl, {
+            headers: this.defaultHeaders,
+            timeout: 30000,
+            maxRedirects: 5,
+            responseType: 'arraybuffer', // 使用arraybuffer避免编码问题
+          });
+          
+          // 尝试不同的编码
+          let xmlContent;
+          const encodings = ['utf8', 'utf-8', 'gbk', 'gb2312', 'latin1'];
+          
+          for (const encoding of encodings) {
+            try {
+              xmlContent = Buffer.from(xmlResponse.data).toString(encoding);
+              
+              // 移除BOM
+              if (xmlContent.charCodeAt(0) === 0xFEFF) {
+                xmlContent = xmlContent.slice(1);
+              }
+              
+              // 移除开头的非XML字符
+              xmlContent = xmlContent.replace(/^[^\<]*/, '');
+              
+              // 确保XML声明正确
+              if (!xmlContent.trim().startsWith('<?xml')) {
+                xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlContent;
+              }
+              
+              // 尝试解析
+              feed = await this.parser.parseString(xmlContent);
+              console.log(`成功通过直接获取XML解析RSS源 (编码: ${encoding}): ${feedUrl}`);
+              break;
+            } catch (e) {
+              // 尝试下一个编码
+              continue;
             }
-            // 确保XML声明正确
-            if (!xmlContent.trim().startsWith('<?xml')) {
-              xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlContent;
-            }
-            
-            feed = await this.parser.parseString(xmlContent);
-            console.log(`成功通过直接获取XML解析RSS源: ${feedUrl}`);
-          } catch (xmlError) {
-            console.error(`直接获取XML也失败: ${xmlError.message}`);
-            throw parseError;
           }
-        } else {
+          
+          if (!feed) {
+            throw new Error('所有编码尝试都失败');
+          }
+        } catch (xmlError) {
+          console.error(`直接获取XML也失败: ${xmlError.message}`);
           throw parseError;
         }
       }
