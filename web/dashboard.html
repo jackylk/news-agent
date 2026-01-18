@@ -2343,7 +2343,8 @@
     let authToken = localStorage.getItem('authToken');
     let currentUser = null;
     let recommendedSources = [];
-    let userSubscriptions = []; // 用户已订阅的信息源列表
+    let userSubscriptions = []; // 用户已订阅的信息源列表（仅名称）
+    let userSubscriptionsMap = {}; // 用户已订阅的信息源映射 {sourceName: {sourceName, sourceUrl}, ...}
     let savedProcessLogs = []; // 保存的推荐过程日志
     
     // 文章阅读页面相关变量
@@ -3012,6 +3013,16 @@
         const result = await response.json();
 
         if (result.success) {
+          // 构建订阅映射（同时存储名称和URL）
+          userSubscriptionsMap = {};
+          result.data.forEach(sub => {
+            const name = sub.source_name;
+            userSubscriptionsMap[name] = {
+              sourceName: name,
+              sourceUrl: sub.source_url
+            };
+          });
+          
           // 如果指定了主题，只返回该主题的订阅；否则返回所有订阅
           if (topicKeywords && topicKeywords.trim()) {
             userSubscriptions = result.data.map(sub => sub.source_name);
@@ -3098,7 +3109,38 @@
       }
       
       tbody.innerHTML = filteredSources.map((source, index) => {
-        const isSubscribed = userSubscriptions.includes(source.sourceName);
+        // 检查订阅状态：同时比较名称和URL，确保匹配准确
+        let isSubscribed = false;
+        
+        // 方法1：精确匹配名称
+        if (userSubscriptions.includes(source.sourceName)) {
+          isSubscribed = true;
+        } else {
+          // 方法2：如果名称不匹配，尝试通过URL匹配（处理名称不一致的情况）
+          const normalizeUrl = (url) => {
+            if (!url) return '';
+            // 去除协议、www、尾部斜杠，转为小写
+            return url.replace(/^https?:\/\//, '')
+                     .replace(/^www\./, '')
+                     .replace(/\/$/, '')
+                     .toLowerCase()
+                     .trim();
+          };
+          
+          const sourceUrlNormalized = normalizeUrl(source.sourceUrl);
+          
+          // 遍历所有订阅，比较URL
+          for (const subName in userSubscriptionsMap) {
+            const sub = userSubscriptionsMap[subName];
+            const subUrlNormalized = normalizeUrl(sub.sourceUrl);
+            
+            // 如果URL匹配，则认为已订阅
+            if (subUrlNormalized && sourceUrlNormalized && subUrlNormalized === sourceUrlNormalized) {
+              isSubscribed = true;
+              break;
+            }
+          }
+        }
         const region = source.region || '国外';
         const regionClass = region === '国内' ? 'region-domestic' : 'region-foreign';
         const sourceData = escapeHtml(JSON.stringify(source));
@@ -4176,9 +4218,7 @@
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}年${month}月${day}日 ${hours}:${minutes}`;
+        return `${year}年${month}月${day}日`;
       } catch (e) {
         return dateStr;
       }
@@ -4546,7 +4586,36 @@
       
       // 渲染有效的信息源
       const validRows = validSources.map((source, idx) => {
-        const isSubscribed = userSubscriptions.includes(source.sourceName);
+        // 检查订阅状态：同时比较名称和URL
+        let isSubscribed = false;
+        
+        // 方法1：精确匹配名称
+        if (userSubscriptions.includes(source.sourceName)) {
+          isSubscribed = true;
+        } else {
+          // 方法2：如果名称不匹配，尝试通过URL匹配
+          const normalizeUrl = (url) => {
+            if (!url) return '';
+            return url.replace(/^https?:\/\//, '')
+                     .replace(/^www\./, '')
+                     .replace(/\/$/, '')
+                     .toLowerCase()
+                     .trim();
+          };
+          
+          const sourceUrlNormalized = normalizeUrl(source.sourceUrl);
+          
+          // 遍历所有订阅，比较URL
+          for (const subName in userSubscriptionsMap) {
+            const sub = userSubscriptionsMap[subName];
+            const subUrlNormalized = normalizeUrl(sub.sourceUrl);
+            
+            if (subUrlNormalized && sourceUrlNormalized && subUrlNormalized === sourceUrlNormalized) {
+              isSubscribed = true;
+              break;
+            }
+          }
+        }
         const region = source.region || '国外';
         const regionClass = region === '国内' ? 'region-domestic' : 'region-foreign';
         

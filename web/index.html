@@ -1714,15 +1714,13 @@
       }
     }
 
-    // 格式化完整日期
+    // 格式化完整日期（文章详情页面使用，只显示日期）
     function formatFullDate(dateStr) {
       const date = new Date(dateStr);
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${year}年${month}月${day}日 ${hours}:${minutes}`;
+      return `${year}年${month}月${day}日`;
     }
 
     // 检测语言（简单检测：如果主要是英文字符，返回true）
