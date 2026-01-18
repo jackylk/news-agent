@@ -144,14 +144,19 @@ class RSSCrawler extends BaseCrawler {
               contentType: contentType
             });
 
-            // 验证预处理后的XML
+            // 验证预处理后的XML（如果验证失败，仍然尝试解析）
             if (!XMLPreprocessor.isValidXML(preprocessedXML)) {
-              throw new Error('预处理后的XML格式无效');
+              console.warn(`XML格式验证失败，但仍尝试解析: ${feedUrl}`);
             }
 
             // 尝试解析预处理后的XML
-            feed = await this.parser.parseString(preprocessedXML);
-            console.log(`成功通过预处理XML解析RSS源: ${feedUrl}`);
+            try {
+              feed = await this.parser.parseString(preprocessedXML);
+              console.log(`成功通过预处理XML解析RSS源: ${feedUrl}`);
+            } catch (parseError) {
+              // 如果预处理后仍然解析失败，尝试深度清理
+              throw parseError;
+            }
           } catch (xmlError) {
             // 如果是网络错误且还有重试机会，继续重试
             if (this._isNetworkError(xmlError) && attempt < maxRetries) {
@@ -167,14 +172,29 @@ class RSSCrawler extends BaseCrawler {
                 let deepCleaned = Buffer.from(xmlResponse.data).toString('utf8');
                 deepCleaned = XMLPreprocessor.removeBOM(deepCleaned);
                 deepCleaned = deepCleaned.replace(/^[\s\u0000-\u001F\u007F-\u009F]*/, '');
-                deepCleaned = deepCleaned.replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, ''); // 移除控制字符
+                // 移除控制字符，但保留换行符和制表符
+                deepCleaned = deepCleaned.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '');
                 deepCleaned = XMLPreprocessor.normalizeXMLDeclaration(deepCleaned);
                 
-                if (XMLPreprocessor.isValidXML(deepCleaned)) {
+                // 即使验证失败也尝试解析
+                try {
                   feed = await this.parser.parseString(deepCleaned);
                   console.log(`成功通过深度清理XML解析RSS源: ${feedUrl}`);
-                } else {
-                  throw xmlError;
+                } catch (deepParseError) {
+                  // 如果深度清理后仍然失败，尝试更宽松的处理
+                  console.log(`深度清理后解析仍失败，尝试更宽松的处理: ${feedUrl}`);
+                  
+                  // 尝试移除所有非ASCII字符（除了已转义的）
+                  let ultraCleaned = deepCleaned;
+                  // 只保留基本的XML结构
+                  ultraCleaned = ultraCleaned.replace(/[^\x20-\x7E\u00A0-\uFFFF\s]/g, '');
+                  
+                  try {
+                    feed = await this.parser.parseString(ultraCleaned);
+                    console.log(`成功通过超宽松清理XML解析RSS源: ${feedUrl}`);
+                  } catch (ultraError) {
+                    throw deepParseError;
+                  }
                 }
               } catch (deepError) {
                 // 深度清理也失败

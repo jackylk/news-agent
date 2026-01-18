@@ -262,10 +262,16 @@ class XMLPreprocessor {
       return false;
     }
 
-    // 检查是否有基本的XML结构
-    const hasXMLDecl = content.trim().startsWith('<?xml');
-    const hasRootTag = /<(rss|feed|atom|rdf):RDF/i.test(content);
+    // 检查是否有基本的XML结构（更宽松的检查）
+    const trimmed = content.trim();
+    const hasXMLDecl = trimmed.startsWith('<?xml');
+    const hasRSS = /<rss/i.test(content);
+    const hasFeed = /<feed/i.test(content);
+    const hasAtom = /<atom/i.test(content);
+    const hasRDF = /<rdf:RDF/i.test(content);
+    const hasRootTag = hasRSS || hasFeed || hasAtom || hasRDF;
 
+    // 只要有XML声明或根标签就认为有效
     return hasXMLDecl || hasRootTag;
   }
 }
