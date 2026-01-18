@@ -93,7 +93,9 @@ class RSSCrawler extends BaseCrawler {
       errorMsg.includes('Unexpected') ||
       errorMsg.includes('Non-whitespace') ||
       errorMsg.includes('close tag') ||
-      errorMsg.includes('Invalid')
+      errorMsg.includes('Invalid') ||
+      errorMsg.includes('not recognized') ||
+      errorMsg.includes('Feed not recognized')
     );
   }
 
@@ -121,10 +123,22 @@ class RSSCrawler extends BaseCrawler {
         let xmlResponse = null;
         let contentType = null;
 
-        // 尝试1: 直接使用rss-parser解析
+        // 尝试1: 直接使用rss-parser解析（支持RSS和Atom）
         try {
           feed = await this.parser.parseURL(feedUrl);
+          // 如果feed.items为空，可能是Atom格式，尝试强制解析
+          if (!feed.items || feed.items.length === 0) {
+            console.log(`Feed items为空，可能是Atom格式，尝试强制解析: ${feedUrl}`);
+          }
         } catch (parseError) {
+          // 如果错误是"Feed not recognized"，可能是Atom格式或格式不标准，尝试手动获取和解析
+          const errorMsg = parseError.message || parseError.toString();
+          if (errorMsg.includes('not recognized') || errorMsg.includes('Feed not recognized')) {
+            console.log(`Feed格式不被识别，尝试手动获取和解析: ${feedUrl}`);
+            // 继续到下面的手动获取逻辑
+          } else {
+            // 其他错误，继续到手动获取逻辑
+          }
           // 如果解析失败，尝试直接获取XML并预处理
           console.log(`RSS解析失败，尝试直接获取XML内容: ${feedUrl}`);
           
@@ -149,10 +163,51 @@ class RSSCrawler extends BaseCrawler {
               console.warn(`XML格式验证失败，但仍尝试解析: ${feedUrl}`);
             }
 
-            // 尝试解析预处理后的XML
+            // 尝试解析预处理后的XML（支持RSS和Atom）
             try {
               feed = await this.parser.parseString(preprocessedXML);
-              console.log(`成功通过预处理XML解析RSS源: ${feedUrl}`);
+              // 检查是否成功解析
+              if (feed && (feed.items || feed.entries)) {
+                // 如果是Atom格式，items可能在entries中
+                if (!feed.items && feed.entries) {
+                  feed.items = feed.entries;
+                }
+                console.log(`成功通过预处理XML解析RSS源: ${feedUrl}`);
+              } else {
+                // 如果feed为空，尝试检查是否是Atom格式但解析失败
+                // 检查XML内容是否包含feed或entry标签（Atom格式）
+                if (/<feed/i.test(preprocessedXML) || /<entry/i.test(preprocessedXML)) {
+                  console.log(`检测到Atom格式，但rss-parser解析失败，尝试手动解析: ${feedUrl}`);
+                  // 尝试使用cheerio手动解析Atom格式
+                  const $ = cheerio.load(preprocessedXML, { xmlMode: true });
+                  const entries = [];
+                  $('entry').each((i, elem) => {
+                    const entry = {
+                      title: $(elem).find('title').text() || $(elem).find('title').first().text(),
+                      link: $(elem).find('link').attr('href') || $(elem).find('link').text(),
+                      guid: $(elem).find('id').text(),
+                      pubDate: $(elem).find('published').text() || $(elem).find('updated').text(),
+                      description: $(elem).find('summary').text() || $(elem).find('content').text(),
+                      content: $(elem).find('content').html() || $(elem).find('content').text(),
+                    };
+                    if (entry.title || entry.link) {
+                      entries.push(entry);
+                    }
+                  });
+                  if (entries.length > 0) {
+                    feed = {
+                      title: $('feed > title').text() || 'Atom Feed',
+                      items: entries,
+                      entries: entries
+                    };
+                    console.log(`成功通过手动解析Atom格式: ${feedUrl}，找到 ${entries.length} 个条目`);
+                  } else {
+                    throw new Error('解析后feed为空');
+                  }
+                } else {
+                  throw new Error('解析后feed为空');
+                }
+              }
             } catch (parseError) {
               // 如果预处理后仍然解析失败，尝试深度清理
               throw parseError;
@@ -179,7 +234,45 @@ class RSSCrawler extends BaseCrawler {
                 // 即使验证失败也尝试解析
                 try {
                   feed = await this.parser.parseString(deepCleaned);
-                  console.log(`成功通过深度清理XML解析RSS源: ${feedUrl}`);
+                  // 检查是否成功解析（支持RSS和Atom）
+                  if (feed && (feed.items || feed.entries)) {
+                    if (!feed.items && feed.entries) {
+                      feed.items = feed.entries;
+                    }
+                    console.log(`成功通过深度清理XML解析RSS源: ${feedUrl}`);
+                  } else {
+                    // 尝试手动解析Atom格式
+                    if (/<feed/i.test(deepCleaned) || /<entry/i.test(deepCleaned)) {
+                      console.log(`深度清理后检测到Atom格式，尝试手动解析: ${feedUrl}`);
+                      const $ = cheerio.load(deepCleaned, { xmlMode: true });
+                      const entries = [];
+                      $('entry').each((i, elem) => {
+                        const entry = {
+                          title: $(elem).find('title').text(),
+                          link: $(elem).find('link').attr('href') || $(elem).find('link').text(),
+                          guid: $(elem).find('id').text(),
+                          pubDate: $(elem).find('published').text() || $(elem).find('updated').text(),
+                          description: $(elem).find('summary').text() || $(elem).find('content').text(),
+                          content: $(elem).find('content').html() || $(elem).find('content').text(),
+                        };
+                        if (entry.title || entry.link) {
+                          entries.push(entry);
+                        }
+                      });
+                      if (entries.length > 0) {
+                        feed = {
+                          title: $('feed > title').text() || 'Atom Feed',
+                          items: entries,
+                          entries: entries
+                        };
+                        console.log(`成功通过手动解析Atom格式: ${feedUrl}，找到 ${entries.length} 个条目`);
+                      } else {
+                        throw new Error('深度清理后解析结果为空');
+                      }
+                    } else {
+                      throw new Error('深度清理后解析结果为空');
+                    }
+                  }
                 } catch (deepParseError) {
                   // 如果深度清理后仍然失败，尝试更宽松的处理
                   console.log(`深度清理后解析仍失败，尝试更宽松的处理: ${feedUrl}`);
@@ -191,7 +284,45 @@ class RSSCrawler extends BaseCrawler {
                   
                   try {
                     feed = await this.parser.parseString(ultraCleaned);
-                    console.log(`成功通过超宽松清理XML解析RSS源: ${feedUrl}`);
+                    // 检查是否成功解析
+                    if (feed && (feed.items || feed.entries)) {
+                      if (!feed.items && feed.entries) {
+                        feed.items = feed.entries;
+                      }
+                      console.log(`成功通过超宽松清理XML解析RSS源: ${feedUrl}`);
+                    } else {
+                      // 最后尝试手动解析Atom
+                      if (/<feed/i.test(ultraCleaned) || /<entry/i.test(ultraCleaned)) {
+                        console.log(`超宽松清理后检测到Atom格式，尝试手动解析: ${feedUrl}`);
+                        const $ = cheerio.load(ultraCleaned, { xmlMode: true });
+                        const entries = [];
+                        $('entry').each((i, elem) => {
+                          const entry = {
+                            title: $(elem).find('title').text(),
+                            link: $(elem).find('link').attr('href') || $(elem).find('link').text(),
+                            guid: $(elem).find('id').text(),
+                            pubDate: $(elem).find('published').text() || $(elem).find('updated').text(),
+                            description: $(elem).find('summary').text() || $(elem).find('content').text(),
+                            content: $(elem).find('content').html() || $(elem).find('content').text(),
+                          };
+                          if (entry.title || entry.link) {
+                            entries.push(entry);
+                          }
+                        });
+                        if (entries.length > 0) {
+                          feed = {
+                            title: $('feed > title').text() || 'Atom Feed',
+                            items: entries,
+                            entries: entries
+                          };
+                          console.log(`成功通过手动解析Atom格式: ${feedUrl}，找到 ${entries.length} 个条目`);
+                        } else {
+                          throw deepParseError;
+                        }
+                      } else {
+                        throw deepParseError;
+                      }
+                    }
                   } catch (ultraError) {
                     throw deepParseError;
                   }
@@ -213,6 +344,11 @@ class RSSCrawler extends BaseCrawler {
               throw xmlError;
             }
           }
+        }
+
+        // 确保feed.items存在（Atom格式可能在entries中）
+        if (!feed.items && feed.entries) {
+          feed.items = feed.entries;
         }
 
         // 计算半年前的日期

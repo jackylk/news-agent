@@ -2262,87 +2262,67 @@
     <div id="featuresPage" class="content-page">
       <div class="page-header">
         <h2>特性介绍</h2>
-        <p>了解系统的核心功能和最新更新</p>
+        <p>了解系统的核心功能</p>
       </div>
 
-      <!-- 页签切换 -->
-      <div class="section" style="padding: 0;">
-        <div class="features-tabs">
-          <button class="features-tab active" onclick="switchFeaturesTab('major', event)">重大特性</button>
-          <button class="features-tab" onclick="switchFeaturesTab('changelog', event)">更新历史</button>
-        </div>
-      </div>
-
-      <!-- 重大特性页签内容 -->
-      <div id="majorFeaturesTab" class="features-tab-content active">
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">🔐</div>
-            <h3 class="feature-title">用户认证系统</h3>
-            <p class="feature-description">完整的用户注册、登录和认证系统，使用 JWT token 进行身份验证，确保用户数据安全。</p>
-            <div class="feature-value">
-              <div class="feature-value-label">💎 对用户的价值</div>
-              <div class="feature-value-text">保护个人隐私，每个用户只能看到自己订阅的内容，数据安全可靠。</div>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div class="feature-icon">🤖</div>
-            <h3 class="feature-title">AI 智能推荐信息源</h3>
-            <p class="feature-description">基于 DeepSeek AI 的智能推荐系统，根据用户输入的关键词自动推荐高质量的信息源。</p>
-            <div class="feature-value">
-              <div class="feature-value-label">💎 对用户的价值</div>
-              <div class="feature-value-text">无需手动搜索，AI 自动为您找到最相关的优质信息源，节省大量时间。</div>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div class="feature-icon">📰</div>
-            <h3 class="feature-title">个性化新闻收集</h3>
-            <p class="feature-description">系统根据每个用户的订阅自动收集新闻，每 10 分钟更新一次，确保内容及时性。</p>
-            <div class="feature-value">
-              <div class="feature-value-label">💎 对用户的价值</div>
-              <div class="feature-value-text">只看到您关心的内容，不会被无关信息干扰，提高阅读效率。</div>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div class="feature-icon">📋</div>
-            <h3 class="feature-title">多源订阅管理</h3>
-            <p class="feature-description">支持订阅多个信息源，支持 RSS 和博客两种类型，统一管理所有订阅。</p>
-            <div class="feature-value">
-              <div class="feature-value-label">💎 对用户的价值</div>
-              <div class="feature-value-text">在一个地方管理所有信息源，无需访问多个网站，方便快捷。</div>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div class="feature-icon">📖</div>
-            <h3 class="feature-title">文章阅读体验</h3>
-            <p class="feature-description">支持按主题和信息源过滤，提供文章摘要生成和翻译功能，优化阅读体验。</p>
-            <div class="feature-value">
-              <div class="feature-value-label">💎 对用户的价值</div>
-              <div class="feature-value-text">快速定位感兴趣的内容，支持多语言阅读，提升阅读效率。</div>
-            </div>
-          </div>
-
-          <div class="feature-card">
-            <div class="feature-icon">🐦</div>
-            <h3 class="feature-title">最新推文功能</h3>
-            <p class="feature-description">通过 Nitter 抓取 Twitter/X 推文，支持搜索和按用户过滤，方便关注特定账号。</p>
-            <div class="feature-value">
-              <div class="feature-value-label">💎 对用户的价值</div>
-              <div class="feature-value-text">无需登录 Twitter，即可查看关注账号的最新推文，保护隐私。</div>
-            </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3 class="feature-title">用户认证系统</h3>
+          <p class="feature-description">完整的用户注册、登录和认证系统，使用 JWT token 进行身份验证，确保用户数据安全。</p>
+          <div class="feature-value">
+            <div class="feature-value-label">💎 对用户的价值</div>
+            <div class="feature-value-text">保护个人隐私，每个用户只能看到自己订阅的内容，数据安全可靠。</div>
           </div>
         </div>
-      </div>
 
-      <!-- 更新历史页签内容 -->
-      <div id="changelogTab" class="features-tab-content">
-        <div class="section">
-          <div id="changelogContent" class="changelog-content">
-            <div class="loading">加载更新历史中...</div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3 class="feature-title">AI 智能推荐信息源</h3>
+          <p class="feature-description">基于 DeepSeek AI 的智能推荐系统，根据用户输入的关键词自动推荐高质量的信息源。</p>
+          <div class="feature-value">
+            <div class="feature-value-label">💎 对用户的价值</div>
+            <div class="feature-value-text">无需手动搜索，AI 自动为您找到最相关的优质信息源，节省大量时间。</div>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📰</div>
+          <h3 class="feature-title">个性化新闻收集</h3>
+          <p class="feature-description">系统根据每个用户的订阅自动收集新闻，每 10 分钟更新一次，确保内容及时性。</p>
+          <div class="feature-value">
+            <div class="feature-value-label">💎 对用户的价值</div>
+            <div class="feature-value-text">只看到您关心的内容，不会被无关信息干扰，提高阅读效率。</div>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <h3 class="feature-title">多源订阅管理</h3>
+          <p class="feature-description">支持订阅多个信息源，支持 RSS 和博客两种类型，统一管理所有订阅。</p>
+          <div class="feature-value">
+            <div class="feature-value-label">💎 对用户的价值</div>
+            <div class="feature-value-text">在一个地方管理所有信息源，无需访问多个网站，方便快捷。</div>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📖</div>
+          <h3 class="feature-title">文章阅读体验</h3>
+          <p class="feature-description">支持按主题和信息源过滤，提供文章摘要生成和翻译功能，优化阅读体验。</p>
+          <div class="feature-value">
+            <div class="feature-value-label">💎 对用户的价值</div>
+            <div class="feature-value-text">快速定位感兴趣的内容，支持多语言阅读，提升阅读效率。</div>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🐦</div>
+          <h3 class="feature-title">最新推文功能</h3>
+          <p class="feature-description">通过 Nitter 抓取 Twitter/X 推文，支持搜索和按用户过滤，方便关注特定账号。</p>
+          <div class="feature-value">
+            <div class="feature-value-label">💎 对用户的价值</div>
+            <div class="feature-value-text">无需登录 Twitter，即可查看关注账号的最新推文，保护隐私。</div>
           </div>
         </div>
       </div>
@@ -2484,9 +2464,6 @@
             console.error('❌ 加载主题页签失败:', err);
           });
         }
-      } else if (page === 'features') {
-        // 加载更新历史
-        loadChangelog();
       }
     }
 
@@ -2499,106 +2476,6 @@
       }
     }
 
-    // 切换特性介绍页签
-    function switchFeaturesTab(tab, event) {
-      // 更新页签按钮状态
-      document.querySelectorAll('.features-tab').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      if (event && event.target) {
-        event.target.classList.add('active');
-      } else {
-        // 如果没有 event，通过 tab 参数找到对应的按钮
-        document.querySelectorAll('.features-tab').forEach((btn, index) => {
-          if ((tab === 'major' && index === 0) || (tab === 'changelog' && index === 1)) {
-            btn.classList.add('active');
-          }
-        });
-      }
-
-      // 更新页签内容显示
-      document.querySelectorAll('.features-tab-content').forEach(content => {
-        content.classList.remove('active');
-      });
-      
-      if (tab === 'major') {
-        document.getElementById('majorFeaturesTab').classList.add('active');
-      } else if (tab === 'changelog') {
-        document.getElementById('changelogTab').classList.add('active');
-        loadChangelog();
-      }
-    }
-
-    // 加载更新历史
-    async function loadChangelog() {
-      const changelogContent = document.getElementById('changelogContent');
-      if (!changelogContent) return;
-
-      try {
-        changelogContent.innerHTML = '<div class="loading">加载更新历史中...</div>';
-        
-        const response = await fetch('/changelog.json');
-        if (!response.ok) {
-          throw new Error('无法加载更新历史');
-        }
-        
-        const data = await response.json();
-        
-        if (!data.updates || data.updates.length === 0) {
-          changelogContent.innerHTML = '<div class="empty-state">暂无更新历史</div>';
-          return;
-        }
-
-        let html = '';
-        data.updates.forEach(update => {
-          html += '<div class="changelog-item">';
-          html += '<div class="changelog-header">';
-          html += `<span class="changelog-version">版本 ${update.version}</span>`;
-          html += `<span class="changelog-date">${update.date}</span>`;
-          html += '</div>';
-          
-          if (update.features && update.features.length > 0) {
-            html += '<div class="changelog-section">';
-            html += '<div class="changelog-section-title">✨ 新增功能</div>';
-            html += '<ul>';
-            update.features.forEach(feature => {
-              html += `<li>${feature}</li>`;
-            });
-            html += '</ul>';
-            html += '</div>';
-          }
-          
-          if (update.improvements && update.improvements.length > 0) {
-            html += '<div class="changelog-section">';
-            html += '<div class="changelog-section-title">🚀 改进和优化</div>';
-            html += '<ul>';
-            update.improvements.forEach(improvement => {
-              html += `<li>${improvement}</li>`;
-            });
-            html += '</ul>';
-            html += '</div>';
-          }
-          
-          if (update.fixes && update.fixes.length > 0) {
-            html += '<div class="changelog-section">';
-            html += '<div class="changelog-section-title">🐛 Bug 修复</div>';
-            html += '<ul>';
-            update.fixes.forEach(fix => {
-              html += `<li>${fix}</li>`;
-            });
-            html += '</ul>';
-            html += '</div>';
-          }
-          
-          html += '</div>';
-        });
-        
-        changelogContent.innerHTML = html;
-      } catch (error) {
-        console.error('加载更新历史失败:', error);
-        changelogContent.innerHTML = '<div class="empty-state">加载更新历史失败，请稍后重试</div>';
-      }
-    }
 
     function showMessage(text, type) {
       const messageEl = document.getElementById('message');
