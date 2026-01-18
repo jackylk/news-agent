@@ -1059,6 +1059,8 @@ class NewsCollector {
     console.log(`================================================\n`);
     
     let totalCollected = 0;
+    let totalRelevant = 0; // 总相关文章数量
+    let totalIrrelevant = 0; // 总不相关文章数量
     const totalSources = subscriptions.length;
     
     // 用于批量收集文章（所有信息源的文章）
@@ -1126,11 +1128,17 @@ class NewsCollector {
         
         console.log(`[DeepSeek过滤-批次${batchIndex}] 判断完成：相关 ${relevantArticles.length} 篇，不相关 ${irrelevantCount} 篇`);
         
-        // 保存相关文章
-        for (const articleData of relevantArticles) {
+        // 保存所有文章（包括不相关的），但标记相关性
+        let batchRelevant = 0;
+        let batchIrrelevant = 0;
+        
+        for (let i = 0; i < articles.length; i++) {
+          const articleData = articles[i];
+          const isRelevant = relevanceResults[i];
+          
           articleData.user_id = userId;
           articleData.topic_keywords = finalTopicKeywords;
-          articleData.is_relevant_to_topic = true;
+          articleData.is_relevant_to_topic = isRelevant;
           
           await new Promise((resolve, reject) => {
             News.create(articleData, (err, result) => {
@@ -1143,7 +1151,15 @@ class NewsCollector {
                 }
               } else if (result) {
                 totalCollected++;
-                console.log(`[用户${userId}] 已保存相关文章: ${articleData.title}`);
+                if (isRelevant) {
+                  batchRelevant++;
+                  totalRelevant++;
+                } else {
+                  batchIrrelevant++;
+                  totalIrrelevant++;
+                }
+                const relevanceText = isRelevant ? '相关' : '不相关';
+                console.log(`[用户${userId}] 已保存${relevanceText}文章: ${articleData.title}`);
                 
                 if (onProgress) {
                   onProgress({
@@ -1152,7 +1168,7 @@ class NewsCollector {
                       id: result.id,
                       ...articleData,
                       date: articleData.publish_date,
-                      is_relevant_to_topic: true
+                      is_relevant_to_topic: isRelevant
                     }
                   });
                 }
@@ -1163,6 +1179,8 @@ class NewsCollector {
             });
           });
         }
+        
+        console.log(`[DeepSeek过滤-批次${batchIndex}] 保存完成：相关 ${batchRelevant} 篇，不相关 ${batchIrrelevant} 篇`);
       } catch (error) {
         console.error(`[DeepSeek过滤-批次${batchIndex}] 处理失败:`, error.message);
         // 如果判断失败，保守策略：保存所有文章
@@ -1357,14 +1375,13 @@ class NewsCollector {
     }
     
     // 发送最终过滤统计信息（如果有主题关键词）
-    if (finalTopicKeywords && finalTopicKeywords.trim() && allCollectedArticles.length > 0) {
-      // 这里可以发送一个汇总统计，但具体数字已经在各批次中处理了
+    if (finalTopicKeywords && finalTopicKeywords.trim() && totalRelevant + totalIrrelevant > 0) {
       if (onProgress) {
         onProgress({
           type: 'filterStats',
-          total: allCollectedArticles.length,
-          relevant: totalCollected, // 实际保存的数量
-          irrelevant: allCollectedArticles.length - totalCollected,
+          total: totalRelevant + totalIrrelevant,
+          relevant: totalRelevant,
+          irrelevant: totalIrrelevant,
           topicKeywords: finalTopicKeywords
         });
       }

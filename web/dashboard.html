@@ -1249,6 +1249,24 @@
       height: 100%;
     }
 
+    /* 不相关文章的样式 */
+    .article-card.irrelevant {
+      background: #fafafa;
+      border-color: #e0e0e0;
+      opacity: 0.85;
+    }
+
+    .article-card.irrelevant::before {
+      background: linear-gradient(135deg, #9e9e9e 0%, #bdbdbd 100%);
+    }
+
+    .article-card.irrelevant:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(158, 158, 158, 0.15);
+      border-color: #bdbdbd;
+      opacity: 0.95;
+    }
+
     .article-card::before {
       content: '';
       position: absolute;
@@ -1269,6 +1287,29 @@
 
     .article-card:hover::before {
       transform: scaleY(1);
+    }
+
+    /* 不相关标签 */
+    .article-irrelevant-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+      color: white;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      z-index: 10;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .article-card.irrelevant .article-card-title {
+      color: #666;
+    }
+
+    .article-card.irrelevant:hover .article-card-title {
+      color: #757575;
     }
 
     .article-card-title {
@@ -3569,7 +3610,7 @@
                   }
                 } else if (progress.type === 'filterStats') {
                   // 显示过滤统计信息
-                  const statsMsg = `✓ 找到 ${progress.relevant} 篇相关文章，过滤了 ${progress.irrelevant} 篇不相关文章（主题：${progress.topicKeywords}）`;
+                  const statsMsg = `✓ 找到 ${progress.relevant} 篇相关文章，标记了 ${progress.irrelevant} 篇不相关文章（主题：${progress.topicKeywords}）`;
                   if (progressTextEl) {
                     progressTextEl.textContent = statsMsg;
                   }
@@ -3780,8 +3821,13 @@
         
         // 渲染该日期下的所有文章
         group.articles.forEach(article => {
+          const isIrrelevant = article.is_relevant_to_topic === false;
+          const cardClass = isIrrelevant ? 'article-card irrelevant' : 'article-card';
+          const irrelevantBadge = isIrrelevant ? '<span class="article-irrelevant-badge">不相关</span>' : '';
+          
           html += `
-            <div class="article-card" onclick="viewArticle(${article.id})">
+            <div class="${cardClass}" onclick="viewArticle(${article.id})">
+              ${irrelevantBadge}
               <div class="article-card-title">${escapeHtml(article.title)}</div>
               <div class="article-card-meta">
                 <span class="article-card-source">${escapeHtml(article.source || '未知')}</span>
@@ -5606,8 +5652,13 @@
         
         // 渲染该日期下的所有文章
         group.articles.forEach(article => {
+          const isIrrelevant = article.is_relevant_to_topic === false;
+          const cardClass = isIrrelevant ? 'article-card irrelevant' : 'article-card';
+          const irrelevantBadge = isIrrelevant ? '<span class="article-irrelevant-badge">不相关</span>' : '';
+          
           html += `
-            <div class="article-card" onclick="viewArticle(${article.id})">
+            <div class="${cardClass}" onclick="viewArticle(${article.id})">
+              ${irrelevantBadge}
               <div class="article-card-title">${escapeHtml(article.title)}</div>
               <div class="article-card-meta">
                 <span class="article-card-source">${escapeHtml(article.source || '未知')}</span>
