@@ -487,4 +487,64 @@ router.delete('/subscriptions/:sourceName', (req, res) => {
   });
 });
 
+// 获取内置信息源列表
+router.get('/curated-sources', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, '../data/curated-sources.json');
+    
+    if (!fs.existsSync(filePath)) {
+      return res.json({
+        success: true,
+        sources: [],
+        total: 0,
+        stats: {
+          byType: {},
+          byRegion: {},
+          byCategory: {}
+        }
+      });
+    }
+    
+    const content = fs.readFileSync(filePath, 'utf8');
+    const sources = JSON.parse(content);
+    
+    // 计算统计信息
+    const stats = {
+      byType: {},
+      byRegion: {},
+      byCategory: {}
+    };
+    
+    sources.forEach(source => {
+      // 按类型统计
+      const type = source.sourceType || 'unknown';
+      stats.byType[type] = (stats.byType[type] || 0) + 1;
+      
+      // 按地区统计
+      const region = source.region || 'unknown';
+      stats.byRegion[region] = (stats.byRegion[region] || 0) + 1;
+      
+      // 按分类统计
+      const category = source.category || 'unknown';
+      stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
+    });
+    
+    res.json({
+      success: true,
+      sources: sources,
+      total: sources.length,
+      stats: stats
+    });
+  } catch (error) {
+    console.error('[获取内置信息源] 错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取内置信息源失败',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

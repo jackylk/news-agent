@@ -181,6 +181,218 @@
     .btn-primary:hover {
       opacity: 0.9;
     }
+
+    /* 内置信息源样式 */
+    .curated-sources-header {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      padding: 8px 0;
+      transition: background-color 0.2s;
+      border-radius: 8px;
+      margin: -8px -8px 0 -8px;
+      padding: 8px;
+    }
+
+    .curated-sources-header:hover {
+      background-color: #f8f9fa;
+    }
+
+    .curated-sources-header h2 {
+      margin: 0;
+      flex: 1;
+    }
+
+    .curated-sources-count {
+      color: #667eea;
+      font-size: 14px;
+      font-weight: normal;
+      margin-left: 8px;
+    }
+
+    .curated-sources-toggle {
+      font-size: 12px;
+      color: #666;
+      margin-left: 12px;
+      transition: transform 0.3s;
+    }
+
+    .curated-sources-content {
+      margin-top: 20px;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .curated-sources-stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 150px;
+      padding: 16px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      font-size: 24px;
+      margin: 0 0 4px 0;
+      color: #333;
+    }
+
+    .stat-card p {
+      margin: 0;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .curated-sources-filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .curated-sources-filters select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      min-width: 120px;
+    }
+
+    .curated-sources-filters select:hover {
+      border-color: #667eea;
+    }
+
+    .curated-sources-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .curated-sources-actions label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .curated-sources-filtered-count {
+      margin-left: auto;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .curated-sources-table-container {
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .curated-sources-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    .curated-sources-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+      padding: 12px;
+      text-align: left;
+      border-bottom: 2px solid #ddd;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .curated-sources-table td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .curated-sources-table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .curated-source-checkbox {
+      cursor: pointer;
+    }
+
+    .curated-source-name {
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .curated-source-url {
+      color: #667eea;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .curated-source-type {
+      padding: 4px 8px;
+      background-color: #e3f2fd;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #1976d2;
+    }
+
+    .curated-source-region {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .curated-source-region.region-domestic {
+      background-color: #fff3e0;
+      color: #e65100;
+    }
+
+    .curated-source-region.region-foreign {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .curated-source-category {
+      padding: 4px 8px;
+      background-color: #f3e5f5;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #7b1fa2;
+    }
+
+    .curated-source-description {
+      font-size: 13px;
+      color: #666;
+      max-width: 300px;
+    }
   </style>
 </head>
 <body>
@@ -196,6 +408,67 @@
       <h2>我的订阅</h2>
       <div id="subscriptionsList">
         <div class="loading">加载中...</div>
+      </div>
+    </div>
+
+    <!-- 内置信息源展示区域 -->
+    <div class="section">
+      <div class="curated-sources-header" onclick="toggleCuratedSources()">
+        <h2>内置信息源</h2>
+        <span class="curated-sources-count" id="curatedSourcesCount">(加载中...)</span>
+        <span class="curated-sources-toggle" id="curatedSourcesToggle">▼</span>
+      </div>
+      <div class="curated-sources-content" id="curatedSourcesContent" style="display: none;">
+        <!-- 统计信息卡片 -->
+        <div class="curated-sources-stats" id="curatedSourcesStats"></div>
+        
+        <!-- 筛选器 -->
+        <div class="curated-sources-filters">
+          <select id="filterType" onchange="filterCuratedSources()">
+            <option value="">全部类型</option>
+          </select>
+          <select id="filterCategory" onchange="filterCuratedSources()">
+            <option value="">全部分类</option>
+          </select>
+          <select id="filterRegion" onchange="filterCuratedSources()">
+            <option value="">全部地区</option>
+            <option value="国内">国内</option>
+            <option value="国外">国外</option>
+          </select>
+        </div>
+        
+        <!-- 批量操作 -->
+        <div class="curated-sources-actions">
+          <label>
+            <input type="checkbox" id="selectAllCurated" onchange="toggleSelectAllCurated()">
+            全选
+          </label>
+          <button class="btn-primary" onclick="subscribeSelectedCurated()">订阅选中</button>
+          <span class="curated-sources-filtered-count" id="curatedSourcesFilteredCount"></span>
+        </div>
+        
+        <!-- 信息源表格 -->
+        <div class="curated-sources-table-container">
+          <table class="curated-sources-table">
+            <thead>
+              <tr>
+                <th width="40">
+                  <input type="checkbox" id="selectAllCuratedHeader" onchange="toggleSelectAllCurated()">
+                </th>
+                <th>信息源名称</th>
+                <th width="100">类型</th>
+                <th width="80">地区</th>
+                <th width="100">分类</th>
+                <th>描述</th>
+              </tr>
+            </thead>
+            <tbody id="curatedSourcesTableBody">
+              <tr>
+                <td colspan="6" class="loading">加载中...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -341,9 +614,255 @@
       return div.innerHTML;
     }
 
+    // 内置信息源相关变量
+    let curatedSources = [];
+    let filteredCuratedSources = [];
+    let userSubscriptions = [];
+
+    // 切换内置信息源展开/折叠
+    function toggleCuratedSources() {
+      const content = document.getElementById('curatedSourcesContent');
+      const toggle = document.getElementById('curatedSourcesToggle');
+      const isExpanded = content.style.display !== 'none';
+      
+      if (isExpanded) {
+        content.style.display = 'none';
+        toggle.textContent = '▼';
+      } else {
+        content.style.display = 'block';
+        toggle.textContent = '▲';
+        if (curatedSources.length === 0) {
+          loadCuratedSources();
+        }
+      }
+    }
+
+    // 加载内置信息源
+    async function loadCuratedSources() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/curated-sources`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          curatedSources = result.sources || [];
+          filteredCuratedSources = [...curatedSources];
+          
+          // 更新计数
+          document.getElementById('curatedSourcesCount').textContent = `(${curatedSources.length}个)`;
+          
+          // 渲染统计信息
+          renderCuratedSourcesStats(result.stats);
+          
+          // 渲染筛选器选项
+          renderCuratedSourcesFilters(result.stats);
+          
+          // 加载用户订阅列表（用于标记已订阅）
+          await loadUserSubscriptionsForCurated();
+          
+          // 渲染表格
+          renderCuratedSourcesTable();
+        } else {
+          showMessage('加载内置信息源失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        showMessage('加载内置信息源失败: ' + error.message, 'error');
+        document.getElementById('curatedSourcesTableBody').innerHTML = 
+          '<tr><td colspan="6" class="empty-state">加载失败</td></tr>';
+      }
+    }
+
+    // 加载用户订阅列表（用于标记已订阅）
+    async function loadUserSubscriptionsForCurated() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          userSubscriptions = result.data || [];
+        }
+      } catch (error) {
+        console.error('加载用户订阅失败:', error);
+      }
+    }
+
+    // 渲染统计信息
+    function renderCuratedSourcesStats(stats) {
+      const statsEl = document.getElementById('curatedSourcesStats');
+      if (!statsEl || !stats) return;
+      
+      const totalByType = Object.values(stats.byType || {}).reduce((a, b) => a + b, 0);
+      const totalByRegion = Object.values(stats.byRegion || {}).reduce((a, b) => a + b, 0);
+      const totalByCategory = Object.values(stats.byCategory || {}).reduce((a, b) => a + b, 0);
+      
+      statsEl.innerHTML = `
+        <div class="stat-card">
+          <h3>${curatedSources.length}</h3>
+          <p>总信息源数</p>
+        </div>
+        <div class="stat-card">
+          <h3>${Object.keys(stats.byType || {}).length}</h3>
+          <p>信息源类型</p>
+        </div>
+        <div class="stat-card">
+          <h3>${stats.byRegion['国内'] || 0}</h3>
+          <p>国内信息源</p>
+        </div>
+        <div class="stat-card">
+          <h3>${stats.byRegion['国外'] || 0}</h3>
+          <p>国外信息源</p>
+        </div>
+      `;
+    }
+
+    // 渲染筛选器选项
+    function renderCuratedSourcesFilters(stats) {
+      // 类型筛选器
+      const typeSelect = document.getElementById('filterType');
+      const types = Object.keys(stats.byType || {}).sort();
+      typeSelect.innerHTML = '<option value="">全部类型</option>' + 
+        types.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(type)} (${stats.byType[type]})</option>`).join('');
+      
+      // 分类筛选器
+      const categorySelect = document.getElementById('filterCategory');
+      const categories = Object.keys(stats.byCategory || {}).sort();
+      categorySelect.innerHTML = '<option value="">全部分类</option>' + 
+        categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)} (${stats.byCategory[cat]})</option>`).join('');
+    }
+
+    // 筛选内置信息源
+    function filterCuratedSources() {
+      const typeFilter = document.getElementById('filterType').value;
+      const categoryFilter = document.getElementById('filterCategory').value;
+      const regionFilter = document.getElementById('filterRegion').value;
+      
+      filteredCuratedSources = curatedSources.filter(source => {
+        if (typeFilter && source.sourceType !== typeFilter) return false;
+        if (categoryFilter && source.category !== categoryFilter) return false;
+        if (regionFilter && source.region !== regionFilter) return false;
+        return true;
+      });
+      
+      renderCuratedSourcesTable();
+    }
+
+    // 渲染内置信息源表格
+    function renderCuratedSourcesTable() {
+      const tbody = document.getElementById('curatedSourcesTableBody');
+      const countEl = document.getElementById('curatedSourcesFilteredCount');
+      
+      if (filteredCuratedSources.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">没有匹配的信息源</td></tr>';
+        countEl.textContent = '';
+        return;
+      }
+      
+      countEl.textContent = `显示 ${filteredCuratedSources.length} / 共 ${curatedSources.length} 个信息源`;
+      
+      tbody.innerHTML = filteredCuratedSources.map((source, index) => {
+        const isSubscribed = userSubscriptions.some(sub => 
+          sub.source_name === source.sourceName && sub.source_url === source.sourceUrl
+        );
+        
+        const regionClass = source.region === '国内' ? 'region-domestic' : 'region-foreign';
+        
+        return `
+          <tr>
+            <td>
+              <input type="checkbox" class="curated-source-checkbox" 
+                     data-index="${index}" 
+                     data-source='${escapeHtml(JSON.stringify(source))}'
+                     ${isSubscribed ? 'checked disabled' : ''}>
+            </td>
+            <td>
+              <div class="curated-source-name">${escapeHtml(source.sourceName)}</div>
+              <div class="curated-source-url" title="${escapeHtml(source.sourceUrl)}">${escapeHtml(source.sourceUrl)}</div>
+            </td>
+            <td>
+              <span class="curated-source-type">${escapeHtml(source.sourceType || 'rss')}</span>
+            </td>
+            <td>
+              <span class="curated-source-region ${regionClass}">${escapeHtml(source.region || '未知')}</span>
+            </td>
+            <td>
+              <span class="curated-source-category">${escapeHtml(source.category || '未分类')}</span>
+            </td>
+            <td class="curated-source-description" title="${escapeHtml(source.description || '')}">
+              ${escapeHtml((source.description || '').substring(0, 50))}${(source.description || '').length > 50 ? '...' : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 全选/取消全选
+    function toggleSelectAllCurated() {
+      const selectAll = document.getElementById('selectAllCurated');
+      const selectAllHeader = document.getElementById('selectAllCuratedHeader');
+      const checkboxes = document.querySelectorAll('.curated-source-checkbox:not(:disabled)');
+      
+      const isChecked = selectAll.checked || selectAllHeader.checked;
+      checkboxes.forEach(cb => cb.checked = isChecked);
+      
+      // 同步两个全选按钮
+      selectAll.checked = isChecked;
+      selectAllHeader.checked = isChecked;
+    }
+
+    // 订阅选中的内置信息源
+    async function subscribeSelectedCurated() {
+      const checkboxes = document.querySelectorAll('.curated-source-checkbox:checked:not(:disabled)');
+      
+      if (checkboxes.length === 0) {
+        showMessage('请先选择要订阅的信息源', 'error');
+        return;
+      }
+      
+      const subscriptions = Array.from(checkboxes).map(cb => {
+        const source = JSON.parse(cb.getAttribute('data-source'));
+        return {
+          sourceName: source.sourceName,
+          sourceUrl: source.sourceUrl,
+          sourceType: source.sourceType || 'rss',
+          category: source.category || '未分类',
+          description: source.description || '',
+          region: source.region || '国外'
+        };
+      });
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ subscriptions })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(`成功订阅 ${subscriptions.length} 个信息源`, 'success');
+          // 重新加载订阅列表和内置信息源表格
+          await loadSubscriptions();
+          await loadUserSubscriptionsForCurated();
+          renderCuratedSourcesTable();
+          // 取消全选
+          document.getElementById('selectAllCurated').checked = false;
+          document.getElementById('selectAllCuratedHeader').checked = false;
+        } else {
+          showMessage(result.message || '订阅失败', 'error');
+        }
+      } catch (error) {
+        showMessage('订阅失败: ' + error.message, 'error');
+      }
+    }
+
     // 页面加载时
     window.onload = async function() {
       await loadSubscriptions();
+      // 不自动加载内置信息源，等用户展开时再加载
     };
   </script>
 </body>
