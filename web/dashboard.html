@@ -855,6 +855,36 @@
       flex-wrap: wrap;
     }
 
+    .section .manual-add-source-form {
+      margin-top: 16px;
+    }
+
+    .section .manual-add-source-form .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .section .manual-add-source-form .form-group label {
+      font-size: 13px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .section .manual-add-source-form .form-group input,
+    .section .manual-add-source-form .form-group select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .section .manual-add-source-form .form-group input:focus,
+    .section .manual-add-source-form .form-group select:focus {
+      outline: none;
+      border-color: #8B5CF6;
+    }
+
     .manual-add-source-form .form-group {
       display: flex;
       flex-direction: column;
@@ -2339,6 +2369,30 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- 手动添加信息源 -->
+      <div class="section">
+        <h3>📝 手动添加信息源</h3>
+        <div class="manual-add-source-form">
+          <div class="form-group">
+            <label for="manualSourceNameGlobal">信息源名称</label>
+            <input type="text" id="manualSourceNameGlobal" placeholder="请输入信息源名称" onkeypress="if(event.key==='Enter') document.getElementById('manualSourceUrlGlobal').focus()" />
+          </div>
+          <div class="form-group" style="flex: 2; min-width: 300px;">
+            <label for="manualSourceUrlGlobal">信息源URL</label>
+            <input type="url" id="manualSourceUrlGlobal" placeholder="https://example.com/feed.xml" onkeypress="if(event.key==='Enter') handleManualAddSourceGlobal()" />
+          </div>
+          <div class="form-group">
+            <label for="manualSourceTopicGlobal">关联主题</label>
+            <select id="manualSourceTopicGlobal" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-width: 200px;">
+              <option value="">请选择主题</option>
+            </select>
+          </div>
+          <button class="manual-add-source-btn" onclick="handleManualAddSourceGlobal()" id="manualAddBtnGlobal">
+            添加并订阅
+          </button>
         </div>
       </div>
     </div>
@@ -6446,6 +6500,117 @@
       }
     }
 
+    // 加载手动添加信息源的主题选择器
+    async function loadManualAddSourceTopics() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/topics`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
+        const result = await response.json();
+
+        if (result.success && result.data && result.data.length > 0) {
+          const topicSelect = document.getElementById('manualSourceTopicGlobal');
+          if (topicSelect) {
+            topicSelect.innerHTML = '<option value="">请选择主题</option>' + 
+              result.data.map(topic => `<option value="${escapeHtml(topic.topic_keywords)}">${escapeHtml(topic.topic_keywords)}</option>`).join('');
+          }
+        }
+      } catch (error) {
+        console.error('加载主题列表失败:', error);
+      }
+    }
+
+    // 处理页面底部的手动添加信息源
+    async function handleManualAddSourceGlobal() {
+      const sourceNameInput = document.getElementById('manualSourceNameGlobal');
+      const sourceUrlInput = document.getElementById('manualSourceUrlGlobal');
+      const topicSelect = document.getElementById('manualSourceTopicGlobal');
+      const addBtn = document.getElementById('manualAddBtnGlobal');
+      
+      if (!sourceNameInput || !sourceUrlInput || !topicSelect || !addBtn) {
+        showMessage('找不到输入框', 'error');
+        return;
+      }
+      
+      const sourceName = sourceNameInput.value.trim();
+      const sourceUrl = sourceUrlInput.value.trim();
+      const topicKeywords = topicSelect.value.trim();
+      
+      if (!sourceName) {
+        showMessage('请输入信息源名称', 'error');
+        sourceNameInput.focus();
+        return;
+      }
+      
+      if (!sourceUrl) {
+        showMessage('请输入信息源URL', 'error');
+        sourceUrlInput.focus();
+        return;
+      }
+      
+      if (!topicKeywords) {
+        showMessage('请选择要关联的主题', 'error');
+        topicSelect.focus();
+        return;
+      }
+      
+      // 禁用按钮
+      addBtn.disabled = true;
+      addBtn.textContent = '添加中...';
+      
+      try {
+        // 判断信息源类型
+        let sourceType = 'rss';
+        const urlLower = sourceUrl.toLowerCase();
+        if (!urlLower.includes('rss') && !urlLower.includes('feed') && !urlLower.includes('.xml') && !urlLower.includes('atom')) {
+          sourceType = 'blog';
+        }
+        
+        const subscriptionData = {
+          sourceName: sourceName,
+          sourceUrl: sourceUrl,
+          sourceType: sourceType,
+          topicKeywords: topicKeywords
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ subscriptions: [subscriptionData] })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showMessage(`成功添加并订阅信息源：${sourceName}`, 'success');
+          
+          // 清空输入框
+          sourceNameInput.value = '';
+          sourceUrlInput.value = '';
+          topicSelect.value = '';
+          
+          // 重新加载订阅列表
+          await loadUserSubscriptions();
+          
+          // 如果文章阅读页面的主题页签已加载，刷新它们
+          const articlesTopicsTabsHeader = document.getElementById('articlesTopicsTabsHeader');
+          if (articlesTopicsTabsHeader && articlesTopicsTabsHeader.children.length > 0) {
+            console.log('📚 手动添加信息源后，刷新文章阅读页面的主题页签...');
+            await loadArticlesTopicsTabs();
+          }
+        } else {
+          showMessage(result.message || '添加订阅失败', 'error');
+        }
+      } catch (error) {
+        console.error('手动添加信息源失败:', error);
+        showMessage('添加订阅失败: ' + error.message, 'error');
+      } finally {
+        addBtn.disabled = false;
+        addBtn.textContent = '添加并订阅';
+      }
+    }
+
     // 页面加载时
     window.onload = async function() {
       await initUser();
@@ -6455,6 +6620,7 @@
       await loadArticlesTopicsTabs(); // 加载文章阅读页面的主题页签
       await loadArticles(); // 保留原有的loadArticles用于兼容
       await loadRefreshStatus();
+      await loadManualAddSourceTopics(); // 加载手动添加信息源的主题选择器
       startArticlesAutoRefresh();
       
       // 处理 URL hash 导航
