@@ -1,7 +1,25 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const CrawlerFactory = require('../crawlers/CrawlerFactory');
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+
+// 加载内置的高质量信息源
+function loadCuratedSources() {
+  try {
+    const filePath = path.join(__dirname, '../data/curated-sources.json');
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const sources = JSON.parse(content);
+      console.log(`[内置信息源] 加载了 ${sources.length} 个内置信息源`);
+      return sources;
+    }
+  } catch (error) {
+    console.warn(`[内置信息源] 加载失败: ${error.message}`);
+  }
+  return [];
+}
 
 class TopicRecommender {
   /**
@@ -14,9 +32,20 @@ class TopicRecommender {
       throw new Error('DeepSeek API Key 未配置');
     }
     
+    // 加载内置的高质量信息源
+    const curatedSources = loadCuratedSources();
+    
+    // 构建内置信息源的描述文本
+    let curatedSourcesText = '';
+    if (curatedSources.length > 0) {
+      curatedSourcesText = `\n\n**重要：优先使用以下内置的高质量信息源（这些信息源已经过验证，可以成功爬取）：**\n\n`;
+      curatedSourcesText += JSON.stringify(curatedSources, null, 2);
+      curatedSourcesText += `\n\n**请优先从上述内置信息源中选择与主题关键词相关的信息源。如果内置信息源中有与主题相关的，必须优先使用它们。只有在内置信息源中没有相关选项时，才推荐其他信息源。**\n\n`;
+    }
+    
     const prompt = `请根据以下主题关键词，推荐世界上最好的、品质最高的信息源，包括RSS源、Feed源、XML源、Atom源、博客、新闻网站等多种类型。
 
-主题关键词：${keywords}
+主题关键词：${keywords}${curatedSourcesText}
 
 **重要要求：**
 1. **推荐多种类型的信息源**，包括但不限于：
