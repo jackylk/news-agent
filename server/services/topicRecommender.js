@@ -1,7 +1,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const CrawlerFactory = require('../crawlers/CrawlerFactory');
+const CrawlerFactory = require('./crawlers/CrawlerFactory');
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
