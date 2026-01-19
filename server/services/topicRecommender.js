@@ -1,4 +1,5 @@
 const axios = require('axios');
+const CrawlerFactory = require('../crawlers/CrawlerFactory');
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
@@ -226,98 +227,85 @@ class TopicRecommender {
   
   /**
    * 验证信息源URL是否有效（支持RSS、博客、新闻网站等多种类型）
+   * 使用与实际收集相同的爬虫逻辑进行验证，确保验证通过的信息源能够成功爬取
    * @param {string} url - 信息源URL
-   * @param {string} sourceType - 信息源类型（rss、blog、news、website）
+   * @param {string} sourceType - 信息源类型（rss、feed、xml、atom、blog、news、website）
    * @returns {Promise<{valid: boolean, error?: string}>} 验证结果
    */
   async validateSourceUrl(url, sourceType = 'rss') {
     try {
-      console.log(`[验证信息源] 开始验证: ${url}`);
+      console.log(`[验证信息源] 开始验证: ${url} (类型: ${sourceType})`);
       
-      // 首先尝试HEAD请求
-      try {
-        const headResponse = await axios.head(url, {
-          timeout: 8000,
-          maxRedirects: 5,
-          validateStatus: (status) => status < 400,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        });
-        
-        // 检查Content-Type
-        const contentType = headResponse.headers['content-type'] || '';
-        console.log(`[验证信息源] HEAD请求成功，Content-Type: ${contentType}`);
-        
-        if (sourceType === 'rss') {
-          // RSS源：检查是否包含xml、rss、atom等
-          if (contentType.includes('xml') || contentType.includes('rss') || contentType.includes('atom')) {
-            console.log(`[验证信息源] ✓ RSS源验证通过 (通过Content-Type判断)`);
-            return { valid: true };
-          }
-        } else {
-          // 博客、新闻网站、专业网站：检查是否是HTML页面
-          if (contentType.includes('html') || contentType.includes('text/html')) {
-            console.log(`[验证信息源] ✓ ${sourceType}类型信息源验证通过 (通过Content-Type判断)`);
-            return { valid: true };
-          }
-          // 对于非RSS类型，也允许其他常见的Content-Type（如text/plain等）
-          if (contentType.includes('text/') || contentType.includes('application/')) {
-            console.log(`[验证信息源] ✓ ${sourceType}类型信息源验证通过 (通过Content-Type判断，允许继续验证)`);
-            // 继续到GET请求进行内容检查
-          }
-        }
-      } catch (headError) {
-        console.log(`[验证信息源] HEAD请求失败，尝试GET请求: ${headError.message}`);
-        // HEAD请求失败，尝试GET请求
-      }
-      
-      // 尝试GET请求获取内容
-      const getResponse = await axios.get(url, {
-        timeout: 8000,
-        maxRedirects: 5,
-        validateStatus: (status) => status < 400,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
-        }
+      // 使用与实际收集相同的爬虫逻辑进行验证
+      const crawler = CrawlerFactory.createCrawler(sourceType, url, {
+        timeout: 30000 // 验证时使用30秒超时，比实际收集时稍短
       });
       
-      console.log(`[验证信息源] GET请求成功，状态码: ${getResponse.status}`);
-      
-      // 检查响应内容是否包含RSS/XML特征
-      const content = getResponse.data;
-      const contentType = getResponse.headers['content-type'] || '';
-      const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
-      
-      console.log(`[验证信息源] Content-Type: ${contentType}, 内容长度: ${contentStr.length}`);
-      
       // 根据信息源类型进行不同的验证
-      if (['rss', 'feed', 'xml', 'atom'].includes(sourceType)) {
-        // RSS/Feed/XML/Atom源：检查是否包含RSS/XML/Atom标签
-        if (contentType.includes('xml') || 
-            contentType.includes('rss') || 
-            contentType.includes('atom') ||
-            contentStr.includes('<rss') ||
-            contentStr.includes('<feed') ||
-            contentStr.includes('<atom:feed') ||
-            contentStr.includes('<?xml')) {
-          console.log(`[验证信息源] ✓ ${sourceType}源验证通过 (通过内容检查)`);
-          return { valid: true };
+      const detectedType = CrawlerFactory.detectSourceType(sourceType, url);
+      
+      if (detectedType === 'twitter') {
+        // Twitter/X源：使用extractContent验证
+        try {
+          console.log(`[验证信息源] 尝试提取Twitter内容: ${url}`);
+          const result = await crawler.extractContent(url, { timeout: 30000, maxRetries: 1 });
+          
+          if (result && result.title && result.title.trim().length > 0) {
+            console.log(`[验证信息源] ✓ Twitter源验证通过: 成功提取到内容`);
+            return { valid: true };
+          } else {
+            console.log(`[验证信息源] ✗ Twitter源验证失败: 未能提取到有效内容`);
+            return { valid: false, error: '未能提取到有效内容' };
+          }
+        } catch (extractError) {
+          const errorMsg = extractError.message || extractError.toString();
+          console.log(`[验证信息源] ✗ Twitter源验证失败: ${errorMsg}`);
+          return { valid: false, error: `提取失败: ${errorMsg}` };
         }
-        console.log(`[验证信息源] ✗ ${sourceType}源验证失败: 响应内容不是有效的Feed/XML格式`);
-        return { valid: false, error: `响应内容不是有效的${sourceType}格式` };
+      } else if (['rss', 'feed', 'xml', 'atom'].includes(sourceType) || detectedType === 'rss') {
+        // RSS/Feed/XML/Atom源：实际尝试解析feed，确保能够提取到文章
+        try {
+          console.log(`[验证信息源] 尝试解析RSS/Feed: ${url}`);
+          const articles = await crawler.extractFromFeed(url, { maxRetries: 1 });
+          
+          if (articles && articles.length > 0) {
+            console.log(`[验证信息源] ✓ ${sourceType}源验证通过: 成功解析并提取到 ${articles.length} 篇文章`);
+            return { valid: true };
+          } else {
+            console.log(`[验证信息源] ✗ ${sourceType}源验证失败: 解析成功但未提取到文章`);
+            return { valid: false, error: '解析成功但未提取到文章' };
+          }
+        } catch (parseError) {
+          const errorMsg = parseError.message || parseError.toString();
+          console.log(`[验证信息源] ✗ ${sourceType}源验证失败: ${errorMsg}`);
+          return { valid: false, error: `解析失败: ${errorMsg}` };
+        }
       } else {
-        // 博客、新闻网站、专业网站：检查是否是有效的HTML页面
-        if (contentType.includes('html') || 
-            contentStr.includes('<html') ||
-            contentStr.includes('<!DOCTYPE') ||
-            contentStr.includes('<body')) {
-          console.log(`[验证信息源] ✓ ${sourceType}类型信息源验证通过 (通过内容检查)`);
-          return { valid: true };
+        // 博客、新闻网站、专业网站：实际尝试提取内容，确保能够提取到标题和内容
+        try {
+          console.log(`[验证信息源] 尝试提取内容: ${url}`);
+          const result = await crawler.extractContent(url, { timeout: 30000 });
+          
+          if (result && result.title && result.title.trim().length > 0) {
+            // 检查是否提取到了有效内容（至少要有标题）
+            const hasContent = result.content && result.content.trim().length > 50;
+            if (hasContent) {
+              console.log(`[验证信息源] ✓ ${sourceType}类型信息源验证通过: 成功提取到标题和内容`);
+              return { valid: true };
+            } else {
+              // 只有标题也可以，因为有些页面可能内容较少
+              console.log(`[验证信息源] ✓ ${sourceType}类型信息源验证通过: 成功提取到标题`);
+              return { valid: true };
+            }
+          } else {
+            console.log(`[验证信息源] ✗ ${sourceType}类型信息源验证失败: 未能提取到有效标题`);
+            return { valid: false, error: '未能提取到有效标题' };
+          }
+        } catch (extractError) {
+          const errorMsg = extractError.message || extractError.toString();
+          console.log(`[验证信息源] ✗ ${sourceType}类型信息源验证失败: ${errorMsg}`);
+          return { valid: false, error: `提取失败: ${errorMsg}` };
         }
-        console.log(`[验证信息源] ✗ ${sourceType}类型信息源验证失败: 响应内容不是有效的HTML格式`);
-        return { valid: false, error: `响应内容不是有效的${sourceType}格式` };
       }
     } catch (error) {
       const errorMsg = error.response?.status 
