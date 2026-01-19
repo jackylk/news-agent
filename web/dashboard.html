@@ -148,7 +148,7 @@
       padding: 24px;
       border-radius: 12px;
       box-shadow: 0 2px 12px rgba(139, 92, 246, 0.1);
-      margin-bottom: 20px; 
+      margin-bottom: 20px;
       border: 1px solid rgba(139, 92, 246, 0.1);
     }
 
@@ -516,6 +516,7 @@
     .curated-sources-header h3 {
       margin: 0;
       flex: 1;
+      margin-left: 8px;
     }
 
     .curated-sources-count {
@@ -528,8 +529,8 @@
     .curated-sources-toggle {
       font-size: 12px;
       color: #666;
-      margin-left: 12px;
       transition: transform 0.3s;
+      margin-right: 4px;
     }
 
     .curated-sources-content {
@@ -574,6 +575,24 @@
       margin: 0;
       font-size: 12px;
       color: #666;
+    }
+
+    .curated-sources-search {
+      margin-bottom: 16px;
+    }
+
+    .curated-sources-search input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .curated-sources-search input:focus {
+      outline: none;
+      border-color: #8B5CF6;
     }
 
     .curated-sources-filters {
@@ -2254,13 +2273,24 @@
       <!-- 内置信息源展示区域 -->
       <div class="section">
         <div class="curated-sources-header" onclick="toggleCuratedSources()">
+          <span class="curated-sources-toggle" id="curatedSourcesToggle">▼</span>
           <h3>内置信息源</h3>
           <span class="curated-sources-count" id="curatedSourcesCount">(加载中...)</span>
-          <span class="curated-sources-toggle" id="curatedSourcesToggle" style="margin-left: auto;">▼</span>
         </div>
         <div class="curated-sources-content" id="curatedSourcesContent" style="display: none;">
           <!-- 统计信息卡片 -->
           <div class="curated-sources-stats" id="curatedSourcesStats"></div>
+          
+          <!-- 搜索框 -->
+          <div class="curated-sources-search">
+            <input 
+              type="text" 
+              id="searchCuratedSources" 
+              placeholder="搜索信息源（名称、URL、描述）..." 
+              oninput="filterCuratedSources()"
+              style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+            >
+          </div>
           
           <!-- 筛选器 -->
           <div class="curated-sources-filters">
@@ -2496,56 +2526,56 @@
         <p>了解系统的核心功能</p>
       </div>
 
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">🔐</div>
-          <h3 class="feature-title">用户认证系统</h3>
-          <p class="feature-description">完整的用户注册、登录和认证系统，使用 JWT token 进行身份验证，确保用户数据安全。</p>
-          <div class="feature-value">
-            <div class="feature-value-label">💎 对用户的价值</div>
-            <div class="feature-value-text">保护个人隐私，每个用户只能看到自己订阅的内容，数据安全可靠。</div>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔐</div>
+            <h3 class="feature-title">用户认证系统</h3>
+            <p class="feature-description">完整的用户注册、登录和认证系统，使用 JWT token 进行身份验证，确保用户数据安全。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">保护个人隐私，每个用户只能看到自己订阅的内容，数据安全可靠。</div>
+            </div>
           </div>
-        </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">🤖</div>
-          <h3 class="feature-title">AI 智能推荐信息源</h3>
-          <p class="feature-description">基于 DeepSeek AI 的智能推荐系统，根据用户输入的关键词自动推荐高质量的信息源。</p>
-          <div class="feature-value">
-            <div class="feature-value-label">💎 对用户的价值</div>
-            <div class="feature-value-text">无需手动搜索，AI 自动为您找到最相关的优质信息源，节省大量时间。</div>
+          <div class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3 class="feature-title">AI 智能推荐信息源</h3>
+            <p class="feature-description">基于 DeepSeek AI 的智能推荐系统，根据用户输入的关键词自动推荐高质量的信息源。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">无需手动搜索，AI 自动为您找到最相关的优质信息源，节省大量时间。</div>
+            </div>
           </div>
-        </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">📰</div>
-          <h3 class="feature-title">个性化新闻收集</h3>
-          <p class="feature-description">系统根据每个用户的订阅自动收集新闻，每 10 分钟更新一次，确保内容及时性。</p>
-          <div class="feature-value">
-            <div class="feature-value-label">💎 对用户的价值</div>
-            <div class="feature-value-text">只看到您关心的内容，不会被无关信息干扰，提高阅读效率。</div>
+          <div class="feature-card">
+            <div class="feature-icon">📰</div>
+            <h3 class="feature-title">个性化新闻收集</h3>
+            <p class="feature-description">系统根据每个用户的订阅自动收集新闻，每 10 分钟更新一次，确保内容及时性。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">只看到您关心的内容，不会被无关信息干扰，提高阅读效率。</div>
+            </div>
           </div>
-        </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">📋</div>
-          <h3 class="feature-title">多源订阅管理</h3>
-          <p class="feature-description">支持订阅多个信息源，支持 RSS 和博客两种类型，统一管理所有订阅。</p>
-          <div class="feature-value">
-            <div class="feature-value-label">💎 对用户的价值</div>
-            <div class="feature-value-text">在一个地方管理所有信息源，无需访问多个网站，方便快捷。</div>
+          <div class="feature-card">
+            <div class="feature-icon">📋</div>
+            <h3 class="feature-title">多源订阅管理</h3>
+            <p class="feature-description">支持订阅多个信息源，支持 RSS 和博客两种类型，统一管理所有订阅。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">在一个地方管理所有信息源，无需访问多个网站，方便快捷。</div>
+            </div>
           </div>
-        </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">📖</div>
-          <h3 class="feature-title">文章阅读体验</h3>
-          <p class="feature-description">支持按主题和信息源过滤，提供文章摘要生成和翻译功能，优化阅读体验。</p>
-          <div class="feature-value">
-            <div class="feature-value-label">💎 对用户的价值</div>
-            <div class="feature-value-text">快速定位感兴趣的内容，支持多语言阅读，提升阅读效率。</div>
+          <div class="feature-card">
+            <div class="feature-icon">📖</div>
+            <h3 class="feature-title">文章阅读体验</h3>
+            <p class="feature-description">支持按主题和信息源过滤，提供文章摘要生成和翻译功能，优化阅读体验。</p>
+            <div class="feature-value">
+              <div class="feature-value-label">💎 对用户的价值</div>
+              <div class="feature-value-text">快速定位感兴趣的内容，支持多语言阅读，提升阅读效率。</div>
+            </div>
           </div>
-        </div>
 
       </div>
     </div>
@@ -6131,7 +6161,7 @@
           headers: getHeaders()
         });
         const result = await response.json();
-
+        
         if (result.success) {
           curatedSources = result.sources || [];
           filteredCuratedSources = [...curatedSources];
@@ -6199,8 +6229,8 @@
         <div class="stat-card">
           <h3>${stats.byRegion['国外'] || 0}</h3>
           <p>国外信息源</p>
-        </div>
-      `;
+              </div>
+            `;
     }
 
     // 渲染筛选器选项
@@ -6227,11 +6257,23 @@
       const typeFilter = document.getElementById('filterType')?.value || '';
       const categoryFilter = document.getElementById('filterCategory')?.value || '';
       const regionFilter = document.getElementById('filterRegion')?.value || '';
+      const searchKeyword = (document.getElementById('searchCuratedSources')?.value || '').trim().toLowerCase();
       
       filteredCuratedSources = curatedSources.filter(source => {
+        // 类型筛选
         if (typeFilter && source.sourceType !== typeFilter) return false;
+        // 分类筛选
         if (categoryFilter && source.category !== categoryFilter) return false;
+        // 地区筛选
         if (regionFilter && source.region !== regionFilter) return false;
+        // 关键词搜索（匹配名称、URL、描述）
+        if (searchKeyword) {
+          const nameMatch = (source.sourceName || '').toLowerCase().includes(searchKeyword);
+          const urlMatch = (source.sourceUrl || '').toLowerCase().includes(searchKeyword);
+          const descMatch = (source.description || '').toLowerCase().includes(searchKeyword);
+          const categoryMatch = (source.category || '').toLowerCase().includes(searchKeyword);
+          if (!nameMatch && !urlMatch && !descMatch && !categoryMatch) return false;
+        }
         return true;
       });
       
@@ -6314,6 +6356,55 @@
         return;
       }
       
+      // 加载用户主题列表
+      let topics = [];
+      try {
+        const topicsResponse = await fetch(`${API_BASE_URL}/user/topics`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
+        const topicsResult = await topicsResponse.json();
+        
+        if (topicsResult.success && topicsResult.data && topicsResult.data.length > 0) {
+          topics = topicsResult.data;
+        }
+      } catch (error) {
+        console.error('加载主题列表失败:', error);
+      }
+      
+      // 如果没有主题，提示用户先创建主题
+      if (topics.length === 0) {
+        showMessage('请先创建至少一个主题，然后再订阅信息源', 'error');
+        // 切换到订阅管理页面，让用户创建主题
+        switchPage('subscriptions');
+        return;
+      }
+      
+      // 如果只有一个主题，直接使用该主题
+      let selectedTopic = null;
+      if (topics.length === 1) {
+        selectedTopic = topics[0].topic_keywords;
+      } else {
+        // 如果有多个主题，让用户选择（使用 Promise 包装 prompt）
+        const topicList = topics.map((t, i) => `${i + 1}. ${t.topic_keywords}`).join('\n');
+        const userInput = prompt(`请选择要关联的主题（输入主题关键词）：\n\n可用主题：\n${topicList}`);
+        
+        if (!userInput || !userInput.trim()) {
+          showMessage('已取消订阅', 'info');
+          return;
+        }
+        
+        // 验证用户输入的主题是否存在
+        const matchedTopic = topics.find(t => t.topic_keywords === userInput.trim());
+        if (!matchedTopic) {
+          showMessage('无效的主题，请选择列表中的主题', 'error');
+          return;
+        }
+        
+        selectedTopic = matchedTopic.topic_keywords;
+      }
+      
+      // 构建订阅数据，包含 topicKeywords
       const subscriptions = Array.from(checkboxes).map(cb => {
         const source = JSON.parse(cb.getAttribute('data-source'));
         return {
@@ -6322,7 +6413,8 @@
           sourceType: source.sourceType || 'rss',
           category: source.category || '未分类',
           description: source.description || '',
-          region: source.region || '国外'
+          region: source.region || '国外',
+          topicKeywords: selectedTopic
         };
       });
       
@@ -6336,7 +6428,7 @@
         const result = await response.json();
         
         if (result.success) {
-          showMessage(`成功订阅 ${subscriptions.length} 个信息源`, 'success');
+          showMessage(`成功订阅 ${subscriptions.length} 个信息源到主题"${selectedTopic}"`, 'success');
           // 重新加载订阅列表和内置信息源表格
           await loadUserSubscriptions();
           await loadUserSubscriptionsForCurated();
