@@ -1967,10 +1967,6 @@
         <span class="menu-item-icon">📰</span>
         <span class="menu-item-text">文章阅读</span>
       </div>
-      <div class="menu-item" onclick="switchPage('tweets', event)">
-        <span class="menu-item-icon">🐦</span>
-        <span class="menu-item-text">最新推文</span>
-      </div>
       <div class="menu-item" onclick="switchPage('guide', event)">
         <span class="menu-item-icon">📖</span>
         <span class="menu-item-text">用户指南</span>
@@ -2091,44 +2087,6 @@
       </div>
     </div>
 
-    <!-- 最新推文页面 -->
-    <div id="tweetsPage" class="content-page">
-      <div class="page-header">
-        <h2>最新推文</h2>
-        <p>查看通过Nitter抓取的Twitter/X推文</p>
-      </div>
-
-      <div id="tweetsMessage" class="message"></div>
-
-      <!-- 推文筛选 -->
-      <div class="section" style="margin-bottom: 20px;">
-        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-          <input 
-            type="text" 
-            id="tweetsSearchInput" 
-            placeholder="搜索推文..." 
-            style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
-            onkeypress="if(event.key==='Enter') loadTweets()"
-          />
-          <select 
-            id="tweetsUserFilter" 
-            style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
-            onchange="loadTweets()"
-          >
-            <option value="">所有用户</option>
-          </select>
-          <button class="btn-primary" onclick="loadTweets()" style="padding: 10px 20px;">刷新</button>
-        </div>
-      </div>
-
-      <!-- 推文列表 -->
-      <div id="tweetsLoading" class="loading">加载中...</div>
-      <div id="tweetsContainer" style="display: none;">
-        <div id="tweetsList"></div>
-        <div id="tweetsPagination" style="text-align: center; margin-top: 20px; padding: 20px;"></div>
-      </div>
-    </div>
-
     <!-- 用户指南页面 -->
     <div id="guidePage" class="content-page">
       <div class="page-header">
@@ -2182,10 +2140,6 @@
           <div class="guide-feature">
             <h4>文章阅读</h4>
             <p>文章阅读页面按主题分组展示新闻，支持按信息源过滤。点击文章可以查看详情，支持生成摘要和翻译功能。</p>
-          </div>
-          <div class="guide-feature">
-            <h4>最新推文</h4>
-            <p>通过 Nitter 抓取 Twitter/X 推文，支持搜索和按用户过滤，方便您关注特定账号的最新动态。</p>
           </div>
         </div>
       </div>
@@ -2320,15 +2274,6 @@
           </div>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon">🐦</div>
-          <h3 class="feature-title">最新推文功能</h3>
-          <p class="feature-description">通过 Nitter 抓取 Twitter/X 推文，支持搜索和按用户过滤，方便关注特定账号。</p>
-          <div class="feature-value">
-            <div class="feature-value-label">💎 对用户的价值</div>
-            <div class="feature-value-text">无需登录 Twitter，即可查看关注账号的最新推文，保护隐私。</div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -2412,9 +2357,8 @@
         const pageIndexMap = {
           'subscriptions': 0,
           'articles': 1,
-          'tweets': 2,
-          'guide': 3,
-          'features': 4
+          'guide': 2,
+          'features': 3
         };
         menuItems.forEach((item, index) => {
           if (pageIndexMap[page] === index) {
@@ -2427,6 +2371,11 @@
       document.querySelectorAll('.content-page').forEach(p => {
         p.classList.remove('active');
       });
+      const targetPage = document.getElementById(page + 'Page');
+      if (!targetPage) {
+        console.warn(`页面 ${page} 不存在，切换到默认页面 subscriptions`);
+        page = 'subscriptions';
+      }
       document.getElementById(page + 'Page').classList.add('active');
 
       // 加载对应页面数据
@@ -2435,8 +2384,6 @@
         localStorage.removeItem('dashboardViewingArticleId');
         loadTopics();
         loadRecommendationHistory(); // 加载推荐历史
-      } else if (page === 'tweets') {
-        loadTweets();
       } else if (page === 'articles') {
         // 如果当前在文章详情页面，先返回列表页面
         const articleDetailView = document.getElementById('articleDetailView');
@@ -5860,251 +5807,6 @@
       }
     });
 
-    // ========== 推文管理 ==========
-    
-    let currentTweetsPage = 1;
-    const tweetsPageSize = 20;
-    let allTweets = [];
-    let tweetsUsers = new Set();
-
-    // 加载推文
-    async function loadTweets(page = 1) {
-      const loadingEl = document.getElementById('tweetsLoading');
-      const containerEl = document.getElementById('tweetsContainer');
-      const listEl = document.getElementById('tweetsList');
-      const paginationEl = document.getElementById('tweetsPagination');
-      const searchInput = document.getElementById('tweetsSearchInput');
-      const userFilter = document.getElementById('tweetsUserFilter');
-      
-      try {
-        loadingEl.style.display = 'block';
-        containerEl.style.display = 'none';
-        
-        // 构建API URL
-        let url = `${API_BASE_URL}/news/list?page=${page}&pageSize=${tweetsPageSize}`;
-        const searchKeyword = searchInput?.value || '';
-        const selectedUser = userFilter?.value || '';
-        
-        const response = await fetch(url, {
-          headers: getHeaders()
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          // 过滤出Twitter/X推文
-          let tweets = result.data || [];
-          if (Array.isArray(tweets)) {
-            // 如果是按日期分组的格式，需要展开
-            const allItems = [];
-            tweets.forEach(dateGroup => {
-              if (dateGroup.news && Array.isArray(dateGroup.news)) {
-                dateGroup.news.forEach(news => {
-                  allItems.push({...news, date: dateGroup.date});
-                });
-              }
-            });
-            tweets = allItems;
-          }
-          
-          // 过滤推文：URL包含nitter/twitter/x.com，或source以@开头
-          tweets = tweets.filter(tweet => {
-            const url = (tweet.url || '').toLowerCase();
-            const source = (tweet.source || '').trim();
-            return url.includes('nitter') || 
-                   url.includes('twitter.com') || 
-                   url.includes('x.com') ||
-                   source.startsWith('@') ||
-                   source.includes('Twitter') ||
-                   source.includes('X');
-          });
-          
-          // 搜索过滤
-          if (searchKeyword) {
-            const keyword = searchKeyword.toLowerCase();
-            tweets = tweets.filter(tweet => {
-              const title = (tweet.title || '').toLowerCase();
-              const summary = (tweet.summary || '').toLowerCase();
-              return title.includes(keyword) || summary.includes(keyword);
-            });
-          }
-          
-          // 用户过滤
-          if (selectedUser) {
-            tweets = tweets.filter(tweet => {
-              const source = (tweet.source || '').trim();
-              return source === selectedUser || source.includes(selectedUser);
-            });
-          }
-          
-          allTweets = tweets;
-          
-          // 更新用户列表
-          tweetsUsers.clear();
-          tweets.forEach(tweet => {
-            const source = (tweet.source || '').trim();
-            if (source && (source.startsWith('@') || source.includes('Twitter') || source.includes('X'))) {
-              tweetsUsers.add(source);
-            }
-          });
-          
-          // 更新用户筛选下拉框
-          if (userFilter) {
-            const currentValue = userFilter.value;
-            userFilter.innerHTML = '<option value="">所有用户</option>';
-            Array.from(tweetsUsers).sort().forEach(user => {
-              const option = document.createElement('option');
-              option.value = user;
-              option.textContent = user;
-              if (user === currentValue) {
-                option.selected = true;
-              }
-              userFilter.appendChild(option);
-            });
-          }
-          
-          // 渲染推文
-          listEl.innerHTML = '';
-          
-          if (tweets.length === 0) {
-            listEl.innerHTML = `
-              <div class="empty-tweets">
-                <div class="empty-tweets-icon">🐦</div>
-                <p>暂无推文</p>
-                <p style="font-size: 14px; color: #999; margin-top: 8px;">
-                  ${searchKeyword ? '没有找到匹配的推文' : '还没有抓取到推文，请先在订阅管理中添加Twitter/X订阅源'}
-                </p>
-              </div>
-            `;
-          } else {
-            tweets.forEach(tweet => {
-              const tweetEl = createTweetElement(tweet);
-              listEl.appendChild(tweetEl);
-            });
-          }
-          
-          // 分页（简化版，因为我们已经过滤了）
-          paginationEl.innerHTML = `
-            <span style="color: #536471;">显示 ${tweets.length} 条推文</span>
-          `;
-          
-          loadingEl.style.display = 'none';
-          containerEl.style.display = 'block';
-          currentTweetsPage = page;
-        }
-      } catch (error) {
-        console.error('加载推文失败:', error);
-        loadingEl.style.display = 'none';
-        showMessage('加载推文失败: ' + error.message, 'error', 'tweetsMessage');
-      }
-    }
-    
-    // 创建推文元素
-    function createTweetElement(tweet) {
-      const tweetEl = document.createElement('div');
-      tweetEl.className = 'tweet';
-      
-      // 提取用户名和头像
-      let username = 'Unknown';
-      let handle = '';
-      const source = (tweet.source || '').trim();
-      
-      if (source.startsWith('@')) {
-        handle = source;
-        username = source.substring(1).charAt(0).toUpperCase() + source.substring(2);
-      } else if (tweet.url) {
-        const match = tweet.url.match(/(?:twitter\.com|x\.com|nitter[^/]+)\/([a-zA-Z0-9_]+)/);
-        if (match) {
-          handle = '@' + match[1];
-          username = match[1].charAt(0).toUpperCase() + match[1].substring(1);
-        }
-      }
-      
-      // 格式化时间
-      const time = formatTweetTime(tweet.publish_date || tweet.date);
-      
-      // 获取头像首字母
-      const avatarLetter = username.charAt(0).toUpperCase();
-      
-      // 处理内容（移除HTML标签，保留换行）
-      let content = tweet.title || tweet.summary || '';
-      content = content.replace(/<[^>]*>/g, '').trim();
-      
-      // 处理图片
-      let imageHtml = '';
-      if (tweet.image_url) {
-        imageHtml = `<img src="${tweet.image_url}" alt="Tweet image" class="tweet-image" onerror="this.style.display='none'">`;
-      }
-      
-      tweetEl.innerHTML = `
-        <div class="tweet-header">
-          <div class="tweet-avatar">${avatarLetter}</div>
-          <div class="tweet-user-info">
-            <div class="tweet-username">
-              ${escapeHtml(username)}
-              <span class="tweet-handle">${escapeHtml(handle)}</span>
-              <span class="tweet-time">· ${time}</span>
-            </div>
-          </div>
-        </div>
-        <div class="tweet-content">${escapeHtml(content)}</div>
-        ${imageHtml}
-        <div class="tweet-footer">
-          <div class="tweet-action" onclick="event.stopPropagation(); window.open('${tweet.url || '#'}', '_blank')">
-            <span class="tweet-action-icon">🔗</span>
-            <span>查看原文</span>
-          </div>
-          <div class="tweet-action" onclick="event.stopPropagation(); viewTweetDetail(${tweet.id})">
-            <span class="tweet-action-icon">📖</span>
-            <span>查看详情</span>
-          </div>
-        </div>
-      `;
-      
-      // 点击推文跳转到详情
-      tweetEl.addEventListener('click', (e) => {
-        if (!e.target.closest('.tweet-action')) {
-          viewTweetDetail(tweet.id);
-        }
-      });
-      
-      return tweetEl;
-    }
-    
-    // 格式化推文时间
-    function formatTweetTime(dateStr) {
-      if (!dateStr) return '';
-      
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diff = now - date;
-      const seconds = Math.floor(diff / 1000);
-      const minutes = Math.floor(seconds / 60);
-      const hours = Math.floor(minutes / 60);
-      const days = Math.floor(hours / 24);
-      
-      if (seconds < 60) {
-        return '刚刚';
-      } else if (minutes < 60) {
-        return `${minutes}分钟前`;
-      } else if (hours < 24) {
-        return `${hours}小时前`;
-      } else if (days < 7) {
-        return `${days}天前`;
-      } else {
-        return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-      }
-    }
-    
-    // 查看推文详情
-    function viewTweetDetail(tweetId) {
-      window.location.href = `/article.html?id=${tweetId}`;
-    }
-    
     // 显示消息
     function showMessage(text, type, containerId = 'message') {
       const messageEl = document.getElementById(containerId);
@@ -6147,7 +5849,10 @@
         const savedArticleId = localStorage.getItem('dashboardViewingArticleId');
         const savedTopicIndex = localStorage.getItem('dashboardCurrentTopicIndex');
         
-        if (savedPage) {
+        // 有效的页面列表
+        const validPages = ['subscriptions', 'articles', 'guide', 'features'];
+        
+        if (savedPage && validPages.includes(savedPage)) {
         // 切换到保存的页面
         switchPage(savedPage);
         
