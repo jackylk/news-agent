@@ -501,6 +501,7 @@
                 <th>邮箱</th>
                 <th>主题数</th>
                 <th>订阅数</th>
+                <th>文章数</th>
                 <th>注册时间</th>
                 <th>管理员</th>
                 <th>操作</th>
@@ -1003,7 +1004,7 @@
           document.getElementById('usersTableCount').style.display = 'block';
           
           if (users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">暂无用户</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #999;">暂无用户</td></tr>';
           } else {
             users.forEach(user => {
               const row = document.createElement('tr');
@@ -1013,6 +1014,7 @@
                 <td>${escapeHtml(user.email)}</td>
                 <td>${user.topic_count || 0}</td>
                 <td>${user.subscription_count || 0}</td>
+                <td>${user.article_count || 0}</td>
                 <td>${formatDate(user.created_at)}</td>
                 <td>${user.is_admin ? '是' : '否'}</td>
                 <td>

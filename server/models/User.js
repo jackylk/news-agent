@@ -191,7 +191,8 @@ class User {
         is_admin, 
         created_at,
         (SELECT COUNT(*) FROM user_topics WHERE user_id = users.id) as topic_count,
-        (SELECT COUNT(*) FROM user_subscriptions WHERE user_id = users.id) as subscription_count
+        (SELECT COUNT(*) FROM user_subscriptions WHERE user_id = users.id) as subscription_count,
+        (SELECT COUNT(*) FROM news WHERE user_id = users.id) as article_count
       FROM users
       ORDER BY created_at DESC
     `;
