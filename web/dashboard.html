@@ -1946,6 +1946,10 @@
       }
     }
   </style>
+  <!-- KaTeX 数学公式渲染库 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
 </head>
 <body>
   <!-- 左侧菜单 -->
@@ -3901,8 +3905,19 @@
               
               // 使用DOMPurify或简单的清理后设置innerHTML
               contentEl.innerHTML = safeHtml;
+              // 对HTML格式内容中的公式也进行渲染
+              if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(contentEl, {
+                  delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '\\[', right: '\\]', display: true},
+                    {left: '\\(', right: '\\)', display: false}
+                  ],
+                  throwOnError: false
+                });
+              }
             } else {
-              // 纯文本内容，转换为段落
+              // 纯文本内容，转换为段落，并处理数学公式
               const textContent = originalContent
                 .replace(/&nbsp;/g, ' ')
                 .replace(/&amp;/g, '&')
@@ -3912,7 +3927,7 @@
                 .trim();
               
               const paragraphs = textContent.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-              contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+              contentEl.innerHTML = paragraphs.map(p => `<p>${processMathFormulas(p)}</p>`).join('');
             }
           } else {
             contentEl.textContent = '暂无详细内容';
@@ -3930,7 +3945,7 @@
           // 摘要
           const summaryEl = document.getElementById('articleDetailSummary');
           if (article.summary) {
-            summaryEl.textContent = article.summary;
+            summaryEl.innerHTML = processMathFormulas(article.summary);
             summaryEl.style.display = 'block';
           } else {
             summaryEl.style.display = 'none';
@@ -4033,7 +4048,7 @@
         // 显示原文
         titleEl.textContent = window.originalArticleData.title;
         if (window.originalArticleData.summary) {
-          summaryEl.textContent = window.originalArticleData.summary;
+          summaryEl.innerHTML = processMathFormulas(window.originalArticleData.summary);
           summaryEl.style.display = 'block';
         } else {
           summaryEl.style.display = 'none';
@@ -4053,10 +4068,21 @@
             .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '')
             .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
           contentEl.innerHTML = safeHtml;
+          // 对原文中的公式也进行渲染（如果原文是HTML格式）
+          if (typeof renderMathInElement !== 'undefined') {
+            renderMathInElement(contentEl, {
+              delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '\\[', right: '\\]', display: true},
+                {left: '\\(', right: '\\)', display: false}
+              ],
+              throwOnError: false
+            });
+          }
         } else {
-          // 纯文本，转换为段落
+          // 纯文本，转换为段落，并处理数学公式
           const paragraphs = originalContent.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-          contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+          contentEl.innerHTML = paragraphs.map(p => `<p>${processMathFormulas(p)}</p>`).join('');
         }
         
         btn.textContent = '翻译为中文';
@@ -4110,19 +4136,19 @@
           titleEl.textContent = result.translatedTitle || window.originalArticleData.title;
           
           if (result.translatedSummary) {
-            summaryEl.textContent = result.translatedSummary;
+            summaryEl.innerHTML = processMathFormulas(result.translatedSummary);
             summaryEl.style.display = 'block';
           } else if (window.originalArticleData.summary) {
-            summaryEl.textContent = window.originalArticleData.summary;
+            summaryEl.innerHTML = processMathFormulas(window.originalArticleData.summary);
             summaryEl.style.display = 'block';
           } else {
             summaryEl.style.display = 'none';
           }
           
           if (result.translatedContent) {
-            // 翻译后的内容是纯文本，转换为段落格式
+            // 翻译后的内容是纯文本，转换为段落格式，并处理数学公式
             const paragraphs = result.translatedContent.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-            contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+            contentEl.innerHTML = paragraphs.map(p => `<p>${processMathFormulas(p)}</p>`).join('');
           } else {
             // 如果翻译失败，显示原文（保持HTML格式）
             if (hasHtml) {
@@ -4134,9 +4160,20 @@
                 .replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '')
                 .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
               contentEl.innerHTML = safeHtml;
+              // 对原文中的公式也进行渲染（如果原文是HTML格式，可能需要特殊处理）
+              if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(contentEl, {
+                  delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '\\[', right: '\\]', display: true},
+                    {left: '\\(', right: '\\)', display: false}
+                  ],
+                  throwOnError: false
+                });
+              }
             } else {
               const paragraphs = textForTranslation.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-              contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+              contentEl.innerHTML = paragraphs.map(p => `<p>${processMathFormulas(p)}</p>`).join('');
             }
           }
           
@@ -4228,6 +4265,84 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // 处理数学公式，将 LaTeX 公式转换为 KaTeX 可渲染的格式
+    function processMathFormulas(text) {
+      if (!text || typeof text !== 'string') {
+        return text;
+      }
+
+      // 用于存储公式的数组
+      const formulas = [];
+      let formulaIndex = 0;
+      
+      // 占位符模板
+      const placeholder = (index) => `__KATEX_FORMULA_${index}__`;
+
+      // 处理块级公式 \[...\] 或 $$...$$
+      let processedText = text
+        // 处理 \[...\] 格式
+        .replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
+          formulas.push({ type: 'display', formula: formula.trim() });
+          return placeholder(formulaIndex++);
+        })
+        // 处理 $$...$$ 格式（避免与已处理的冲突）
+        .replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+          // 检查是否已经是占位符
+          if (match.includes('__KATEX_FORMULA_')) {
+            return match;
+          }
+          formulas.push({ type: 'display', formula: formula.trim() });
+          return placeholder(formulaIndex++);
+        })
+        // 处理行内公式 \(...\)
+        .replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
+          formulas.push({ type: 'inline', formula: formula.trim() });
+          return placeholder(formulaIndex++);
+        });
+
+      // 对非公式部分进行 HTML 转义
+      let escapedText = escapeHtml(processedText);
+
+      // 将占位符替换为 KaTeX 渲染的 HTML
+      if (typeof katex === 'undefined') {
+        // 如果 KaTeX 未加载，返回转义后的文本（公式部分显示为占位符）
+        console.warn('KaTeX 未加载，无法渲染数学公式');
+        formulas.forEach((formulaData, index) => {
+          const fallback = escapeHtml(`[公式: ${formulaData.formula}]`);
+          escapedText = escapedText.replace(placeholder(index), fallback);
+        });
+      } else {
+        formulas.forEach((formulaData, index) => {
+          try {
+            let renderedFormula;
+            if (formulaData.type === 'display') {
+              // 块级公式使用 div 包装
+              renderedFormula = katex.renderToString(formulaData.formula, {
+                throwOnError: false,
+                displayMode: true
+              });
+              renderedFormula = `<div class="katex-display" style="margin: 1em 0; overflow-x: auto; overflow-y: hidden;">${renderedFormula}</div>`;
+            } else {
+              // 行内公式使用 span 包装
+              renderedFormula = katex.renderToString(formulaData.formula, {
+                throwOnError: false,
+                displayMode: false
+              });
+              renderedFormula = `<span class="katex-inline">${renderedFormula}</span>`;
+            }
+            escapedText = escapedText.replace(placeholder(index), renderedFormula);
+          } catch (error) {
+            console.error('KaTeX 渲染错误:', error, '公式:', formulaData.formula);
+            // 如果渲染失败，显示原始公式文本
+            const fallback = escapeHtml(`[公式: ${formulaData.formula}]`);
+            escapedText = escapedText.replace(placeholder(index), fallback);
+          }
+        });
+      }
+
+      return escapedText;
     }
 
     // 自动刷新文章列表（每30秒）
