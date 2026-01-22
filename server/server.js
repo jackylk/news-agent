@@ -10,6 +10,7 @@ if (majorVersion < 20) {
 }
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const newsRoutes = require('./routes/news');
 const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
@@ -19,6 +20,37 @@ const cron = require('node-cron');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// 速率限制配置
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 5, // 15分钟内最多5次请求
+  message: {
+    success: false,
+    message: '请求过于频繁，请稍后再试'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // 在生产环境跳过本地IP的限制（用于开发测试）
+    if (process.env.NODE_ENV !== 'production' && req.ip === '::1') {
+      return false;
+    }
+    return false;
+  }
+});
+
+// 注册和登录的速率限制
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1小时
+  max: 3, // 1小时内最多3次注册
+  message: {
+    success: false,
+    message: '注册请求过于频繁，请1小时后再试'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // 请求日志中间件
 app.use((req, res, next) => {
@@ -50,7 +82,10 @@ app.use(express.urlencoded({ extended: true }));
 const path = require('path');
 app.use(express.static(path.join(__dirname, '../web')));
 
-// 路由
+// 路由（应用速率限制）
+// 注意：速率限制必须在路由之前应用
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', registerLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/news', newsRoutes);

@@ -115,7 +115,7 @@ router.delete('/topics/:keywords', (req, res) => {
 
 // 根据主题推荐信息源
 router.post('/topics/recommend', async (req, res) => {
-  const { keywords } = req.body;
+  const { keywords, limit = 10, excludeSources = [] } = req.body;
   
   if (!keywords || keywords.trim().length === 0) {
     return res.status(400).json({
@@ -165,8 +165,9 @@ router.post('/topics/recommend', async (req, res) => {
     console.log(`[推荐信息源] ${apiCallLog.message}`);
     
     const recommender = new TopicRecommender();
-    console.log(`[推荐信息源] 调用 DeepSeek API 获取推荐...`);
-    const sources = await recommender.recommendSources(trimmedKeywords);
+    const recommendLimit = parseInt(limit) || 10;
+    console.log(`[推荐信息源] 调用 DeepSeek API 获取推荐（限制${recommendLimit}个，排除${excludeSources.length}个已推荐）...`);
+    const sources = await recommender.recommendSources(trimmedKeywords, recommendLimit, excludeSources);
     console.log(`[推荐信息源] DeepSeek API 返回 ${sources.length} 个推荐信息源`);
     
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);

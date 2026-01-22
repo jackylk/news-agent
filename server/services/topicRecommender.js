@@ -25,9 +25,11 @@ class TopicRecommender {
   /**
    * 根据用户输入的主题关键词，使用 DeepSeek API 推荐优质信息源
    * @param {string} keywords - 用户输入的主题关键词
+   * @param {number} limit - 推荐数量限制，默认10个
+   * @param {Array} excludeSources - 已推荐的信息源列表，用于去重（每个元素包含 sourceUrl 或 sourceName）
    * @returns {Promise<Array>} 推荐的信息源列表
    */
-  async recommendSources(keywords) {
+  async recommendSources(keywords, limit = 10, excludeSources = []) {
     if (!DEEPSEEK_API_KEY) {
       throw new Error('DeepSeek API Key 未配置');
     }
@@ -43,9 +45,26 @@ class TopicRecommender {
       curatedSourcesText += `\n\n**请优先从上述内置信息源中选择与主题关键词相关的信息源。如果内置信息源中有与主题相关的，必须优先使用它们。只有在内置信息源中没有相关选项时，才推荐其他信息源。**\n\n`;
     }
     
+    // 构建已推荐信息源的排除列表文本
+    let excludeSourcesText = '';
+    if (excludeSources && excludeSources.length > 0) {
+      const excludeUrls = excludeSources.map(s => s.sourceUrl || s.url || '').filter(Boolean);
+      const excludeNames = excludeSources.map(s => s.sourceName || s.name || '').filter(Boolean);
+      if (excludeUrls.length > 0 || excludeNames.length > 0) {
+        excludeSourcesText = `\n\n**重要：以下信息源已经推荐过了，请不要重复推荐：**\n\n`;
+        if (excludeUrls.length > 0) {
+          excludeSourcesText += `已推荐的URL列表：\n${excludeUrls.map(url => `- ${url}`).join('\n')}\n\n`;
+        }
+        if (excludeNames.length > 0) {
+          excludeSourcesText += `已推荐的信息源名称列表：\n${excludeNames.map(name => `- ${name}`).join('\n')}\n\n`;
+        }
+        excludeSourcesText += `**请确保推荐的信息源URL和名称都不在上述列表中，避免重复推荐。**\n\n`;
+      }
+    }
+    
     const prompt = `请根据以下主题关键词，推荐世界上最好的、品质最高的信息源，包括RSS源、Feed源、XML源、Atom源、博客、新闻网站等多种类型。
 
-主题关键词：${keywords}${curatedSourcesText}
+主题关键词：${keywords}${curatedSourcesText}${excludeSourcesText}
 
 **重要要求：**
 1. **推荐多种类型的信息源**，包括但不限于：
@@ -132,17 +151,17 @@ class TopicRecommender {
   }
 ]
 
-请推荐20-25个最优质的信息源，确保：
-1. **类型多样化**：
-   - RSS/Feed/XML/Atom源：推荐10-15个（优先推荐有Feed的源，包括RSS、Feed、XML、Atom等格式）
-   - 博客：推荐5-8个（知名个人博客、技术博客等）
-   - 新闻网站：推荐3-5个（权威新闻媒体）
-   - 专业网站：推荐2-3个（专业机构、学术网站等）
+请推荐${limit}个最优质的信息源，确保：
+1. **类型多样化**（根据推荐数量合理分配）：
+   - RSS/Feed/XML/Atom源：优先推荐有Feed的源（包括RSS、Feed、XML、Atom等格式）
+   - 博客：推荐知名个人博客、技术博客等
+   - 新闻网站：推荐权威新闻媒体
+   - 专业网站：推荐专业机构、学术网站等
 2. **URL必须真实有效**，确保信息源确实存在且可访问
 3. **包含一些知名大V、专家或权威机构的信息源**
-4. **必须同时包含国内和国外的信息源**
-   - 国内信息源：推荐8-12个中国（包括港澳台）的权威、高质量信息源
-   - 国外信息源：推荐12-15个国际权威信息源
+4. **尽量同时包含国内和国外的信息源**（根据推荐数量合理分配）
+   - 国内信息源：推荐中国（包括港澳台）的权威、高质量信息源
+   - 国外信息源：推荐国际权威信息源
 5. **优先推荐有Feed的信息源**（RSS、Feed、XML、Atom等），如果没有Feed，则推荐博客主页或新闻网站URL
 
 只返回JSON数组，不要添加其他说明文字。`;

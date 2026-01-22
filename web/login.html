@@ -315,6 +315,9 @@
       console.log('   用户名:', username);
       
       try {
+        // 注意：密码通过 HTTPS 加密传输
+        // 在生产环境中，HTTPS 会加密所有传输数据，包括密码
+        // 后端使用 bcrypt 安全存储和验证密码
         const requestBody = { username, password };
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
           method: 'POST',
@@ -446,6 +449,9 @@
       console.log('   邮箱:', email);
       
       try {
+        // 注意：密码通过 HTTPS 加密传输
+        // 在生产环境中，HTTPS 会加密所有传输数据，包括密码
+        // 后端使用 bcrypt 安全存储密码
         const requestBody = { username, email, password };
         console.log('   请求体:', { username, email, password: '***' });
         

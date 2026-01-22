@@ -41,6 +41,26 @@ router.post('/register', (req, res) => {
     });
   }
   
+  // 验证密码长度（防止异常长的输入）
+  if (password.length > 200) {
+    const errorMsg = '密码格式不正确';
+    console.log(`[${timestamp}] ❌ 注册失败: ${errorMsg}`);
+    return res.status(400).json({
+      success: false,
+      message: errorMsg
+    });
+  }
+  
+  // 验证密码强度（至少6位）
+  if (password.length < 6) {
+    const errorMsg = '密码长度至少6位';
+    console.log(`[${timestamp}] ❌ 注册失败: ${errorMsg}`);
+    return res.status(400).json({
+      success: false,
+      message: errorMsg
+    });
+  }
+  
   console.log(`[${timestamp}] 🔍 开始创建用户...`);
   
   User.create({ username, email, password }, (err, user) => {
@@ -78,6 +98,7 @@ router.post('/login', async (req, res) => {
   console.log(`[${timestamp}] 🔐 收到登录请求`);
   console.log(`[${timestamp}]   来源 IP: ${clientIP}`);
   console.log(`[${timestamp}]   用户名/邮箱: ${req.body.username || '(空)'}`);
+  // 不记录密码，只记录长度
   console.log(`[${timestamp}]   密码长度: ${req.body.password ? req.body.password.length : 0}`);
   
   const { username, password } = req.body;
@@ -92,8 +113,19 @@ router.post('/login', async (req, res) => {
     });
   }
   
+  // 验证密码长度（防止异常长的输入）
+  if (password.length > 200) {
+    const errorMsg = '密码格式不正确';
+    console.log(`[${timestamp}] ❌ 登录失败: ${errorMsg}`);
+    return res.status(400).json({
+      success: false,
+      message: errorMsg
+    });
+  }
+  
   try {
     // 使用 Promise 包装回调函数，使代码更清晰
+    // 注意：密码通过 HTTPS 加密传输，后端使用 bcrypt 验证
     const result = await new Promise((resolve, reject) => {
       User.login({ username, password }, (err, result) => {
         if (err) {
