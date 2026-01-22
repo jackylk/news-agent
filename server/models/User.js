@@ -608,14 +608,21 @@ class User {
   }
 
   // 保存推荐历史
-  static saveRecommendationHistory(userId, topicKeywords, processLogs, recommendedSources, callback) {
+  static saveRecommendationHistory(userId, topicKeywords, processLogs, recommendedSources, status = 'completed', callback) {
+    // 如果 callback 是第四个参数（旧调用方式），调整参数
+    if (typeof status === 'function') {
+      callback = status;
+      status = 'completed';
+    }
+    
     const sql = `
-      INSERT INTO recommendation_history (user_id, topic_keywords, process_logs, recommended_sources)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO recommendation_history (user_id, topic_keywords, process_logs, recommended_sources, status)
+      VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (user_id, topic_keywords) 
       DO UPDATE SET 
         process_logs = EXCLUDED.process_logs,
         recommended_sources = EXCLUDED.recommended_sources,
+        status = EXCLUDED.status,
         updated_at = CURRENT_TIMESTAMP
       RETURNING id, created_at, updated_at
     `;
@@ -624,7 +631,8 @@ class User {
       userId, 
       topicKeywords, 
       JSON.stringify(processLogs), 
-      JSON.stringify(recommendedSources)
+      JSON.stringify(recommendedSources),
+      status
     ])
       .then(result => {
         callback(null, result.rows[0]);
@@ -635,7 +643,7 @@ class User {
   // 获取用户最新的推荐历史
   static getLatestRecommendationHistory(userId, callback) {
     const sql = `
-      SELECT id, topic_keywords, process_logs, recommended_sources, created_at, updated_at
+      SELECT id, topic_keywords, process_logs, recommended_sources, status, created_at, updated_at
       FROM recommendation_history
       WHERE user_id = $1
       ORDER BY updated_at DESC
@@ -653,6 +661,10 @@ class User {
           history.recommended_sources = typeof history.recommended_sources === 'string'
             ? JSON.parse(history.recommended_sources)
             : history.recommended_sources;
+          // 如果没有 status 字段（向后兼容），默认为 'completed'
+          if (!history.status) {
+            history.status = 'completed';
+          }
           callback(null, history);
         } else {
           callback(null, null);
@@ -665,7 +677,7 @@ class User {
   static getAllRecommendationHistory(userId, callback) {
     // 只返回那些主题仍然存在于 user_topics 表中的推荐历史
     const sql = `
-      SELECT rh.id, rh.topic_keywords, rh.process_logs, rh.recommended_sources, rh.created_at, rh.updated_at
+      SELECT rh.id, rh.topic_keywords, rh.process_logs, rh.recommended_sources, rh.status, rh.created_at, rh.updated_at
       FROM recommendation_history rh
       INNER JOIN user_topics ut ON rh.user_id = ut.user_id AND rh.topic_keywords = ut.topic_keywords
       WHERE rh.user_id = $1
@@ -682,6 +694,10 @@ class User {
           row.recommended_sources = typeof row.recommended_sources === 'string'
             ? JSON.parse(row.recommended_sources)
             : row.recommended_sources;
+          // 如果没有 status 字段（向后兼容），默认为 'completed'
+          if (!row.status) {
+            row.status = 'completed';
+          }
           return row;
         });
         callback(null, histories);
@@ -692,7 +708,7 @@ class User {
   // 根据主题关键词获取推荐历史
   static getRecommendationHistoryByTopic(userId, topicKeywords, callback) {
     const sql = `
-      SELECT id, topic_keywords, process_logs, recommended_sources, created_at, updated_at
+      SELECT id, topic_keywords, process_logs, recommended_sources, status, created_at, updated_at
       FROM recommendation_history
       WHERE user_id = $1 AND topic_keywords = $2
       ORDER BY updated_at DESC
@@ -710,6 +726,10 @@ class User {
           history.recommended_sources = typeof history.recommended_sources === 'string'
             ? JSON.parse(history.recommended_sources)
             : history.recommended_sources;
+          // 如果没有 status 字段（向后兼容），默认为 'completed'
+          if (!history.status) {
+            history.status = 'completed';
+          }
           callback(null, history);
         } else {
           callback(null, null);

@@ -5082,6 +5082,12 @@
           console.log(`📖 找到 ${histories.length} 条推荐历史，开始渲染页签...`);
           console.log('📖 推荐历史主题列表:', histories.map(h => h.topic_keywords));
           
+          // 检查是否有进行中的推荐
+          const inProgressHistories = histories.filter(h => h.status === 'in_progress');
+          if (inProgressHistories.length > 0) {
+            console.log(`⏳ 发现 ${inProgressHistories.length} 个进行中的推荐:`, inProgressHistories.map(h => h.topic_keywords));
+          }
+          
           // 清空并重新渲染页签
           renderTopicsTabs(histories);
           document.getElementById('topicsTabsSection').style.display = 'block';
@@ -5147,7 +5153,10 @@
         tabBtn.id = tabId;
         tabBtn.onclick = () => switchTopicTab(index);
         const sourceCount = history.recommended_sources ? history.recommended_sources.length : 0;
-        tabBtn.innerHTML = `${escapeHtml(topicKeywords)}${sourceCount > 0 ? `<span class="tab-badge">${sourceCount}</span>` : ''}`;
+        const recStatus = history.status || 'completed';
+        const isInProgress = recStatus === 'in_progress';
+        const statusBadge = isInProgress ? '<span class="tab-status-badge" style="color: #8B5CF6; font-size: 11px; margin-left: 4px;">推荐中...</span>' : '';
+        tabBtn.innerHTML = `${escapeHtml(topicKeywords)}${statusBadge}${sourceCount > 0 ? `<span class="tab-badge">${sourceCount}</span>` : ''}`;
         tabsHeader.appendChild(tabBtn);
         
         // 创建页签内容面板
@@ -5158,16 +5167,23 @@
         
         // 推荐过程日志（小字显示）
         let processLogsHtml = '';
+        
         if (history.process_logs && history.process_logs.length > 0) {
           // 获取最后一条日志作为当前状态
           const lastLog = history.process_logs[history.process_logs.length - 1];
-          const lastMessage = lastLog.message || '推荐完成';
+          const lastMessage = lastLog.message || (isInProgress ? '推荐进行中...' : '推荐完成');
           
           processLogsHtml = `
-            <div style="font-size: 11px; color: #999; margin-bottom: 12px; padding: 4px 0;" id="processText-${index}">
-              ${escapeHtml(lastMessage)}
+            <div style="font-size: 11px; color: ${isInProgress ? '#8B5CF6' : '#999'}; margin-bottom: 12px; padding: 4px 0;" id="processText-${index}">
+              ${isInProgress ? '⏳ ' : ''}${escapeHtml(lastMessage)}
             </div>
           `;
+        } else if (isInProgress) {
+          processLogsHtml = `
+            <div style="font-size: 11px; color: #8B5CF6; margin-bottom: 12px; padding: 4px 0;" id="processText-${index}">
+              ⏳ 推荐进行中，请稍候...
+          </div>
+        `;
         }
         
         // 推荐信息源表格（包含过滤器和地区列）

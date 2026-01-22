@@ -397,10 +397,24 @@ async function initDatabase() {
         topic_keywords TEXT NOT NULL,
         process_logs JSONB,
         recommended_sources JSONB,
+        status TEXT DEFAULT 'completed',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, topic_keywords)
       )
+    `);
+    
+    // 为现有表添加 status 字段（如果不存在）
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'recommendation_history' AND column_name = 'status'
+        ) THEN
+          ALTER TABLE recommendation_history ADD COLUMN status TEXT DEFAULT 'completed';
+        END IF;
+      END $$;
     `);
 
     await client.query(`

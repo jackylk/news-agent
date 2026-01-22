@@ -154,6 +154,22 @@ router.post('/topics/recommend', async (req, res) => {
     sendProgress(startLog);
     console.log(`[推荐信息源] ${startLog.message}`);
     
+    // 立即保存推荐历史（状态为进行中）
+    User.saveRecommendationHistory(
+      req.user.id,
+      trimmedKeywords,
+      processLogs,
+      [],
+      'in_progress',
+      (err, result) => {
+        if (err) {
+          console.error('[推荐信息源] 保存初始推荐历史失败:', err);
+        } else {
+          console.log(`[推荐信息源] 初始推荐历史已保存（状态：进行中）`);
+        }
+      }
+    );
+    
     const apiCallLog = {
       type: 'progress',
       message: `正在调用 DeepSeek API 为"${trimmedKeywords}"做信息源推荐...`,
@@ -261,6 +277,24 @@ router.post('/topics/recommend', async (req, res) => {
           type: 'sourceValidated',
           source: validatedSource
         });
+        
+        // 定期更新推荐历史（每验证5个信息源更新一次，或验证完成时更新）
+        if (validatedSources.length % 5 === 0 || validatedSources.length === sources.length) {
+          User.saveRecommendationHistory(
+            req.user.id,
+            trimmedKeywords,
+            processLogs,
+            validatedSources,
+            'in_progress',
+            (err, result) => {
+              if (err) {
+                console.error('[推荐信息源] 更新推荐历史失败:', err);
+              } else {
+                console.log(`[推荐信息源] 推荐历史已更新（已验证 ${validatedSources.length}/${sources.length} 个信息源）`);
+              }
+            }
+          );
+        }
       }
     });
     
@@ -279,19 +313,20 @@ router.post('/topics/recommend', async (req, res) => {
     console.log(`[推荐信息源] ${validateCompleteLog.message}`);
     console.log(`[推荐信息源] 推荐完成，共 ${validatedSources.length} 个信息源，其中 ${validCount} 个有效，${invalidCount} 个无效\n`);
     
-    // 保存推荐历史到数据库（包含验证结果）
-    console.log(`[推荐信息源] 正在保存推荐历史到数据库...`);
+    // 保存推荐历史到数据库（包含验证结果，状态为已完成）
+    console.log(`[推荐信息源] 正在保存推荐历史到数据库（状态：已完成）...`);
     User.saveRecommendationHistory(
       req.user.id,
       trimmedKeywords,
       processLogs,
       validatedSources,
+      'completed',
       (err, result) => {
         if (err) {
           console.error('[推荐信息源] 保存推荐历史失败:', err);
           // 即使保存失败，也返回推荐结果
         } else {
-          console.log(`[推荐信息源] 推荐历史已保存到数据库`);
+          console.log(`[推荐信息源] 推荐历史已保存到数据库（状态：已完成）`);
         }
       }
     );
@@ -318,18 +353,19 @@ router.post('/topics/recommend', async (req, res) => {
     console.error(`[推荐信息源] ${errorLog.message}`);
     console.error(`[推荐信息源] 错误详情:`, error);
     
-    // 即使失败也保存错误日志
-    console.log(`[推荐信息源] 正在保存错误日志到数据库...`);
+    // 即使失败也保存错误日志（状态为失败）
+    console.log(`[推荐信息源] 正在保存错误日志到数据库（状态：失败）...`);
     User.saveRecommendationHistory(
       req.user.id,
       trimmedKeywords,
       processLogs,
       [],
+      'failed',
       (err, result) => {
         if (err) {
           console.error('[推荐信息源] 保存推荐历史失败:', err);
         } else {
-          console.log(`[推荐信息源] 错误日志已保存到数据库`);
+          console.log(`[推荐信息源] 错误日志已保存到数据库（状态：失败）`);
         }
       }
     );
