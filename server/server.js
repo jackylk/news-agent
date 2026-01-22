@@ -16,7 +16,6 @@ const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const NewsCollector = require('./services/newsCollector');
-const cron = require('node-cron');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -296,67 +295,6 @@ app.post('/api/collect', async (req, res) => {
   }
 });
 
-// 定时任务：每10分钟自动为所有用户收集所有主题的新闻
-cron.schedule('*/10 * * * *', async () => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] 🔄 开始定时收集新闻（为所有用户收集所有主题）...`);
-  
-  try {
-    const db = require('./config/database');
-    const collector = new NewsCollector();
-    
-    // 获取所有有订阅的用户
-    const usersResult = await db.query('SELECT DISTINCT user_id FROM user_subscriptions');
-    const userIds = usersResult.rows.map(row => row.user_id);
-    
-    if (userIds.length === 0) {
-      console.log(`[${timestamp}] ℹ️  没有用户订阅，跳过收集`);
-      return;
-    }
-    
-    console.log(`[${timestamp}] 📊 找到 ${userIds.length} 个用户，开始收集新闻...`);
-    
-    let totalCollected = 0;
-    let successCount = 0;
-    let failCount = 0;
-    
-    // 为每个用户收集其所有订阅（包括所有主题）
-    for (const userId of userIds) {
-      try {
-        const subscriptionsResult = await db.query(
-          'SELECT * FROM user_subscriptions WHERE user_id = $1',
-          [userId]
-        );
-        
-        if (subscriptionsResult.rows.length === 0) {
-          console.log(`[${timestamp}] ⏭️  用户 ${userId} 没有订阅，跳过`);
-          continue;
-        }
-        
-        console.log(`[${timestamp}] 👤 为用户 ${userId} 收集新闻，共 ${subscriptionsResult.rows.length} 个订阅源...`);
-        
-        // 收集新闻（不传入进度回调，因为这是后台任务）
-        const count = await collector.collectForUser(userId, subscriptionsResult.rows);
-        totalCollected += count || 0;
-        successCount++;
-        
-        console.log(`[${timestamp}] ✅ 用户 ${userId} 收集完成，收集 ${count || 0} 条新闻`);
-      } catch (err) {
-        failCount++;
-        console.error(`[${timestamp}] ❌ 为用户 ${userId} 收集新闻失败:`, err.message);
-        // 继续处理下一个用户，不中断整个任务
-      }
-    }
-    
-    console.log(`[${timestamp}] ✅ 定时收集完成`);
-    console.log(`[${timestamp}]   成功: ${successCount} 个用户`);
-    console.log(`[${timestamp}]   失败: ${failCount} 个用户`);
-    console.log(`[${timestamp}]   总计: 收集 ${totalCollected} 条新闻`);
-  } catch (error) {
-    console.error(`[${timestamp}] ❌ 定时收集新闻失败:`, error.message);
-    console.error(`[${timestamp}]   错误堆栈:`, error.stack);
-  }
-});
 
 // 启动服务器
 // Railway 要求监听 0.0.0.0 而不是 localhost
@@ -394,6 +332,5 @@ app.listen(PORT, HOST, () => {
   console.log(`  GET    /api/admin/stats - 获取系统统计信息（需要管理员令牌）`);
   console.log(`\n💾 数据库: 已持久化，启动时不再自动收集新闻`);
   console.log(`\n📰 新闻收集方式：`);
-  console.log(`  - 定时任务：每10分钟自动为所有用户收集所有主题的新闻`);
   console.log(`  - 手动触发：POST /api/collect`);
 });
