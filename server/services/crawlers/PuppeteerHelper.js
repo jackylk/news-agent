@@ -23,7 +23,7 @@ class PuppeteerHelper {
       return this.browserPromise;
     }
 
-    this.browserPromise = puppeteer.launch({
+    const launchOptions = {
       headless: true,
       args: [
         '--no-sandbox',
@@ -35,7 +35,14 @@ class PuppeteerHelper {
         '--disable-features=IsolateOrigins,site-per-process',
       ],
       timeout: 30000,
-    });
+    };
+
+    // Use system Chromium if PUPPETEER_EXECUTABLE_PATH is set (e.g. in Docker/Railway)
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+
+    this.browserPromise = puppeteer.launch(launchOptions);
 
     try {
       this.browser = await this.browserPromise;
