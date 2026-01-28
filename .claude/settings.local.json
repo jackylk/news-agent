@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(curl:*)",
+      "Bash(node server.js:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)"
+    ]
+  }
+}

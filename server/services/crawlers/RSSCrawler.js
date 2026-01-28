@@ -64,18 +64,27 @@ class RSSCrawler extends BaseCrawler {
   _isNetworkError(error) {
     if (!error) return false;
     const errorMsg = error.message || error.toString();
+    const code = error.code || '';
+    const networkCodes = [
+      'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED',
+      'EHOSTUNREACH', 'ENETUNREACH', 'EPROTO', 'EPIPE', 'EAI_AGAIN'
+    ];
     return (
       errorMsg.includes('socket') ||
       errorMsg.includes('TLS') ||
       errorMsg.includes('ECONNRESET') ||
       errorMsg.includes('ETIMEDOUT') ||
       errorMsg.includes('ENOTFOUND') ||
+      errorMsg.includes('ECONNREFUSED') ||
+      errorMsg.includes('EHOSTUNREACH') ||
+      errorMsg.includes('ENETUNREACH') ||
+      errorMsg.includes('EPROTO') ||
       errorMsg.includes('timeout') ||
       errorMsg.includes('disconnected') ||
       errorMsg.includes('network') ||
-      error.code === 'ECONNRESET' ||
-      error.code === 'ETIMEDOUT' ||
-      error.code === 'ENOTFOUND'
+      errorMsg.includes('CERT_') ||
+      errorMsg.includes('certificate') ||
+      networkCodes.includes(code)
     );
   }
 

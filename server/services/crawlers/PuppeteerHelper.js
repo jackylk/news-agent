@@ -114,7 +114,7 @@ class PuppeteerHelper {
       console.error(`Puppeteer获取页面失败 ${url}:`, error.message);
       throw error;
     } finally {
-      await page.close();
+      await page.close().catch(e => console.warn('page.close() 失败:', e.message));
     }
   }
 
@@ -411,7 +411,7 @@ class PuppeteerHelper {
       console.error(`Puppeteer提取内容失败 ${url}:`, error.message);
       throw error;
     } finally {
-      await page.close();
+      await page.close().catch(e => console.warn('page.close() 失败:', e.message));
     }
   }
 

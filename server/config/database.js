@@ -2,32 +2,40 @@ const { Pool } = require('pg');
 
 // 从环境变量获取数据库连接信息
 // 支持 Neon、Railway PostgreSQL 或其他 PostgreSQL 服务
-// 优先使用 DATABASE_URL（Neon 和 Railway 都会提供）
+// 本地开发时设置 USE_LOCAL_DB=true 使用本地数据库
 
-// 检查 DATABASE_URL 是否设置
-if (!process.env.DATABASE_URL) {
-  console.warn('⚠️  警告: DATABASE_URL 环境变量未设置');
-  console.warn('   在 Railway 上部署时，请确保：');
-  console.warn('   1. 如果使用 Neon: 在 Railway 项目设置中添加 DATABASE_URL 环境变量');
-  console.warn('   2. 如果使用 Railway PostgreSQL: 在项目中添加 PostgreSQL 服务');
-  console.warn('   当前将尝试使用本地数据库配置（仅适用于本地开发）');
-}
+// 判断是否使用本地数据库
+const useLocalDB = process.env.USE_LOCAL_DB === 'true';
 
 // 构建连接配置
 let poolConfig;
 
-if (process.env.DATABASE_URL) {
+if (useLocalDB) {
+  // 本地开发：使用本地数据库
+  poolConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    database: process.env.DB_NAME || 'news_db',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || '',
+    ssl: false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  };
+  console.log('📦 使用本地数据库配置');
+} else if (process.env.DATABASE_URL) {
   // 检查是否是 Neon 数据库（通过检查连接字符串）
   const isNeon = process.env.DATABASE_URL.includes('neon.tech');
   let connectionString = process.env.DATABASE_URL;
-  
+
   // 如果是 Neon 且没有使用 pooler，建议使用 pooler
   if (isNeon && !connectionString.includes('-pooler')) {
     console.warn('⚠️  检测到 Neon 数据库，建议使用 Connection Pooler');
     console.warn('   请在 Neon 控制台获取带 -pooler 的连接字符串');
     console.warn('   这样可以避免 Serverless 暂停导致的连接超时问题');
   }
-  
+
   // 使用 DATABASE_URL（推荐，适用于 Neon 和 Railway PostgreSQL）
   poolConfig = {
     connectionString: connectionString,
@@ -48,7 +56,10 @@ if (process.env.DATABASE_URL) {
     console.log('   🚀 检测到 Neon Serverless 数据库，已优化连接池配置');
   }
 } else {
-  // 本地开发：使用单独的环境变量
+  // 没有配置任何数据库，使用默认本地配置
+  console.warn('⚠️  警告: 未配置数据库连接');
+  console.warn('   本地开发请设置 USE_LOCAL_DB=true');
+  console.warn('   生产环境请设置 DATABASE_URL');
   poolConfig = {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
@@ -60,7 +71,7 @@ if (process.env.DATABASE_URL) {
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
   };
-  console.log('📦 使用本地数据库配置');
+  console.log('📦 使用默认本地数据库配置');
 }
 
 const pool = new Pool(poolConfig);

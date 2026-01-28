@@ -1048,7 +1048,8 @@ class NewsCollector {
   }
 
   // 按用户订阅收集新闻
-  async collectForUser(userId, subscriptions, onProgress = null, topicKeywords = null) {
+  async collectForUser(userId, subscriptions, onProgress = null, topicKeywords = null, options = {}) {
+    const abortSignal = options.abortSignal || null;
     console.log(`\n========== 开始为用户 ${userId} 收集新闻 ==========`);
     console.log(`订阅源数量: ${subscriptions.length}`);
     if (topicKeywords && topicKeywords.trim()) {
@@ -1221,13 +1222,19 @@ class NewsCollector {
     };
 
     for (let index = 0; index < subscriptions.length; index++) {
+      // 如果客户端已断开，跳过剩余源
+      if (abortSignal && abortSignal.aborted) {
+        console.log(`[用户${userId}] 客户端已断开，跳过剩余 ${subscriptions.length - index} 个订阅源`);
+        break;
+      }
+
       const subscription = subscriptions[index];
       try {
         const { source_url, source_type, source_name, category, topic_keywords } = subscription;
-        
+
         // 使用订阅中的 topic_keywords，如果没有则使用传入的参数
         const currentTopicKeywords = topic_keywords || topicKeywords || subscriptionTopicKeywords;
-        
+
         // 报告进度：开始处理某个源
         if (onProgress) {
           onProgress({
@@ -1239,27 +1246,36 @@ class NewsCollector {
             message: `正在收集: ${source_name} (${index + 1}/${totalSources})`
           });
         }
-        
+
         let result = { count: 0, articles: [] };
         const normalizedSourceType = (source_type || '').toLowerCase();
-        
+
         // 使用CrawlerFactory创建合适的爬虫
         const detectedType = CrawlerFactory.detectSourceType(normalizedSourceType, source_url);
         console.log(`[收集源 ${index + 1}/${totalSources}] 处理${detectedType}源: ${source_name}${currentTopicKeywords ? ` (主题: ${currentTopicKeywords})` : ''}`);
-        
+
+        // 单源采集超时保护（60秒）
+        const SOURCE_TIMEOUT = 60000;
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`采集超时（${SOURCE_TIMEOUT / 1000}秒）: ${source_name}`)), SOURCE_TIMEOUT)
+        );
+
         // 根据检测到的类型调用相应的收集方法
+        let collectPromise;
         if (detectedType === 'twitter') {
-          result = await this.collectFromTwitterForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
+          collectPromise = this.collectFromTwitterForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
         } else if (detectedType === 'rss') {
-          result = await this.collectFromRSSFeedForUser(source_url, userId, source_name, category, 3, onProgress, currentTopicKeywords);
+          collectPromise = this.collectFromRSSFeedForUser(source_url, userId, source_name, category, 3, onProgress, currentTopicKeywords);
         } else if (detectedType === 'blog') {
-          result = await this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
+          collectPromise = this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
         } else if (detectedType === 'news') {
-          result = await this.collectFromNewsWebsiteForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
+          collectPromise = this.collectFromNewsWebsiteForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
         } else {
           // 默认使用博客爬虫
-          result = await this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
+          collectPromise = this.collectFromBlogForUser(source_url, userId, source_name, category, onProgress, currentTopicKeywords);
         }
+
+        result = await Promise.race([collectPromise, timeoutPromise]);
         
         // 收集文章到数组
         if (result.articles && result.articles.length > 0) {
@@ -1601,14 +1617,31 @@ class NewsCollector {
 
   // 从博客收集（带用户ID）
   async collectFromBlogForUser(blogUrl, userId, sourceName, category, onProgress = null, topicKeywords = null) {
+    const maxRetries = 2;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this._collectFromBlogForUserOnce(blogUrl, userId, sourceName, category, onProgress, topicKeywords);
+      } catch (error) {
+        if (attempt < maxRetries && this._isNetworkError(error)) {
+          console.warn(`博客采集网络错误 (尝试 ${attempt}/${maxRetries}): ${blogUrl} - ${error.message}`);
+          await this.sleep(attempt * 2000);
+          continue;
+        }
+        console.error(`从博客 ${blogUrl} 收集失败 (已尝试 ${attempt} 次):`, error.message);
+        return { count: 0, articles: [] };
+      }
+    }
+    return { count: 0, articles: [] };
+  }
+
+  async _collectFromBlogForUserOnce(blogUrl, userId, sourceName, category, onProgress = null, topicKeywords = null) {
     console.log(`开始从博客 ${blogUrl} 收集文章（用户 ${userId}）...`);
     let collectedCount = 0;
     const collectedArticles = [];
     const blogCrawler = new BlogCrawler();
 
-    try {
-      // 获取文章链接列表
-      const articleLinks = await blogCrawler.extractArticleLinks(blogUrl, { maxLinks: 20 });
+    // 获取文章链接列表
+    const articleLinks = await blogCrawler.extractArticleLinks(blogUrl, { maxLinks: 20 });
       console.log(`找到 ${articleLinks.length} 个可能的文章链接`);
 
       // 处理每篇文章
@@ -1680,27 +1713,40 @@ class NewsCollector {
         }
       }
 
-      console.log(`从博客 ${blogUrl} 收集完成，共收集 ${topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount} 条新文章`);
-      return {
-        count: topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount,
-        articles: collectedArticles
-      };
-    } catch (error) {
-      console.error(`从博客 ${blogUrl} 收集失败:`, error.message);
-      return { count: 0, articles: [] };
-    }
+    console.log(`从博客 ${blogUrl} 收集完成，共收集 ${topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount} 条新文章`);
+    return {
+      count: topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount,
+      articles: collectedArticles
+    };
   }
 
-  // 从新闻网站收集（带用户ID）
+  // 从新闻网站收集（带用户ID，带重试）
   async collectFromNewsWebsiteForUser(newsUrl, userId, sourceName, category, onProgress = null, topicKeywords = null) {
+    const maxRetries = 2;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this._collectFromNewsWebsiteForUserOnce(newsUrl, userId, sourceName, category, onProgress, topicKeywords);
+      } catch (error) {
+        if (attempt < maxRetries && this._isNetworkError(error)) {
+          console.warn(`新闻网站采集网络错误 (尝试 ${attempt}/${maxRetries}): ${newsUrl} - ${error.message}`);
+          await this.sleep(attempt * 2000);
+          continue;
+        }
+        console.error(`从新闻网站 ${newsUrl} 收集失败 (已尝试 ${attempt} 次):`, error.message);
+        return { count: 0, articles: [] };
+      }
+    }
+    return { count: 0, articles: [] };
+  }
+
+  async _collectFromNewsWebsiteForUserOnce(newsUrl, userId, sourceName, category, onProgress = null, topicKeywords = null) {
     console.log(`开始从新闻网站 ${newsUrl} 收集文章（用户 ${userId}）...`);
     let collectedCount = 0;
     const collectedArticles = [];
     const newsCrawler = new NewsWebsiteCrawler();
 
-    try {
-      // 获取文章链接列表
-      const articleLinks = await newsCrawler.extractArticleLinks(newsUrl, { maxLinks: 30 });
+    // 获取文章链接列表
+    const articleLinks = await newsCrawler.extractArticleLinks(newsUrl, { maxLinks: 30 });
       console.log(`找到 ${articleLinks.length} 个可能的新闻文章链接`);
 
       // 处理每篇文章
@@ -1772,15 +1818,11 @@ class NewsCollector {
         }
       }
 
-      console.log(`从新闻网站 ${newsUrl} 收集完成，共收集 ${topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount} 条新文章`);
-      return {
-        count: topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount,
-        articles: collectedArticles
-      };
-    } catch (error) {
-      console.error(`从新闻网站 ${newsUrl} 收集失败:`, error.message);
-      return { count: 0, articles: [] };
-    }
+    console.log(`从新闻网站 ${newsUrl} 收集完成，共收集 ${topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount} 条新文章`);
+    return {
+      count: topicKeywords && topicKeywords.trim() ? collectedArticles.length : collectedCount,
+      articles: collectedArticles
+    };
   }
 
   // 从博客URL提取文章标题和详细内容（增强版，支持博客、新闻网站等多种类型）
@@ -2190,6 +2232,33 @@ ${articlesInfo}
       // 如果API调用失败，返回所有文章都相关（保守策略，避免丢失文章）
       return articles.map(() => true);
     }
+  }
+
+  /**
+   * 判断是否为网络错误（可重试）
+   */
+  _isNetworkError(error) {
+    if (!error) return false;
+    const msg = error.message || error.toString();
+    const code = error.code || '';
+    const networkCodes = [
+      'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED',
+      'EHOSTUNREACH', 'ENETUNREACH', 'EPROTO', 'EPIPE', 'EAI_AGAIN'
+    ];
+    return (
+      msg.includes('socket') ||
+      msg.includes('TLS') ||
+      msg.includes('timeout') ||
+      msg.includes('disconnected') ||
+      msg.includes('network') ||
+      msg.includes('ECONNRESET') ||
+      msg.includes('ETIMEDOUT') ||
+      msg.includes('ENOTFOUND') ||
+      msg.includes('ECONNREFUSED') ||
+      msg.includes('CERT_') ||
+      msg.includes('certificate') ||
+      networkCodes.includes(code)
+    );
   }
 
   sleep(ms) {

@@ -73,10 +73,26 @@ app.post('/api/collect', async (req, res) => {
     res.setHeader('Transfer-Encoding', 'chunked');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    
-    // 发送初始消息
+
+    // 客户端断连检测
+    let clientDisconnected = false;
+    const abortController = new AbortController();
+    res.on('close', () => {
+      clientDisconnected = true;
+      abortController.abort();
+      console.log('[流式响应] 客户端已断开连接');
+    });
+
+    // 发送初始消息（写入前检查连接状态）
     const sendProgress = (data) => {
-      res.write(JSON.stringify(data) + '\n');
+      if (clientDisconnected) return;
+      try {
+        res.write(JSON.stringify(data) + '\n');
+      } catch (e) {
+        clientDisconnected = true;
+        abortController.abort();
+        console.warn('[流式响应] 写入失败，客户端可能已断开:', e.message);
+      }
     };
     
     // 尝试从请求头获取用户token
@@ -196,16 +212,16 @@ app.post('/api/collect', async (req, res) => {
       console.log(`[新闻收集]   - topicKeywords: ${topicKeywords || '无（不过滤）'}`);
       await collector.collectForUser(userId, subscriptionsToCollect, (progress) => {
         sendProgress(progress);
-      }, topicKeywords);
+      }, topicKeywords, { abortSignal: abortController.signal });
       
       // 发送完成消息
-      sendProgress({ 
+      sendProgress({
         type: 'final',
-        success: true, 
-        message: `新闻收集完成，已从 ${subscriptionsToCollect.length} 个订阅源收集新闻${topicKeywords ? `（主题：${topicKeywords}）` : ''}` 
+        success: true,
+        message: `新闻收集完成，已从 ${subscriptionsToCollect.length} 个订阅源收集新闻${topicKeywords ? `（主题：${topicKeywords}）` : ''}`
       });
-      
-      res.end();
+
+      if (!clientDisconnected) res.end();
     } else {
       // 为所有用户收集其订阅的信息源（不支持进度显示，因为涉及多个用户）
       const usersResult = await db.query('SELECT DISTINCT user_id FROM user_subscriptions');
@@ -235,37 +251,53 @@ app.post('/api/collect', async (req, res) => {
         
         if (subscriptionsResult.rows.length === 0) continue;
         
-        const count = await collector.collectForUser(uid, subscriptionsResult.rows).catch(err => {
+        const count = await collector.collectForUser(uid, subscriptionsResult.rows, null, null, { abortSignal: abortController.signal }).catch(err => {
           console.error(`为用户 ${uid} 收集新闻失败:`, err);
           return 0;
         });
         totalCollected += count;
       }
       
-      sendProgress({ 
+      sendProgress({
         type: 'final',
-        success: true, 
-        message: `新闻收集完成，已为 ${userIds.length} 个用户收集新闻` 
+        success: true,
+        message: `新闻收集完成，已为 ${userIds.length} 个用户收集新闻`
       });
-      
-      res.end();
+
+      if (!clientDisconnected) res.end();
     }
   } catch (error) {
     console.error('收集新闻失败:', error);
-    res.write(JSON.stringify({ 
-      type: 'error',
-      success: false, 
-      message: error.message 
-    }) + '\n');
-    res.end();
+    if (!clientDisconnected) {
+      try {
+        res.write(JSON.stringify({
+          type: 'error',
+          success: false,
+          message: error.message
+        }) + '\n');
+        res.end();
+      } catch (e) {
+        console.warn('[流式响应] 发送错误信息失败，客户端可能已断开:', e.message);
+      }
+    }
   }
 });
+
+// Cron 并发锁：防止上一轮采集未完成时重复启动
+let isCollecting = false;
 
 // 定时任务：每10分钟自动为所有用户收集所有主题的新闻
 cron.schedule('*/10 * * * *', async () => {
   const timestamp = new Date().toISOString();
+
+  if (isCollecting) {
+    console.log(`[${timestamp}] ⏭️  上一轮采集仍在进行，跳过本轮定时任务`);
+    return;
+  }
+
+  isCollecting = true;
   console.log(`[${timestamp}] 🔄 开始定时收集新闻（为所有用户收集所有主题）...`);
-  
+
   try {
     const db = require('./config/database');
     const collector = new NewsCollector();
@@ -320,6 +352,8 @@ cron.schedule('*/10 * * * *', async () => {
   } catch (error) {
     console.error(`[${timestamp}] ❌ 定时收集新闻失败:`, error.message);
     console.error(`[${timestamp}]   错误堆栈:`, error.stack);
+  } finally {
+    isCollecting = false;
   }
 });
 

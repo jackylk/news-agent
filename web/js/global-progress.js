@@ -10,6 +10,7 @@
   // 创建进度条 DOM
   function createProgressBar() {
     if (document.getElementById('globalProgressBar')) return;
+    if (!document.body) return; // body 还不存在时不创建
 
     const container = document.createElement('div');
     container.id = 'globalProgressBar';
@@ -151,7 +152,16 @@
 
   // 更新 UI
   function updateUI(data) {
+    // 确保 DOM 已准备好
+    if (!document.body) {
+      document.addEventListener('DOMContentLoaded', () => updateUI(data));
+      return;
+    }
     createProgressBar();
+    if (!progressBar) {
+      // 如果 progressBar 还是 null，说明 createProgressBar 失败了，重试
+      progressBar = document.getElementById('globalProgressBar');
+    }
     if (!progressBar) return;
 
     progressBar.querySelector('.gp-title').textContent = data.title || '';
