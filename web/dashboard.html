@@ -555,6 +555,234 @@
       box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
     }
 
+    /* 内置信息源展示区域样式 */
+    .curated-sources-section {
+      margin-top: 20px;
+    }
+
+    .curated-sources-header {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      padding: 8px 0;
+      transition: background-color 0.2s;
+      border-radius: 8px;
+      margin: -8px -8px 0 -8px;
+      padding: 12px;
+    }
+
+    .curated-sources-header:hover {
+      background-color: #f8f9fa;
+    }
+
+    .curated-sources-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-left: 8px;
+    }
+
+    .curated-sources-toggle {
+      font-size: 12px;
+      color: #8B5CF6;
+      transition: transform 0.3s;
+      width: 16px;
+      text-align: center;
+    }
+
+    .curated-sources-toggle.expanded {
+      transform: rotate(90deg);
+    }
+
+    .curated-sources-count {
+      color: #8B5CF6;
+      font-size: 14px;
+      font-weight: normal;
+      margin-left: 8px;
+    }
+
+    .curated-sources-content {
+      margin-top: 16px;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .curated-sources-filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .curated-sources-search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 14px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .curated-sources-search-input:focus {
+      outline: none;
+      border-color: #8B5CF6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+
+    .curated-sources-filters select {
+      padding: 10px 14px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      min-width: 120px;
+      transition: border-color 0.2s;
+    }
+
+    .curated-sources-filters select:hover {
+      border-color: #8B5CF6;
+    }
+
+    .curated-sources-filters select:focus {
+      outline: none;
+      border-color: #8B5CF6;
+    }
+
+    .curated-sources-stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: #666;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .curated-sources-stats span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .curated-sources-stats .stat-value {
+      font-weight: 600;
+      color: #8B5CF6;
+    }
+
+    .curated-sources-table-wrapper {
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+    }
+
+    .curated-sources-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      min-width: 700px;
+    }
+
+    .curated-sources-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+      padding: 12px;
+      text-align: left;
+      border-bottom: 2px solid #e0e0e0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      font-size: 13px;
+    }
+
+    .curated-sources-table td {
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .curated-sources-table tbody tr:hover {
+      background-color: #faf5ff;
+    }
+
+    .curated-sources-table .source-name {
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .curated-sources-table .source-url {
+      color: #8B5CF6;
+      font-size: 12px;
+      word-break: break-all;
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .curated-sources-table .source-type {
+      padding: 4px 8px;
+      background-color: #e3f2fd;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #1976d2;
+      display: inline-block;
+    }
+
+    .curated-sources-table .source-category {
+      padding: 4px 8px;
+      background-color: #f3e5f5;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #7b1fa2;
+      display: inline-block;
+    }
+
+    .curated-sources-table .source-region {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: inline-block;
+    }
+
+    .curated-sources-table .source-region.domestic {
+      background-color: #fff3e0;
+      color: #e65100;
+    }
+
+    .curated-sources-table .source-region.foreign {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .curated-sources-table .source-description {
+      color: #666;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     /* 弹窗样式 */
     .modal-overlay {
       position: fixed;
@@ -2661,6 +2889,50 @@
           <div class="empty-icon">📚</div>
           <h4>还没有添加主题</h4>
           <p>在上方输入您感兴趣的主题关键词，系统将为您推荐相关的优质信息源</p>
+        </div>
+      </div>
+
+      <!-- 内置信息源展示区域（可折叠） -->
+      <div class="section curated-sources-section">
+        <div class="curated-sources-header" onclick="toggleAllCuratedSources()">
+          <span class="curated-sources-toggle" id="allCuratedSourcesToggle">▶</span>
+          <h3>全部内置信息源</h3>
+          <span class="curated-sources-count" id="allCuratedSourcesCount">(加载中...)</span>
+        </div>
+        <div class="curated-sources-content" id="allCuratedSourcesContent" style="display: none;">
+          <!-- 搜索和筛选区域 -->
+          <div class="curated-sources-filters">
+            <input type="text" id="curatedSourcesSearch" class="curated-sources-search-input" placeholder="搜索信息源名称、URL或描述..." oninput="filterAllCuratedSources()">
+            <select id="curatedSourcesTypeFilter" onchange="filterAllCuratedSources()">
+              <option value="">全部类型</option>
+            </select>
+            <select id="curatedSourcesCategoryFilter" onchange="filterAllCuratedSources()">
+              <option value="">全部分类</option>
+            </select>
+            <select id="curatedSourcesRegionFilter" onchange="filterAllCuratedSources()">
+              <option value="">全部地区</option>
+              <option value="国内">国内</option>
+              <option value="国外">国外</option>
+            </select>
+          </div>
+          <div class="curated-sources-stats" id="allCuratedSourcesStats"></div>
+          <!-- 信息源列表 -->
+          <div class="curated-sources-table-wrapper">
+            <table class="curated-sources-table">
+              <thead>
+                <tr>
+                  <th>信息源名称</th>
+                  <th>类型</th>
+                  <th>分类</th>
+                  <th>地区</th>
+                  <th>描述</th>
+                </tr>
+              </thead>
+              <tbody id="allCuratedSourcesBody">
+                <tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">点击展开查看内置信息源</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -7661,6 +7933,160 @@
 
       GlobalProgress.completeTask(subTaskId, '文章抓取完成');
     }
+
+    // ==================== 内置信息源展示功能 ====================
+    let allCuratedSourcesData = []; // 所有内置信息源数据
+    let filteredCuratedSourcesData = []; // 筛选后的内置信息源数据
+    let allCuratedSourcesLoaded = false; // 是否已加载
+
+    // 切换内置信息源展开/折叠
+    function toggleAllCuratedSources() {
+      const content = document.getElementById('allCuratedSourcesContent');
+      const toggle = document.getElementById('allCuratedSourcesToggle');
+      const isExpanded = content.style.display !== 'none';
+      
+      if (isExpanded) {
+        content.style.display = 'none';
+        toggle.textContent = '▶';
+        toggle.classList.remove('expanded');
+      } else {
+        content.style.display = 'block';
+        toggle.textContent = '▶';
+        toggle.classList.add('expanded');
+        // 首次展开时加载数据
+        if (!allCuratedSourcesLoaded) {
+          loadAllCuratedSources();
+        }
+      }
+    }
+
+    // 加载所有内置信息源
+    async function loadAllCuratedSources() {
+      const tbody = document.getElementById('allCuratedSourcesBody');
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">加载中...</td></tr>';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/curated-sources`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          allCuratedSourcesData = result.sources || [];
+          filteredCuratedSourcesData = [...allCuratedSourcesData];
+          allCuratedSourcesLoaded = true;
+          
+          // 更新计数
+          document.getElementById('allCuratedSourcesCount').textContent = `(${allCuratedSourcesData.length}个)`;
+          
+          // 渲染筛选器选项
+          renderCuratedSourcesFilterOptions(result.stats);
+          
+          // 渲染统计信息
+          renderCuratedSourcesStatsInfo(result.stats);
+          
+          // 渲染列表
+          renderAllCuratedSourcesList();
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #c33;">加载失败</td></tr>';
+        }
+      } catch (error) {
+        console.error('加载内置信息源失败:', error);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #c33;">加载失败: ' + error.message + '</td></tr>';
+      }
+    }
+
+    // 渲染筛选器选项
+    function renderCuratedSourcesFilterOptions(stats) {
+      // 类型筛选器
+      const typeSelect = document.getElementById('curatedSourcesTypeFilter');
+      const types = Object.keys(stats?.byType || {}).sort();
+      typeSelect.innerHTML = '<option value="">全部类型</option>' + 
+        types.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(type)} (${stats.byType[type]})</option>`).join('');
+      
+      // 分类筛选器
+      const categorySelect = document.getElementById('curatedSourcesCategoryFilter');
+      const categories = Object.keys(stats?.byCategory || {}).sort();
+      categorySelect.innerHTML = '<option value="">全部分类</option>' + 
+        categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)} (${stats.byCategory[cat]})</option>`).join('');
+    }
+
+    // 渲染统计信息
+    function renderCuratedSourcesStatsInfo(stats) {
+      const statsEl = document.getElementById('allCuratedSourcesStats');
+      if (!statsEl || !stats) return;
+      
+      const domesticCount = stats.byRegion?.['国内'] || 0;
+      const foreignCount = stats.byRegion?.['国外'] || 0;
+      const typeCount = Object.keys(stats.byType || {}).length;
+      const categoryCount = Object.keys(stats.byCategory || {}).length;
+      
+      statsEl.innerHTML = `
+        <span>总数: <span class="stat-value">${allCuratedSourcesData.length}</span></span>
+        <span>国内: <span class="stat-value">${domesticCount}</span></span>
+        <span>国外: <span class="stat-value">${foreignCount}</span></span>
+        <span>类型: <span class="stat-value">${typeCount}种</span></span>
+        <span>分类: <span class="stat-value">${categoryCount}个</span></span>
+      `;
+    }
+
+    // 筛选内置信息源
+    function filterAllCuratedSources() {
+      const keyword = (document.getElementById('curatedSourcesSearch')?.value || '').trim().toLowerCase();
+      const typeFilter = document.getElementById('curatedSourcesTypeFilter')?.value || '';
+      const categoryFilter = document.getElementById('curatedSourcesCategoryFilter')?.value || '';
+      const regionFilter = document.getElementById('curatedSourcesRegionFilter')?.value || '';
+      
+      filteredCuratedSourcesData = allCuratedSourcesData.filter(source => {
+        // 关键词搜索
+        if (keyword) {
+          const nameMatch = (source.sourceName || '').toLowerCase().includes(keyword);
+          const urlMatch = (source.sourceUrl || '').toLowerCase().includes(keyword);
+          const descMatch = (source.description || '').toLowerCase().includes(keyword);
+          if (!nameMatch && !urlMatch && !descMatch) return false;
+        }
+        
+        // 类型筛选
+        if (typeFilter && source.sourceType !== typeFilter) return false;
+        
+        // 分类筛选
+        if (categoryFilter && source.category !== categoryFilter) return false;
+        
+        // 地区筛选
+        if (regionFilter && source.region !== regionFilter) return false;
+        
+        return true;
+      });
+      
+      renderAllCuratedSourcesList();
+    }
+
+    // 渲染内置信息源列表
+    function renderAllCuratedSourcesList() {
+      const tbody = document.getElementById('allCuratedSourcesBody');
+      
+      if (filteredCuratedSourcesData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">没有匹配的信息源</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = filteredCuratedSourcesData.map(source => {
+        const regionClass = source.region === '国内' ? 'domestic' : 'foreign';
+        return `
+          <tr>
+            <td>
+              <div class="source-name">${escapeHtml(source.sourceName || '')}</div>
+              <div class="source-url" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceUrl || '')}</div>
+            </td>
+            <td><span class="source-type">${escapeHtml(source.sourceType || 'rss')}</span></td>
+            <td><span class="source-category">${escapeHtml(source.category || '未分类')}</span></td>
+            <td><span class="source-region ${regionClass}">${escapeHtml(source.region || '未知')}</span></td>
+            <td><span class="source-description" title="${escapeHtml(source.description || '')}">${escapeHtml((source.description || '').substring(0, 50))}${(source.description || '').length > 50 ? '...' : ''}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+    // ==================== 内置信息源展示功能结束 ====================
 
     // ==================== 订阅管理页面新功能结束 ====================
 
