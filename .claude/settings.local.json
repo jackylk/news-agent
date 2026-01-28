@@ -5,7 +5,8 @@
       "Bash(curl:*)",
       "Bash(node server.js:*)",
       "Bash(find:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(grep:*)"
     ]
   }
 }

@@ -136,31 +136,6 @@
     .topic-content { display: none; }
     .topic-content.active { display: block; }
 
-    /* 进度条 */
-    .progress-section {
-      margin-bottom: 25px;
-      padding: 20px;
-      background: #f8f9fa;
-      border-radius: 10px;
-      display: none;
-    }
-    .progress-section.visible { display: block; }
-    .progress-title { font-size: 15px; color: #333; margin-bottom: 12px; font-weight: 500; }
-    .progress-bar-container {
-      height: 8px;
-      background: #e0e0e0;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 10px;
-    }
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #667eea, #764ba2);
-      border-radius: 4px;
-      transition: width 0.3s ease;
-      width: 0%;
-    }
-    .progress-text { font-size: 13px; color: #666; }
 </style>
 </head>
 <body>
@@ -416,11 +391,6 @@ function renderTopicTabs() {
 
   contentsContainer.innerHTML = topics.map((t, i) => `
     <div class="topic-content" id="topicContent-${i}">
-      <div class="progress-section" id="progress-${i}">
-        <div class="progress-title" id="progressTitle-${i}">正在处理...</div>
-        <div class="progress-bar-container"><div class="progress-bar" id="progressBar-${i}"></div></div>
-        <div class="progress-text" id="progressText-${i}"></div>
-      </div>
       <div class="subscribed-section">
         <h3>已订阅的信息源 (<span id="subscribedCount-${i}">0</span>个)</h3>
         <div class="subscribed-list" id="subscribedList-${i}"></div>
@@ -589,27 +559,6 @@ async function unsubscribe(index, keywords, sourceName) {
   }
 }
 
-// 进度条控制 - 使用全局进度组件
-function showProgress(index, title, percent, text) {
-  // 本地进度条（页面内）
-  const section = document.getElementById(`progress-${index}`);
-  if (section) {
-    section.classList.add('visible');
-    document.getElementById(`progressTitle-${index}`).textContent = title;
-    document.getElementById(`progressBar-${index}`).style.width = `${percent}%`;
-    document.getElementById(`progressText-${index}`).textContent = text;
-  }
-  // 全局进度条（底部，跨页面）
-  GlobalProgress.show(title, percent, text);
-}
-
-function hideProgress(index) {
-  const section = document.getElementById(`progress-${index}`);
-  if (section) {
-    section.classList.remove('visible');
-  }
-  GlobalProgress.hide();
-}
 
 // 加载推荐历史
 async function loadRecommendationHistory(index, keywords) {
@@ -635,7 +584,8 @@ async function loadRecommendationHistory(index, keywords) {
 
 // 开始推荐流程
 async function startRecommendation(index, keywords) {
-  showProgress(index, '正在获取推荐信息源...', 10, '匹配内置信息源中...');
+  const taskId = `recommend-${keywords}`;
+  GlobalProgress.addTask(taskId, '推荐信息源', keywords, 10, '匹配内置信息源中...');
 
   // 先匹配内置信息源
   const curatedMatches = matchCuratedSources(keywords);
@@ -645,7 +595,7 @@ async function startRecommendation(index, keywords) {
     isCurated: true
   }));
 
-  showProgress(index, '正在获取推荐信息源...', 30, `已匹配 ${curatedMatches.length} 个内置信息源，正在调用 AI 推荐...`);
+  GlobalProgress.updateTask(taskId, 30, `已匹配 ${curatedMatches.length} 个内置信息源，正在调用 AI 推荐...`);
 
   // 调用 DeepSeek API 获取更多推荐
   try {
@@ -676,7 +626,7 @@ async function startRecommendation(index, keywords) {
             let percent = 40;
             if (progressText.includes('验证')) percent = 60;
             if (progressText.includes('完成')) percent = 90;
-            showProgress(index, '正在获取推荐信息源...', percent, progressText);
+            GlobalProgress.updateTask(taskId, percent, progressText);
           } else if (msg.type === 'sourcesReceived') {
             // 收到推荐源，合并（去重）
             const newSources = (msg.sources || []).filter(s =>
@@ -691,16 +641,14 @@ async function startRecommendation(index, keywords) {
               allRecommendations[idx] = { ...allRecommendations[idx], ...source };
             }
           } else if (msg.type === 'final') {
-            showProgress(index, '推荐完成', 100, msg.message || '');
-            setTimeout(() => hideProgress(index), 1500);
+            GlobalProgress.completeTask(taskId, msg.message || '推荐完成');
           }
         } catch (e) {}
       }
     }
   } catch (e) {
     console.error('推荐失败:', e);
-    showProgress(index, '推荐完成', 100, '部分推荐可能失败');
-    setTimeout(() => hideProgress(index), 1500);
+    GlobalProgress.completeTask(taskId, '部分推荐可能失败');
   }
 
   // 保存并渲染
@@ -813,7 +761,8 @@ async function subscribeSelected(index) {
   btn.disabled = true;
   btn.textContent = '订阅中...';
 
-  showProgress(index, '正在订阅信息源...', 20, `准备订阅 ${selectedSources.length} 个信息源`);
+  const subTaskId = `subscribe-${keywords}`;
+  GlobalProgress.addTask(subTaskId, '订阅信息源', keywords, 20, `准备订阅 ${selectedSources.length} 个信息源`);
 
   try {
     // 构建订阅数据
@@ -836,7 +785,7 @@ async function subscribeSelected(index) {
 
     const result = await res.json();
     if (result.success) {
-      showProgress(index, '订阅成功，正在抓取文章...', 50, '开始抓取文章内容...');
+      GlobalProgress.updateTask(subTaskId, 50, '开始抓取文章内容...');
 
       // 更新本地订阅列表
       const newSubs = subscriptions.map(s => ({
@@ -857,23 +806,22 @@ async function subscribeSelected(index) {
 
         const crawlData = await crawlRes.json();
         if (crawlData.success) {
-          showProgress(index, '抓取完成', 100, crawlData.message || '文章抓取完成');
+          GlobalProgress.completeTask(subTaskId, crawlData.message || '文章抓取完成');
         } else {
-          showProgress(index, '抓取完成', 100, '抓取可能部分失败');
+          GlobalProgress.completeTask(subTaskId, '抓取可能部分失败');
         }
       } catch (e) {
-        showProgress(index, '订阅成功', 100, '文章将在后台抓取');
+        GlobalProgress.completeTask(subTaskId, '文章将在后台抓取');
       }
 
-      setTimeout(() => hideProgress(index), 2000);
       renderRecommendations(index);
       showMessage(`成功订阅 ${selectedSources.length} 个信息源`, 'success');
     } else {
-      hideProgress(index);
+      GlobalProgress.removeTask(subTaskId);
       showMessage(result.message || '订阅失败');
     }
   } catch (e) {
-    hideProgress(index);
+    GlobalProgress.removeTask(subTaskId);
     showMessage('订阅失败: ' + e.message);
   } finally {
     btn.disabled = false;

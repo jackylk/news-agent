@@ -1698,44 +1698,6 @@
       to { transform: rotate(360deg); }
     }
 
-    .refresh-progress {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-left: 12px;
-      display: none;
-      align-items: center;
-      gap: 8px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 400px;
-    }
-
-    .refresh-progress.show {
-      display: flex;
-    }
-
-    .refresh-progress .progress-text {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .refresh-progress .progress-dots {
-      display: inline-block;
-      width: 12px;
-      text-align: left;
-    }
-
-    .refresh-progress .progress-dots::after {
-      content: '...';
-      animation: dots 1.5s steps(4, end) infinite;
-    }
-
-    @keyframes dots {
-      0%, 20% { content: '.'; }
-      40% { content: '..'; }
-      60%, 100% { content: '...'; }
-    }
 
     .stat-item {
       display: flex;
@@ -4022,44 +3984,34 @@
     async function refreshNewsNow(tabIndex = null) {
       // 如果传入了tabIndex，使用对应的按钮；否则尝试查找通用按钮
       let btn;
-      let progressEl;
-      let progressTextEl;
-      
+
       if (tabIndex !== null) {
         btn = document.getElementById(`refreshNowBtn-${tabIndex}`);
-        progressEl = document.getElementById(`refreshProgress-${tabIndex}`);
-        progressTextEl = document.getElementById(`refreshProgressText-${tabIndex}`);
       } else {
         btn = document.getElementById('refreshNowBtn');
-        progressEl = document.getElementById('refreshProgress');
-        progressTextEl = document.getElementById('refreshProgressText');
       }
-      
+
       if (!btn) {
         console.error('找不到刷新按钮');
         return;
       }
-      
+
       btn.disabled = true;
       btn.classList.add('refreshing');
       const originalText = btn.innerHTML;
       btn.innerHTML = '<span>🔄</span> 刷新中...';
-      
-      // 显示进度区域
-      if (progressEl) {
-        progressEl.classList.add('show');
-      }
-      if (progressTextEl) {
-        progressTextEl.textContent = '准备开始收集...';
-      }
-      
+
+      const topicLabel = currentTopicFilter || '全部';
+      const taskId = `collect-${topicLabel}`;
+      GlobalProgress.addTask(taskId, '收集文章', topicLabel, 0, '准备开始收集...');
+
       try {
         // 构建请求体，如果是在主题页签中，传递主题关键词
         const requestBody = {};
         if (tabIndex !== null && currentTopicFilter) {
           requestBody.topicKeywords = currentTopicFilter;
         }
-        
+
         // 调用后端收集接口（流式响应）
         const response = await fetch(`${API_BASE_URL}/collect`, {
           method: 'POST',
@@ -4069,54 +4021,52 @@
           },
           body: JSON.stringify(requestBody)
         });
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let finalResult = null;
-        
+
         while (true) {
           const { done, value } = await reader.read();
-          
+
           if (done) {
             break;
           }
-          
+
           // 解码数据并添加到缓冲区
           buffer += decoder.decode(value, { stream: true });
-          
+
           // 按行分割并处理每行 JSON
           const lines = buffer.split('\n');
           buffer = lines.pop() || ''; // 保留最后不完整的行
-          
+
           for (const line of lines) {
             if (line.trim()) {
               try {
                 const progress = JSON.parse(line);
-                
-                // 更新进度显示
-                if (progressTextEl) {
-                  if (progress.type === 'start') {
-                    progressTextEl.textContent = progress.message || '开始收集...';
-                  } else if (progress.type === 'progress') {
-                    const percentage = Math.round((progress.current / progress.total) * 100);
-                    progressTextEl.textContent = progress.message || 
-                      `${progress.sourceName} (${progress.current}/${progress.total}, ${percentage}%)`;
-                  } else if (progress.type === 'complete') {
-                    progressTextEl.textContent = progress.message || '收集完成';
-                  } else if (progress.type === 'final') {
-                    progressTextEl.textContent = progress.message || '完成';
-                    finalResult = progress;
-                  } else if (progress.type === 'error') {
-                    progressTextEl.textContent = progress.message || '收集失败';
-                    finalResult = progress;
-                  }
+
+                // 更新全局进度条
+                if (progress.type === 'start') {
+                  GlobalProgress.updateTask(taskId, 5, progress.message || '开始收集...');
+                } else if (progress.type === 'progress') {
+                  const pct = Math.round((progress.current / progress.total) * 100);
+                  GlobalProgress.updateTask(taskId, pct, progress.message || `${progress.sourceName} (${progress.current}/${progress.total})`);
+                } else if (progress.type === 'complete') {
+                  GlobalProgress.completeTask(taskId, progress.message || '收集完成');
+                  finalResult = progress;
+                } else if (progress.type === 'final') {
+                  GlobalProgress.completeTask(taskId, progress.message || '收集完成');
+                  finalResult = progress;
+                } else if (progress.type === 'error') {
+                  GlobalProgress.completeTask(taskId, progress.message || '收集失败', 3000);
+                  finalResult = progress;
                 }
-                
+
                 // 实时添加收集到的文章
                 if (progress.type === 'articleCollected' && progress.article) {
                   // 如果当前在文章阅读页面，立即显示新文章
@@ -4134,14 +4084,12 @@
                 } else if (progress.type === 'filterStats') {
                   // 显示过滤统计信息
                   const statsMsg = `✓ 找到 ${progress.relevant} 篇相关文章，标记了 ${progress.irrelevant} 篇不相关文章（主题：${progress.topicKeywords}）`;
-                  if (progressTextEl) {
-                    progressTextEl.textContent = statsMsg;
-                  }
+                  GlobalProgress.updateTask(taskId, 95, statsMsg);
                   console.log(`[过滤统计] ${statsMsg}`);
                   // 显示提示消息
                   showMessage(statsMsg, 'success');
                 }
-                
+
                 // 如果是最终结果，保存
                 if (progress.type === 'final' || progress.type === 'error') {
                   finalResult = progress;
@@ -4152,12 +4100,12 @@
             }
           }
         }
-        
+
         // 处理最终结果
         if (finalResult) {
           if (finalResult.success !== false) {
             showMessage('新闻收集完成', 'success');
-            
+
             // 等待几秒后重新加载文章列表
             setTimeout(async () => {
               if (tabIndex !== null && currentTopicFilter) {
@@ -4180,23 +4128,11 @@
       } catch (error) {
         console.error('刷新新闻失败:', error);
         showMessage('刷新失败: ' + error.message, 'error');
-        if (progressTextEl) {
-          progressTextEl.textContent = '收集失败: ' + error.message;
-        }
+        GlobalProgress.completeTask(taskId, '收集失败: ' + error.message, 3000);
       } finally {
         btn.disabled = false;
         btn.classList.remove('refreshing');
         btn.innerHTML = originalText;
-        
-        // 延迟隐藏进度区域
-        setTimeout(() => {
-          if (progressEl) {
-            progressEl.classList.remove('show');
-          }
-          if (progressTextEl) {
-            progressTextEl.textContent = '';
-          }
-        }, 2000);
       }
     }
 
@@ -5945,10 +5881,6 @@
               <button class="btn-refresh-now" onclick="refreshNewsNow(${index})" id="refreshNowBtn-${index}">
                 <span>🔄</span> 立即刷新
               </button>
-              <div class="refresh-progress" id="refreshProgress-${index}">
-                <span class="progress-text" id="refreshProgressText-${index}"></span>
-                <span class="progress-dots"></span>
-              </div>
             </div>
             <div class="stats-items-container">
               <div class="stat-item">
