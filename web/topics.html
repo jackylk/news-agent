@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>订阅管理 - 新闻聚合</title>
+  <script src="js/global-progress.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -588,17 +589,26 @@ async function unsubscribe(index, keywords, sourceName) {
   }
 }
 
-// 进度条控制
+// 进度条控制 - 使用全局进度组件
 function showProgress(index, title, percent, text) {
+  // 本地进度条（页面内）
   const section = document.getElementById(`progress-${index}`);
-  section.classList.add('visible');
-  document.getElementById(`progressTitle-${index}`).textContent = title;
-  document.getElementById(`progressBar-${index}`).style.width = `${percent}%`;
-  document.getElementById(`progressText-${index}`).textContent = text;
+  if (section) {
+    section.classList.add('visible');
+    document.getElementById(`progressTitle-${index}`).textContent = title;
+    document.getElementById(`progressBar-${index}`).style.width = `${percent}%`;
+    document.getElementById(`progressText-${index}`).textContent = text;
+  }
+  // 全局进度条（底部，跨页面）
+  GlobalProgress.show(title, percent, text);
 }
 
 function hideProgress(index) {
-  document.getElementById(`progress-${index}`).classList.remove('visible');
+  const section = document.getElementById(`progress-${index}`);
+  if (section) {
+    section.classList.remove('visible');
+  }
+  GlobalProgress.hide();
 }
 
 // 加载推荐历史

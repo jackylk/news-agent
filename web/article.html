@@ -3,258 +3,332 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>文章详情</title>
+  <title>文章详情 - 新闻聚合</title>
+  <script src="js/global-progress.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-      background-color: #f5f5f5;
-      color: #333;
-      line-height: 1.8;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
     }
-
     .container {
       max-width: 900px;
       margin: 0 auto;
-      padding: 24px;
-    }
-
-    .article-header {
       background: white;
-      padding: 32px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      margin-bottom: 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
     }
-
-    .back-btn {
-      display: inline-flex;
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background-color: #f5f5f5;
-      color: #333;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      margin-bottom: 20px;
+    }
+    .header h1 { font-size: 24px; font-weight: 600; }
+    .header-links { display: flex; gap: 12px; }
+    .header a {
+      color: white;
       text-decoration: none;
-      transition: background-color 0.3s;
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 6px;
+      transition: all 0.3s;
+      font-size: 14px;
     }
-
-    .back-btn:hover {
-      background-color: #e0e0e0;
-    }
-
-    .article-title {
-      font-size: 32px;
-      font-weight: bold;
-      color: #1a1a1a;
-      line-height: 1.4;
-      margin-bottom: 16px;
-    }
+    .header a:hover { background: rgba(255,255,255,0.2); }
+    .content { padding: 30px; }
 
     .article-meta {
       display: flex;
-      gap: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 14px;
       color: #666;
-      margin-bottom: 20px;
+    }
+    .meta-item .label { color: #999; }
+    .source-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px;
+      font-size: 13px;
+    }
+    .topic-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #e8f4fd;
+      color: #1976d2;
+      border-radius: 15px;
+      font-size: 13px;
+      border: 1px solid #b3d9f7;
+    }
+
+    .article-title {
+      font-size: 26px;
+      font-weight: 600;
+      color: #333;
+      line-height: 1.4;
+      margin-bottom: 25px;
     }
 
     .article-content {
-      background: white;
-      padding: 32px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       font-size: 16px;
       line-height: 1.8;
+      color: #444;
     }
-
-    .article-content p {
-      margin-bottom: 16px;
-    }
-
-    .translate-btn {
-      padding: 10px 20px;
-      background-color: #667eea;
-      color: white;
-      border: none;
+    .article-content p { margin-bottom: 16px; }
+    .article-content img {
+      max-width: 100%;
+      height: auto;
       border-radius: 8px;
-      cursor: pointer;
+      margin: 20px 0;
+    }
+    .article-content a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    .article-content a:hover { text-decoration: underline; }
+    .article-content pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+    .article-content code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Consolas', monospace;
       font-size: 14px;
-      margin-top: 20px;
+    }
+    .article-content blockquote {
+      border-left: 4px solid #667eea;
+      padding-left: 20px;
+      margin: 20px 0;
+      color: #666;
+      font-style: italic;
+    }
+    .article-content h1, .article-content h2, .article-content h3 {
+      margin: 25px 0 15px;
+      color: #333;
+    }
+    .article-content ul, .article-content ol {
+      margin: 15px 0;
+      padding-left: 25px;
+    }
+    .article-content li { margin-bottom: 8px; }
+
+    .article-actions {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 15px;
+    }
+    .article-actions a {
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #555;
+    }
+    .btn-secondary:hover { background: #e0e0e0; }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+    }
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f0f0f0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-message {
+      text-align: center;
+      padding: 60px 20px;
+      color: #c33;
     }
 
-    .translate-btn:hover {
-      background-color: #5568d3;
+    .message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      display: none;
+      z-index: 1000;
+      max-width: 400px;
     }
+    .message.show { display: block; }
+    .message.error { background: #fee; color: #c33; border: 1px solid #fcc; }
+    .message.success { background: #efe; color: #2a2; border: 1px solid #cfc; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="article-header">
-      <a href="javascript:history.back()" class="back-btn">← 返回</a>
-      <h1 id="articleTitle" class="article-title">加载中...</h1>
-      <div class="article-meta">
-        <span id="articleSource"></span>
-        <span id="articleDate"></span>
+    <div class="header">
+      <h1>文章详情</h1>
+      <div class="header-links">
+        <a href="index.html">文章列表</a>
+        <a href="topics.html">订阅管理</a>
       </div>
-      <button id="translateBtn" class="translate-btn" onclick="toggleTranslate()" style="display: none;">
-        翻译为中文
-      </button>
     </div>
-    <div class="article-content" id="articleContent">
-      加载中...
+    <div class="content">
+      <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <p>正在加载文章...</p>
+      </div>
+      <div id="articleContent" style="display: none;"></div>
+      <div class="error-message" id="errorMessage" style="display: none;"></div>
     </div>
   </div>
+  <div class="message" id="message"></div>
 
-  <script>
-    const API_BASE_URL = (() => {
-      // 本地开发：使用本地API
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return `${window.location.protocol}//${window.location.host}/api`;
-      }
-      // 生产环境：使用 Railway 后端地址
-      return 'https://news-agent-production-c5db.up.railway.app/api';
-    })();
+<script>
+const API_BASE_URL = (() => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return `${window.location.protocol}//${window.location.host}/api`;
+  }
+  return 'https://news-agent-production-c5db.up.railway.app/api';
+})();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const articleId = urlParams.get('id');
-    let originalTitle = '';
-    let originalContent = '';
-    let isTranslated = false;
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+});
 
-    async function loadArticle() {
-      try {
-        const response = await fetch(`${API_BASE_URL}/news/${articleId}`);
-        const result = await response.json();
+function checkAuth() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
+  }
+  loadArticle();
+}
 
-        if (result.success) {
-          const article = result.data;
-          originalTitle = article.title;
-          originalContent = article.content || article.summary || '';
-          
-          document.getElementById('articleTitle').textContent = article.title;
-          document.getElementById('articleSource').textContent = `来源：${article.source || '未知'}`;
-          const publishDate = new Date(article.publish_date);
-          const year = publishDate.getFullYear();
-          const month = String(publishDate.getMonth() + 1).padStart(2, '0');
-          const day = String(publishDate.getDate()).padStart(2, '0');
-          document.getElementById('articleDate').textContent = `发布时间：${year}年${month}月${day}日`;
-          
-          // 格式化内容
-          let content = originalContent
-            .replace(/<[^>]*>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .trim();
-          
-          const paragraphs = content.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-          document.getElementById('articleContent').innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+function getAuthHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('token')}`
+  };
+}
 
-          // 检查是否为英文，显示翻译按钮
-          const textToCheck = (article.title + ' ' + content).substring(0, 500);
-          if (isEnglish(textToCheck)) {
-            document.getElementById('translateBtn').style.display = 'inline-block';
-          }
-        }
-      } catch (error) {
-        document.getElementById('articleContent').textContent = '加载失败: ' + error.message;
-      }
-    }
+function showMessage(text, type = 'error') {
+  const msg = document.getElementById('message');
+  msg.textContent = text;
+  msg.className = `message show ${type}`;
+  setTimeout(() => msg.classList.remove('show'), 3000);
+}
 
-    function isEnglish(text) {
-      const englishChars = (text.match(/[a-zA-Z]/g) || []).length;
-      const totalChars = text.replace(/\s/g, '').length;
-      return totalChars > 0 && englishChars / totalChars > 0.5;
-    }
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
 
-    async function toggleTranslate() {
-      const btn = document.getElementById('translateBtn');
-      const titleEl = document.getElementById('articleTitle');
-      const contentEl = document.getElementById('articleContent');
-      
-      if (isTranslated) {
-        // 恢复原文
-        titleEl.textContent = originalTitle;
-        let content = originalContent.replace(/<[^>]*>/g, '').trim();
-        const paragraphs = content.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-        contentEl.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
-        btn.textContent = '翻译为中文';
-        isTranslated = false;
-      } else {
-        // 翻译
-        btn.disabled = true;
-        btn.textContent = '翻译中...';
-        
-        try {
-          // 翻译标题
-          const titleResponse = await fetch('https://libretranslate.de/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              q: originalTitle,
-              source: 'en',
-              target: 'zh',
-              format: 'text'
-            })
-          });
-          const titleResult = await titleResponse.json();
-          
-          // 翻译内容（分段翻译，避免过长）
-          const content = originalContent.replace(/<[^>]*>/g, '').trim();
-          const paragraphs = content.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-          let translatedContent = '';
-          
-          for (const para of paragraphs.slice(0, 10)) { // 限制前10段
-            try {
-              const paraResponse = await fetch('https://libretranslate.de/translate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  q: para.substring(0, 2000),
-                  source: 'en',
-                  target: 'zh',
-                  format: 'text'
-                })
-              });
-              const paraResult = await paraResponse.json();
-              translatedContent += `<p>${escapeHtml(paraResult.translatedText || para)}</p>`;
-              await new Promise(resolve => setTimeout(resolve, 500)); // 避免请求过快
-            } catch (e) {
-              translatedContent += `<p>${escapeHtml(para)}</p>`;
-            }
-          }
-          
-          titleEl.textContent = titleResult.translatedText || originalTitle;
-          contentEl.innerHTML = translatedContent || contentEl.innerHTML;
-          btn.textContent = '显示原文';
-          isTranslated = true;
-        } catch (error) {
-          alert('翻译失败: ' + error.message);
-        } finally {
-          btn.disabled = false;
-        }
-      }
-    }
+async function loadArticle() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const articleId = urlParams.get('id');
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
+  if (!articleId) {
+    showError('未指定文章ID');
+    return;
+  }
 
-    if (articleId) {
-      loadArticle();
+  try {
+    const res = await fetch(`${API_BASE_URL}/news/${articleId}`, {
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+
+    if (data.success && data.data) {
+      renderArticle(data.data);
     } else {
-      document.getElementById('articleContent').textContent = '无效的文章ID';
+      showError(data.message || '文章不存在');
     }
-  </script>
+  } catch (e) {
+    showError('加载文章失败: ' + e.message);
+  }
+}
+
+function showError(message) {
+  document.getElementById('loading').style.display = 'none';
+  const errorEl = document.getElementById('errorMessage');
+  errorEl.textContent = message;
+  errorEl.style.display = 'block';
+}
+
+function renderArticle(article) {
+  document.getElementById('loading').style.display = 'none';
+  const container = document.getElementById('articleContent');
+  container.style.display = 'block';
+
+  document.title = `${article.title} - 新闻聚合`;
+
+  container.innerHTML = `
+    <div class="article-meta">
+      <div class="meta-item">
+        <span class="label">来源:</span>
+        <span class="source-tag">${article.source || '-'}</span>
+      </div>
+      ${article.topic_keywords ? `
+      <div class="meta-item">
+        <span class="label">主题:</span>
+        <span class="topic-tag">${article.topic_keywords}</span>
+      </div>
+      ` : ''}
+      <div class="meta-item">
+        <span class="label">发布时间:</span>
+        <span>${formatDate(article.published_at || article.created_at)}</span>
+      </div>
+    </div>
+    <h1 class="article-title">${article.title}</h1>
+    <div class="article-content">${article.content || article.summary || '<p>暂无内容</p>'}</div>
+    <div class="article-actions">
+      ${article.url ? `<a href="${article.url}" target="_blank" class="btn-primary">查看原文</a>` : ''}
+      <a href="index.html" class="btn-secondary">返回列表</a>
+    </div>
+  `;
+}
+</script>
 </body>
 </html>
