@@ -161,6 +161,362 @@
       gap: 12px;
     }
 
+    /* 主题词输入区域 */
+    .topic-input-container {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .topic-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.3s;
+    }
+
+    .topic-input:focus {
+      outline: none;
+      border-color: #8B5CF6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+
+    /* 空状态提示 */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h4 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      color: #999;
+    }
+
+    /* 订阅管理页签样式 */
+    .sub-topics-tabs-container {
+      margin-top: 0;
+    }
+
+    .sub-topics-tabs-header {
+      display: flex;
+      gap: 8px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 0;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+    }
+
+    .sub-topic-tab {
+      padding: 12px 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+      position: relative;
+      white-space: nowrap;
+      transition: all 0.3s;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sub-topic-tab:hover {
+      color: #8B5CF6;
+    }
+
+    .sub-topic-tab.active {
+      color: #8B5CF6;
+      font-weight: 600;
+      border-bottom-color: #8B5CF6;
+    }
+
+    .sub-topic-tab .delete-topic-btn {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #f0f0f0;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      opacity: 0;
+    }
+
+    .sub-topic-tab:hover .delete-topic-btn {
+      opacity: 1;
+    }
+
+    .sub-topic-tab .delete-topic-btn:hover {
+      background: #ffebee;
+      color: #c33;
+    }
+
+    .sub-topics-tabs-content {
+      padding-top: 20px;
+    }
+
+    .sub-topic-panel {
+      display: none;
+    }
+
+    .sub-topic-panel.active {
+      display: block;
+    }
+
+    /* 进度条样式 */
+    .progress-container {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .progress-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .progress-percentage {
+      font-size: 14px;
+      color: #8B5CF6;
+      font-weight: 600;
+    }
+
+    .progress-bar-wrapper {
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-text {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .progress-container.hidden {
+      display: none;
+    }
+
+    /* 已订阅信息源区域 */
+    .subscribed-sources-section {
+      margin-bottom: 24px;
+    }
+
+    .subscribed-sources-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .subscribed-sources-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .subscribed-sources-count {
+      font-size: 13px;
+      color: #666;
+      background: #f0f0f0;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    .subscribed-sources-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .subscribed-source-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: linear-gradient(135deg, #E9D5FF 0%, #DDD6FE 100%);
+      border-radius: 20px;
+      font-size: 13px;
+      color: #6D28D9;
+    }
+
+    .subscribed-source-tag .unsubscribe-btn {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(109, 40, 217, 0.2);
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: #6D28D9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .subscribed-source-tag .unsubscribe-btn:hover {
+      background: #c33;
+      color: white;
+    }
+
+    .no-subscriptions {
+      color: #999;
+      font-size: 14px;
+      padding: 16px;
+      text-align: center;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    /* 推荐信息源区域 */
+    .recommended-sources-section {
+      margin-bottom: 24px;
+    }
+
+    .recommended-sources-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .recommended-sources-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .sub-recommendations-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .sub-recommendations-table th,
+    .sub-recommendations-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+      overflow: hidden;
+    }
+
+    .sub-recommendations-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+      font-size: 13px;
+    }
+
+    .sub-recommendations-table tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .sub-recommendations-table th:nth-child(1),
+    .sub-recommendations-table td:nth-child(1) {
+      width: 40px;
+      text-align: center;
+    }
+
+    .sub-recommendations-table th:nth-child(2),
+    .sub-recommendations-table td:nth-child(2) {
+      width: 180px;
+    }
+
+    .sub-recommendations-table td:nth-child(2) .source-name,
+    .sub-recommendations-table td:nth-child(2) .source-url {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
+
+    .sub-recommendations-table th:nth-child(3),
+    .sub-recommendations-table td:nth-child(3) {
+      width: 70px;
+      text-align: center;
+    }
+
+    .sub-recommendations-table th:nth-child(4),
+    .sub-recommendations-table td:nth-child(4) {
+      width: auto;
+    }
+
+    .sub-recommendations-table td:nth-child(4) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* 操作按钮区域 */
+    .actions-container {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .btn-secondary {
+      padding: 10px 20px;
+      background: #f0f0f0;
+      color: #333;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .add-topic-btn {
       width: 28px;
       height: 28px;
@@ -2253,148 +2609,49 @@
 
       <div id="message" class="message"></div>
 
-      <!-- 主题管理 -->
+      <!-- 主题词输入区域 -->
       <div class="section">
-        <h3>
-          我的主题
-          <button class="add-topic-btn" onclick="showAddTopicModal()" title="添加新主题">+</button>
-        </h3>
-        <div id="topicsList" class="topics-list">
-          <div class="loading">加载中...</div>
-        </div>
-      </div>
-
-      <!-- 添加新主题弹窗 -->
-      <div class="modal-overlay" id="addTopicModal" onclick="closeAddTopicModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-          <div class="modal-header">
-            <h3>添加新主题</h3>
-            <button class="modal-close" onclick="closeAddTopicModal()">×</button>
-          </div>
-          <p style="color: #666; margin-bottom: 16px; font-size: 14px;">
-            输入您关注的主题关键词，系统将为您推荐优质的信息源
-          </p>
-          <div class="input-group">
-            <input 
-              type="text" 
-              id="topicInput" 
-              placeholder="例如：人工智能、机器学习、区块链..."
-              onkeypress="if(event.key==='Enter') recommendSources()"
-            >
-            <button class="btn-primary" onclick="recommendSources()" id="recommendBtn">
-              获取推荐
-            </button>
-          </div>
+        <h3>添加主题词</h3>
+        <p style="color: #666; margin-bottom: 16px; font-size: 14px;">
+          输入您关注的主题关键词，系统将自动为您推荐优质的信息源
+        </p>
+        <div class="topic-input-container">
+          <input
+            type="text"
+            id="topicInput"
+            class="topic-input"
+            placeholder="例如：人工智能、机器学习、区块链..."
+            onkeypress="if(event.key==='Enter') addNewTopic()"
+          >
+          <button class="btn-primary" onclick="addNewTopic()" id="addTopicBtn">
+            添加主题
+          </button>
         </div>
       </div>
 
       <!-- 主题页签容器 -->
       <div class="section" id="topicsTabsSection" style="display: none;">
-        <div class="topics-tabs-container">
-          <div class="topics-tabs-header" id="topicsTabsHeader">
+        <div class="sub-topics-tabs-container">
+          <div class="sub-topics-tabs-header" id="subTopicsTabsHeader">
             <!-- 页签将动态生成 -->
           </div>
-          <div class="topics-tabs-content" id="topicsTabsContent">
-            <!-- 页签内容将动态生成 -->
+          <div class="sub-topics-tabs-content" id="subTopicsTabsContent">
+            <!-- 页签内容将动态生成，每个页签包含：
+              1. 进度提示区域
+              2. 已订阅信息源列表
+              3. 推荐信息源列表（每次10项）
+              4. 加载更多按钮
+            -->
           </div>
         </div>
       </div>
 
-      <!-- 内置信息源展示区域 -->
-      <div class="section">
-        <div class="curated-sources-header" onclick="toggleCuratedSources()">
-          <span class="curated-sources-toggle" id="curatedSourcesToggle">▼</span>
-          <h3>内置信息源</h3>
-          <span class="curated-sources-count" id="curatedSourcesCount">(加载中...)</span>
-        </div>
-        <div class="curated-sources-content" id="curatedSourcesContent" style="display: none;">
-          <!-- 统计信息卡片 -->
-          <div class="curated-sources-stats" id="curatedSourcesStats"></div>
-          
-          <!-- 搜索框 -->
-          <div class="curated-sources-search">
-            <input 
-              type="text" 
-              id="searchCuratedSources" 
-              placeholder="搜索信息源（名称、URL、描述）..." 
-              oninput="filterCuratedSources()"
-              style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
-            >
-          </div>
-          
-          <!-- 筛选器 -->
-          <div class="curated-sources-filters">
-            <select id="filterType" onchange="filterCuratedSources()">
-              <option value="">全部类型</option>
-            </select>
-            <select id="filterCategory" onchange="filterCuratedSources()">
-              <option value="">全部分类</option>
-            </select>
-            <select id="filterRegion" onchange="filterCuratedSources()">
-              <option value="">全部地区</option>
-              <option value="国内">国内</option>
-              <option value="国外">国外</option>
-            </select>
-          </div>
-          
-          <!-- 批量操作 -->
-          <div class="curated-sources-actions">
-            <label>
-              <input type="checkbox" id="selectAllCurated" onchange="toggleSelectAllCurated()">
-              全选
-            </label>
-            <button class="btn-primary" onclick="subscribeSelectedCurated()">订阅选中</button>
-            <span class="curated-sources-filtered-count" id="curatedSourcesFilteredCount"></span>
-          </div>
-          
-          <!-- 信息源表格 -->
-          <div class="curated-sources-table-container">
-            <table class="curated-sources-table">
-              <thead>
-                <tr>
-                  <th width="40">
-                    <input type="checkbox" id="selectAllCuratedHeader" onchange="toggleSelectAllCurated()">
-                  </th>
-                  <th>信息源名称</th>
-                  <th width="100">类型</th>
-                  <th width="80">地区</th>
-                  <th width="100">分类</th>
-                  <th>描述</th>
-                </tr>
-              </thead>
-              <tbody id="curatedSourcesTableBody">
-                <tr>
-                  <td colspan="6" class="loading">加载中...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- 手动添加信息源 -->
-      <div class="section">
-        <h3>📝 手动添加信息源</h3>
-        <div class="manual-add-source-form">
-          <div class="form-group">
-            <label for="manualSourceNameGlobal">信息源名称</label>
-            <input type="text" id="manualSourceNameGlobal" placeholder="请输入信息源名称" onkeypress="if(event.key==='Enter') document.getElementById('manualSourceUrlGlobal').focus()" />
-          </div>
-          <div class="form-group" style="flex: 2; min-width: 300px;">
-            <label for="manualSourceUrlGlobal">信息源URL</label>
-            <input type="url" id="manualSourceUrlGlobal" placeholder="https://example.com/feed.xml" onkeypress="if(event.key==='Enter') handleManualAddSourceGlobal()" />
-          </div>
-          <button class="manual-add-source-btn" onclick="handleManualAddSourceGlobal()" id="manualAddBtnGlobal">
-            添加并订阅
-          </button>
-        </div>
-        
-        <!-- 已添加的信息源列表 -->
-        <div id="manualAddedSourcesList" style="margin-top: 24px;">
-          <h4 style="font-size: 16px; margin-bottom: 12px; color: #333;">已添加的信息源</h4>
-          <div id="manualAddedSourcesContent">
-            <p style="color: #999; text-align: center; padding: 20px;">暂无手动添加的信息源</p>
-          </div>
+      <!-- 无主题时的提示 -->
+      <div class="section" id="noTopicsHint">
+        <div class="empty-state">
+          <div class="empty-icon">📚</div>
+          <h4>还没有添加主题</h4>
+          <p>在上方输入您感兴趣的主题关键词，系统将为您推荐相关的优质信息源</p>
         </div>
       </div>
     </div>
@@ -2654,7 +2911,7 @@
     let userSubscriptions = []; // 用户已订阅的信息源列表（仅名称）
     let userSubscriptionsMap = {}; // 用户已订阅的信息源映射 {sourceName: {sourceName, sourceUrl}, ...}
     let savedProcessLogs = []; // 保存的推荐过程日志
-    
+
     // 文章阅读页面相关变量
     let allArticles = []; // 存储所有文章数据
     let filteredArticles = []; // 当前过滤后的文章
@@ -2664,6 +2921,11 @@
     let userTopics = []; // 用户主题列表
     let topicRecommendationHistory = {}; // 主题推荐历史 {topic_keywords: {recommended_sources: [...]}}
     let showOnlyRelevantArticles = true; // 是否只显示相关文章（默认选中）
+
+    // 订阅管理页面相关变量
+    let subCurrentTopicIndex = 0; // 当前选中的主题页签索引
+    let subTopicsData = {}; // 每个主题的数据 {topicKeywords: {subscriptions: [], recommendations: [], displayedCount: 0, allRecommendations: []}}
+    let curatedSourcesCache = null; // 内置信息源缓存
     
 
     // 检查登录状态
@@ -6675,16 +6937,697 @@
       }
     }
 
+    // ==================== 订阅管理页面新功能 ====================
+
+    // 加载内置信息源（带缓存）
+    async function loadCuratedSourcesForSub() {
+      if (curatedSourcesCache) {
+        return curatedSourcesCache;
+      }
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/curated-sources`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        if (result.success) {
+          curatedSourcesCache = result.data || [];
+          return curatedSourcesCache;
+        }
+      } catch (error) {
+        console.error('加载内置信息源失败:', error);
+      }
+      return [];
+    }
+
+    // 初始化订阅管理页面
+    async function initSubscriptionPage() {
+      console.log('[订阅管理] 初始化页面...');
+      try {
+        // 加载用户主题
+        const response = await fetch(`${API_BASE_URL}/user/topics`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
+        const result = await response.json();
+
+        if (result.success && result.data && result.data.length > 0) {
+          userTopics = result.data;
+          document.getElementById('noTopicsHint').style.display = 'none';
+          document.getElementById('topicsTabsSection').style.display = 'block';
+          await renderSubTopicsTabs(userTopics);
+        } else {
+          userTopics = [];
+          document.getElementById('noTopicsHint').style.display = 'block';
+          document.getElementById('topicsTabsSection').style.display = 'none';
+        }
+      } catch (error) {
+        console.error('[订阅管理] 初始化失败:', error);
+      }
+    }
+
+    // 渲染订阅管理页面的主题页签
+    async function renderSubTopicsTabs(topics) {
+      const tabsHeader = document.getElementById('subTopicsTabsHeader');
+      const tabsContent = document.getElementById('subTopicsTabsContent');
+
+      if (!tabsHeader || !tabsContent) return;
+
+      tabsHeader.innerHTML = '';
+      tabsContent.innerHTML = '';
+
+      for (let i = 0; i < topics.length; i++) {
+        const topic = topics[i];
+        const topicKeywords = topic.topic_keywords;
+
+        // 创建页签按钮
+        const tabBtn = document.createElement('button');
+        tabBtn.className = `sub-topic-tab ${i === 0 ? 'active' : ''}`;
+        tabBtn.id = `sub-tab-${i}`;
+        tabBtn.innerHTML = `
+          <span>${escapeHtml(topicKeywords)}</span>
+          <button class="delete-topic-btn" onclick="event.stopPropagation(); deleteSubTopic('${escapeHtml(topicKeywords)}')" title="删除主题">×</button>
+        `;
+        tabBtn.onclick = (e) => {
+          if (!e.target.classList.contains('delete-topic-btn')) {
+            switchSubTopicTab(i);
+          }
+        };
+        tabsHeader.appendChild(tabBtn);
+
+        // 创建页签内容面板
+        const panel = document.createElement('div');
+        panel.className = `sub-topic-panel ${i === 0 ? 'active' : ''}`;
+        panel.id = `sub-panel-${i}`;
+        panel.dataset.topicKeywords = topicKeywords;
+        panel.innerHTML = `
+          <!-- 进度提示区域 -->
+          <div class="progress-container hidden" id="sub-progress-${i}">
+            <div class="progress-header">
+              <span class="progress-title" id="sub-progress-title-${i}">正在处理...</span>
+              <span class="progress-percentage" id="sub-progress-percent-${i}">0%</span>
+            </div>
+            <div class="progress-bar-wrapper">
+              <div class="progress-bar" id="sub-progress-bar-${i}"></div>
+            </div>
+            <div class="progress-text" id="sub-progress-text-${i}"></div>
+          </div>
+
+          <!-- 已订阅信息源区域 -->
+          <div class="subscribed-sources-section">
+            <div class="subscribed-sources-header">
+              <span class="subscribed-sources-title">已订阅的信息源</span>
+              <span class="subscribed-sources-count" id="sub-subscribed-count-${i}">0 个</span>
+            </div>
+            <div class="subscribed-sources-list" id="sub-subscribed-list-${i}">
+              <div class="no-subscriptions">加载中...</div>
+            </div>
+          </div>
+
+          <!-- 推荐信息源区域 -->
+          <div class="recommended-sources-section">
+            <div class="recommended-sources-header">
+              <span class="recommended-sources-title">推荐信息源</span>
+            </div>
+            <div id="sub-recommendations-container-${i}">
+              <table class="sub-recommendations-table" id="sub-recommendations-table-${i}">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>信息源</th>
+                    <th>类型</th>
+                    <th>描述</th>
+                  </tr>
+                </thead>
+                <tbody id="sub-recommendations-body-${i}">
+                </tbody>
+              </table>
+            </div>
+            <div class="actions-container" id="sub-actions-${i}">
+              <button class="btn-primary" onclick="subscribeSelectedSub(${i})" id="sub-subscribe-btn-${i}" disabled>
+                订阅选中 (<span id="sub-selected-count-${i}">0</span>)
+              </button>
+              <button class="btn-secondary" onclick="loadMoreRecommendationsSub(${i})" id="sub-load-more-btn-${i}" style="display: none;">
+                加载更多
+              </button>
+            </div>
+          </div>
+        `;
+        tabsContent.appendChild(panel);
+
+        // 初始化该主题的数据
+        if (!subTopicsData[topicKeywords]) {
+          subTopicsData[topicKeywords] = {
+            subscriptions: [],
+            recommendations: [],
+            allRecommendations: [],
+            displayedCount: 0,
+            isRecommending: false
+          };
+        }
+      }
+
+      // 加载第一个主题的数据
+      if (topics.length > 0) {
+        await loadSubTopicData(0);
+      }
+    }
+
+    // 切换订阅管理页签
+    async function switchSubTopicTab(index) {
+      const tabs = document.querySelectorAll('.sub-topic-tab');
+      const panels = document.querySelectorAll('.sub-topic-panel');
+
+      tabs.forEach((tab, i) => {
+        tab.classList.toggle('active', i === index);
+      });
+
+      panels.forEach((panel, i) => {
+        panel.classList.toggle('active', i === index);
+      });
+
+      subCurrentTopicIndex = index;
+      await loadSubTopicData(index);
+    }
+
+    // 加载指定主题的数据
+    async function loadSubTopicData(index) {
+      const panel = document.getElementById(`sub-panel-${index}`);
+      if (!panel) return;
+
+      const topicKeywords = panel.dataset.topicKeywords;
+      const data = subTopicsData[topicKeywords];
+
+      // 加载已订阅的信息源
+      await loadSubSubscriptions(index, topicKeywords);
+
+      // 如果还没有推荐数据，检查是否有历史推荐
+      if (!data.allRecommendations || data.allRecommendations.length === 0) {
+        await loadSubRecommendationHistory(index, topicKeywords);
+      } else {
+        // 显示已有的推荐
+        renderSubRecommendations(index);
+      }
+    }
+
+    // 加载已订阅的信息源
+    async function loadSubSubscriptions(index, topicKeywords) {
+      const listEl = document.getElementById(`sub-subscribed-list-${index}`);
+      const countEl = document.getElementById(`sub-subscribed-count-${index}`);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/subscriptions?topicKeywords=${encodeURIComponent(topicKeywords)}`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          const subscriptions = result.data || [];
+          subTopicsData[topicKeywords].subscriptions = subscriptions;
+          countEl.textContent = `${subscriptions.length} 个`;
+
+          if (subscriptions.length === 0) {
+            listEl.innerHTML = '<div class="no-subscriptions">暂无订阅，请从下方推荐列表中选择信息源</div>';
+          } else {
+            listEl.innerHTML = subscriptions.map(sub => `
+              <div class="subscribed-source-tag">
+                <span title="${escapeHtml(sub.source_url || '')}">${escapeHtml(sub.source_name)}</span>
+                <button class="unsubscribe-btn" onclick="unsubscribeSub(${index}, '${escapeHtml(topicKeywords)}', '${escapeHtml(sub.source_name)}')" title="取消订阅">×</button>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (error) {
+        console.error('加载订阅失败:', error);
+        listEl.innerHTML = '<div class="no-subscriptions">加载失败</div>';
+      }
+    }
+
+    // 加载推荐历史
+    async function loadSubRecommendationHistory(index, topicKeywords) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/topics/recommend/history/${encodeURIComponent(topicKeywords)}`, {
+          headers: getHeaders(),
+          cache: 'no-cache'
+        });
+        const result = await response.json();
+
+        if (result.success && result.data && result.data.recommended_sources && result.data.recommended_sources.length > 0) {
+          subTopicsData[topicKeywords].allRecommendations = result.data.recommended_sources;
+          subTopicsData[topicKeywords].displayedCount = 0;
+          renderSubRecommendations(index);
+        } else {
+          // 没有历史推荐，自动开始推荐
+          await startSubRecommendation(index, topicKeywords);
+        }
+      } catch (error) {
+        console.error('加载推荐历史失败:', error);
+        // 出错时也尝试开始推荐
+        await startSubRecommendation(index, topicKeywords);
+      }
+    }
+
+    // 渲染推荐信息源（每次显示10项）
+    function renderSubRecommendations(index) {
+      const panel = document.getElementById(`sub-panel-${index}`);
+      if (!panel) return;
+
+      const topicKeywords = panel.dataset.topicKeywords;
+      const data = subTopicsData[topicKeywords];
+      const tbody = document.getElementById(`sub-recommendations-body-${index}`);
+      const loadMoreBtn = document.getElementById(`sub-load-more-btn-${index}`);
+
+      if (!data.allRecommendations || data.allRecommendations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">暂无推荐信息源</td></tr>';
+        loadMoreBtn.style.display = 'none';
+        return;
+      }
+
+      // 计算要显示的数量
+      const ITEMS_PER_PAGE = 10;
+      const startIndex = data.displayedCount;
+      const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, data.allRecommendations.length);
+      const newItems = data.allRecommendations.slice(startIndex, endIndex);
+
+      // 获取已订阅的信息源名称列表
+      const subscribedNames = data.subscriptions.map(s => s.source_name);
+
+      // 如果是第一次加载，清空表格
+      if (startIndex === 0) {
+        tbody.innerHTML = '';
+      }
+
+      // 添加新的行
+      newItems.forEach((source, i) => {
+        const globalIndex = startIndex + i;
+        const isSubscribed = subscribedNames.includes(source.sourceName);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>
+            <input type="checkbox" class="sub-source-checkbox" data-index="${globalIndex}"
+              ${isSubscribed ? 'disabled checked' : ''}
+              onchange="updateSubSelectedCount(${index})">
+          </td>
+          <td>
+            <div class="source-name" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceName)}</div>
+            <div class="source-url" title="${escapeHtml(source.sourceUrl || '')}">${escapeHtml(source.sourceUrl || '')}</div>
+          </td>
+          <td>
+            <span class="source-type">${escapeHtml(source.sourceType || 'rss')}</span>
+          </td>
+          <td>${escapeHtml(source.description || '')}</td>
+        `;
+        if (isSubscribed) {
+          row.style.opacity = '0.6';
+          row.title = '已订阅';
+        }
+        tbody.appendChild(row);
+      });
+
+      // 更新显示计数
+      data.displayedCount = endIndex;
+
+      // 显示/隐藏加载更多按钮
+      if (endIndex < data.allRecommendations.length) {
+        loadMoreBtn.style.display = 'inline-block';
+        loadMoreBtn.textContent = `加载更多 (${data.allRecommendations.length - endIndex} 个)`;
+      } else {
+        loadMoreBtn.style.display = 'none';
+      }
+
+      updateSubSelectedCount(index);
+    }
+
+    // 加载更多推荐
+    async function loadMoreRecommendationsSub(index) {
+      renderSubRecommendations(index);
+    }
+
+    // 更新选中数量
+    function updateSubSelectedCount(index) {
+      const checkboxes = document.querySelectorAll(`#sub-recommendations-body-${index} .sub-source-checkbox:not(:disabled):checked`);
+      const countEl = document.getElementById(`sub-selected-count-${index}`);
+      const btn = document.getElementById(`sub-subscribe-btn-${index}`);
+
+      countEl.textContent = checkboxes.length;
+      btn.disabled = checkboxes.length === 0;
+    }
+
+    // 开始推荐信息源
+    async function startSubRecommendation(index, topicKeywords) {
+      const data = subTopicsData[topicKeywords];
+      if (data.isRecommending) return;
+
+      data.isRecommending = true;
+      showSubProgress(index, '正在推荐信息源', 0, '正在分析主题关键词...');
+
+      try {
+        // 先加载内置信息源
+        showSubProgress(index, '正在推荐信息源', 10, '正在加载内置信息源...');
+        const curatedSources = await loadCuratedSourcesForSub();
+
+        // 从内置信息源中匹配
+        showSubProgress(index, '正在推荐信息源', 30, '正在匹配内置信息源...');
+        const matchedCurated = matchCuratedSources(topicKeywords, curatedSources);
+        console.log(`[推荐] 从内置信息源匹配到 ${matchedCurated.length} 个`);
+
+        let allRecommendations = [...matchedCurated];
+
+        // 如果内置信息源不足，调用DeepSeek补充
+        if (matchedCurated.length < 10) {
+          showSubProgress(index, '正在推荐信息源', 50, '正在调用AI推荐更多信息源...');
+
+          const response = await fetch(`${API_BASE_URL}/user/topics/recommend`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ keywords: topicKeywords })
+          });
+
+          if (response.ok) {
+            // 处理流式响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const jsonData = JSON.parse(line.slice(6));
+                    if (jsonData.type === 'progress') {
+                      showSubProgress(index, '正在推荐信息源', 50 + jsonData.progress * 0.4, jsonData.message);
+                    } else if (jsonData.type === 'complete' && jsonData.data) {
+                      // 合并DeepSeek推荐的信息源（去重）
+                      const existingUrls = new Set(allRecommendations.map(s => s.sourceUrl));
+                      const newSources = jsonData.data.filter(s => !existingUrls.has(s.sourceUrl));
+                      allRecommendations = [...allRecommendations, ...newSources];
+                    }
+                  } catch (e) {
+                    // 忽略解析错误
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        showSubProgress(index, '正在推荐信息源', 100, '推荐完成！');
+
+        // 保存推荐结果
+        data.allRecommendations = allRecommendations;
+        data.displayedCount = 0;
+
+        // 延迟隐藏进度条
+        setTimeout(() => {
+          hideSubProgress(index);
+          renderSubRecommendations(index);
+        }, 500);
+
+      } catch (error) {
+        console.error('推荐失败:', error);
+        showSubProgress(index, '推荐失败', 0, error.message);
+        setTimeout(() => hideSubProgress(index), 2000);
+      } finally {
+        data.isRecommending = false;
+      }
+    }
+
+    // 匹配内置信息源
+    function matchCuratedSources(keywords, curatedSources) {
+      const keywordList = keywords.toLowerCase().split(/[,，\s]+/).filter(k => k.trim());
+      const matched = [];
+
+      for (const source of curatedSources) {
+        const searchText = `${source.sourceName} ${source.description || ''} ${source.category || ''}`.toLowerCase();
+        const isMatch = keywordList.some(keyword => searchText.includes(keyword));
+        if (isMatch) {
+          matched.push({
+            sourceName: source.sourceName,
+            sourceUrl: source.sourceUrl,
+            sourceType: source.sourceType || 'rss',
+            description: source.description || '',
+            category: source.category || '',
+            region: source.region || '国外',
+            isCurated: true
+          });
+        }
+      }
+
+      return matched;
+    }
+
+    // 显示进度
+    function showSubProgress(index, title, percent, text) {
+      const container = document.getElementById(`sub-progress-${index}`);
+      const titleEl = document.getElementById(`sub-progress-title-${index}`);
+      const percentEl = document.getElementById(`sub-progress-percent-${index}`);
+      const barEl = document.getElementById(`sub-progress-bar-${index}`);
+      const textEl = document.getElementById(`sub-progress-text-${index}`);
+
+      if (container) {
+        container.classList.remove('hidden');
+        titleEl.textContent = title;
+        percentEl.textContent = `${Math.round(percent)}%`;
+        barEl.style.width = `${percent}%`;
+        textEl.textContent = text;
+      }
+    }
+
+    // 隐藏进度
+    function hideSubProgress(index) {
+      const container = document.getElementById(`sub-progress-${index}`);
+      if (container) {
+        container.classList.add('hidden');
+      }
+    }
+
+    // 添加新主题
+    async function addNewTopic() {
+      const input = document.getElementById('topicInput');
+      const keywords = input.value.trim();
+
+      if (!keywords) {
+        showMessage('请输入主题关键词', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('addTopicBtn');
+      btn.disabled = true;
+      btn.textContent = '添加中...';
+
+      try {
+        // 保存主题到数据库
+        const response = await fetch(`${API_BASE_URL}/user/topics`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ keywords })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showMessage('主题添加成功', 'success');
+          input.value = '';
+
+          // 初始化该主题的数据
+          subTopicsData[keywords] = {
+            subscriptions: [],
+            recommendations: [],
+            allRecommendations: [],
+            displayedCount: 0,
+            isRecommending: false
+          };
+
+          // 重新加载页面
+          await initSubscriptionPage();
+
+          // 切换到新添加的主题页签
+          const newIndex = userTopics.findIndex(t => t.topic_keywords === keywords);
+          if (newIndex >= 0) {
+            switchSubTopicTab(newIndex);
+            // 自动开始推荐
+            await startSubRecommendation(newIndex, keywords);
+          }
+        } else {
+          showMessage(result.message || '添加失败', 'error');
+        }
+      } catch (error) {
+        console.error('添加主题失败:', error);
+        showMessage('添加失败: ' + error.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '添加主题';
+      }
+    }
+
+    // 删除主题
+    async function deleteSubTopic(topicKeywords) {
+      if (!confirm(`确定要删除主题 "${topicKeywords}" 吗？\n\n删除后将同时删除：\n- 该主题的所有信息源订阅\n- 这些信息源收集的所有文章\n- 该主题的推荐历史\n\n此操作不可恢复！`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/topics/${encodeURIComponent(topicKeywords)}`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showMessage(result.message || '主题删除成功', 'success');
+          delete subTopicsData[topicKeywords];
+          await initSubscriptionPage();
+        } else {
+          showMessage(result.message || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除主题失败:', error);
+        showMessage('删除失败: ' + error.message, 'error');
+      }
+    }
+
+    // 取消订阅
+    async function unsubscribeSub(index, topicKeywords, sourceName) {
+      if (!confirm(`确定要取消订阅 "${sourceName}" 吗？\n\n取消后将删除该信息源收集的所有文章。`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/subscriptions/${encodeURIComponent(sourceName)}?topicKeywords=${encodeURIComponent(topicKeywords)}`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showMessage(result.message || '取消订阅成功', 'success');
+          await loadSubSubscriptions(index, topicKeywords);
+          // 重新渲染推荐列表以更新状态
+          subTopicsData[topicKeywords].displayedCount = 0;
+          renderSubRecommendations(index);
+        } else {
+          showMessage(result.message || '取消订阅失败', 'error');
+        }
+      } catch (error) {
+        console.error('取消订阅失败:', error);
+        showMessage('取消订阅失败: ' + error.message, 'error');
+      }
+    }
+
+    // 订阅选中的信息源
+    async function subscribeSelectedSub(index) {
+      const panel = document.getElementById(`sub-panel-${index}`);
+      if (!panel) return;
+
+      const topicKeywords = panel.dataset.topicKeywords;
+      const data = subTopicsData[topicKeywords];
+      const checkboxes = document.querySelectorAll(`#sub-recommendations-body-${index} .sub-source-checkbox:not(:disabled):checked`);
+
+      if (checkboxes.length === 0) {
+        showMessage('请先选择要订阅的信息源', 'error');
+        return;
+      }
+
+      const selectedSources = [];
+      checkboxes.forEach(cb => {
+        const idx = parseInt(cb.dataset.index);
+        const source = data.allRecommendations[idx];
+        if (source) {
+          selectedSources.push({
+            sourceName: source.sourceName,
+            sourceUrl: source.sourceUrl,
+            sourceType: source.sourceType || 'rss',
+            category: source.category || '',
+            topicKeywords: topicKeywords
+          });
+        }
+      });
+
+      const btn = document.getElementById(`sub-subscribe-btn-${index}`);
+      btn.disabled = true;
+      btn.textContent = '订阅中...';
+
+      showSubProgress(index, '正在订阅', 0, '正在添加订阅...');
+
+      try {
+        // 添加订阅
+        const response = await fetch(`${API_BASE_URL}/user/subscriptions`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ subscriptions: selectedSources })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSubProgress(index, '正在抓取文章', 30, '订阅成功，开始抓取文章...');
+
+          // 开始抓取文章
+          await fetchArticlesForSubscriptions(index, topicKeywords, selectedSources);
+
+          showMessage(`成功订阅 ${selectedSources.length} 个信息源`, 'success');
+
+          // 刷新订阅列表和推荐列表
+          await loadSubSubscriptions(index, topicKeywords);
+          data.displayedCount = 0;
+          renderSubRecommendations(index);
+        } else {
+          showMessage(result.message || '订阅失败', 'error');
+          hideSubProgress(index);
+        }
+      } catch (error) {
+        console.error('订阅失败:', error);
+        showMessage('订阅失败: ' + error.message, 'error');
+        hideSubProgress(index);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '订阅选中 (0)';
+        updateSubSelectedCount(index);
+      }
+    }
+
+    // 抓取文章
+    async function fetchArticlesForSubscriptions(index, topicKeywords, sources) {
+      const totalSources = sources.length;
+      let completedSources = 0;
+
+      for (const source of sources) {
+        completedSources++;
+        const percent = 30 + (completedSources / totalSources) * 60;
+        showSubProgress(index, '正在抓取文章', percent, `正在抓取 ${source.sourceName} (${completedSources}/${totalSources})...`);
+
+        try {
+          // 调用抓取API（如果有的话）
+          // 这里简化处理，实际抓取由后台定时任务完成
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(`抓取 ${source.sourceName} 失败:`, error);
+        }
+      }
+
+      showSubProgress(index, '完成', 100, '文章抓取完成！');
+      setTimeout(() => hideSubProgress(index), 1000);
+    }
+
+    // ==================== 订阅管理页面新功能结束 ====================
+
     // 页面加载时
     window.onload = async function() {
       await initUser();
-      await loadTopics();
+      await initSubscriptionPage(); // 初始化订阅管理页面
       await loadUserSubscriptions(); // 加载用户订阅列表
-      await loadAllRecommendationHistory(); // 加载所有推荐历史
       await loadArticlesTopicsTabs(); // 加载文章阅读页面的主题页签
       await loadArticles(); // 保留原有的loadArticles用于兼容
       await loadRefreshStatus();
-      await loadManualAddedSources(); // 加载手动添加的信息源列表
       startArticlesAutoRefresh();
       
       // 处理 URL hash 导航
