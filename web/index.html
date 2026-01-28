@@ -25,16 +25,156 @@
       padding: 20px;
     }
 
-    .update-info {
-      max-width: 1200px;
-      margin: 0 auto 20px auto;
+    /* 页头样式 */
+    .header {
       background: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .update-info-content {
+    .header h1 {
+      font-size: 24px;
+      color: #333;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* 通用区块样式 */
+    .section {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+    }
+
+    .section h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    /* 按钮样式 */
+    .back-btn {
+      padding: 8px 16px;
+      background-color: #f5f5f5;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+      transition: background-color 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn:hover {
+      background-color: #e0e0e0;
+    }
+
+    .btn-primary {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+      transition: opacity 0.3s;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      padding: 8px 16px;
+      background-color: #f5f5f5;
+      color: #666;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background-color: #e0e0e0;
+    }
+
+    /* 用户状态栏 */
+    .user-status-bar,
+    .guest-status-bar {
+      background: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+    }
+
+    .user-status-content,
+    .guest-status-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-manage,
+    .btn-login {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      transition: opacity 0.3s;
+    }
+
+    .btn-manage:hover,
+    .btn-login:hover {
+      opacity: 0.9;
+    }
+
+    .btn-logout {
+      padding: 8px 16px;
+      background-color: #f5f5f5;
+      color: #666;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    .btn-logout:hover {
+      background-color: #e0e0e0;
+    }
+
+    /* 更新信息栏 */
+    .update-info-section {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -58,95 +198,22 @@
       margin: 0 4px;
     }
 
-    /* 用户状态栏 */
-    .user-status-bar,
-    .guest-status-bar {
-      max-width: 1200px;
-      margin: 0 auto 20px auto;
-      background: white;
-      padding: 16px 20px;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .user-status-content,
-    .guest-status-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .user-actions {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .btn-manage,
-    .btn-login {
-      padding: 8px 16px;
-      background-color: #667eea;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      text-decoration: none;
-      transition: background-color 0.3s;
-    }
-
-    .btn-manage:hover,
-    .btn-login:hover {
-      background-color: #5568d3;
-    }
-
-    .btn-logout {
-      padding: 8px 16px;
-      background-color: #f5f5f5;
-      color: #666;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.3s;
-    }
-
-    .btn-logout:hover {
-      background-color: #e0e0e0;
-    }
-
-    /* 新闻源过滤卡片 */
-    .source-filter {
-      max-width: 1200px;
-      margin: 0 auto 20px auto;
-      background: white;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    .source-filter-header {
-      display: flex;
-      justify-content: flex-start;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .source-filter-title {
+    /* 筛选标签样式 */
+    .filter-section-title {
       font-size: 14px;
       color: #666;
       font-weight: 500;
+      margin-bottom: 12px;
     }
 
-    .source-tags {
+    .filter-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+      margin-top: 12px;
     }
 
-    .source-tag {
+    .filter-tag {
       padding: 8px 16px;
       background-color: #f5f5f5;
       color: #333;
@@ -160,18 +227,18 @@
       gap: 6px;
     }
 
-    .source-tag:hover {
+    .filter-tag:hover {
       background-color: #e8e8e8;
       border-color: #667eea;
     }
 
-    .source-tag.active {
+    .filter-tag.active {
       background-color: #667eea;
       color: white;
       border-color: #667eea;
     }
 
-    .source-tag-count {
+    .filter-tag-count {
       font-size: 12px;
       opacity: 0.7;
       background-color: rgba(0, 0, 0, 0.1);
@@ -179,47 +246,44 @@
       border-radius: 10px;
     }
 
-    .source-tag.active .source-tag-count {
+    .filter-tag.active .filter-tag-count {
       background-color: rgba(255, 255, 255, 0.2);
     }
 
-    .loading, .error, .empty {
-      text-align: center;
-      padding: 60px 20px;
-      color: #999;
+    /* 消息和通知样式 */
+    .message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
     }
 
-    .error {
-      color: #e74c3c;
+    .message.show {
+      display: block;
     }
 
-    .retry-btn {
-      margin-top: 20px;
-      padding: 10px 30px;
-      background-color: #667eea;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.3s;
+    .message.error {
+      background-color: #fee;
+      color: #c33;
+      border: 1px solid #fcc;
     }
 
-    .retry-btn:hover {
-      background-color: #5568d3;
+    .message.success {
+      background-color: #efe;
+      color: #3c3;
+      border: 1px solid #cfc;
     }
 
-    .new-news-notification {
-      max-width: 1200px;
-      margin: 0 auto 20px auto;
+    .notification {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       padding: 16px 20px;
       border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
       animation: slideDown 0.3s ease-out;
     }
 
@@ -255,25 +319,38 @@
       background: rgba(255, 255, 255, 0.3);
     }
 
-    .refresh-spinner {
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(255, 255, 255, 0.5);
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    /* 加载和错误状态 */
+    .loading, .error, .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
     }
 
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+    .error {
+      color: #e74c3c;
     }
 
+    .retry-btn {
+      margin-top: 20px;
+      padding: 10px 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: opacity 0.3s;
+    }
+
+    .retry-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* 新闻列表样式 */
     .news-list {
       display: flex;
       flex-direction: column;
-      gap: 30px;
+      gap: 20px;
     }
 
     .date-section {
@@ -290,15 +367,15 @@
     }
 
     .date-text {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
       color: #333;
     }
 
     .news-items {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
     }
 
     .news-item {
@@ -325,7 +402,7 @@
     }
 
     .news-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: #333;
       margin-bottom: 8px;
@@ -361,78 +438,9 @@
       font-weight: 500;
     }
 
-    /* 搜索框样式 */
-    .search-container {
-      max-width: 1200px;
-      margin: 0 auto 20px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    .search-box {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .search-input {
-      flex: 1;
-      padding: 12px 20px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: border-color 0.3s;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    .search-btn {
-      padding: 12px 24px;
-      background-color: #667eea;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 500;
-      transition: background-color 0.3s;
-    }
-
-    .search-btn:hover {
-      background-color: #5568d3;
-    }
-
-    .search-btn:active {
-      transform: scale(0.98);
-    }
-
-    .clear-search-btn {
-      padding: 12px 20px;
-      background-color: #f5f5f5;
-      color: #666;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.3s;
-    }
-
-    .clear-search-btn:hover {
-      background-color: #e0e0e0;
-    }
-
-
+    /* 搜索结果样式 */
     .search-results-header {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      padding: 20px 24px;
     }
 
     .search-results-title {
@@ -458,7 +466,14 @@
       margin-bottom: 16px;
     }
 
-    /* 详情页面样式 */
+    mark {
+      background-color: #fff3cd;
+      color: #856404;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    /* 详情视图样式 */
     #listView {
       display: block;
     }
@@ -468,38 +483,14 @@
     }
 
     .detail-container {
-      max-width: 1200px;
-      margin: 0 auto;
       background: white;
       border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       overflow: hidden;
     }
 
     .detail-header {
-      padding: 30px 40px;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    .back-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
-      background-color: #f5f5f5;
-      color: #333;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      margin-bottom: 20px;
-      transition: all 0.3s;
-      text-decoration: none;
-    }
-
-    .back-btn:hover {
-      background-color: #e0e0e0;
-      transform: translateX(-2px);
+      padding: 30px;
     }
 
     .detail-header-content {
@@ -511,11 +502,11 @@
     }
 
     .detail-title {
-      font-size: 36px;
+      font-size: 28px;
       font-weight: bold;
-      color: #1a1a1a;
+      color: #333;
       line-height: 1.4;
-      margin: 0;
+      margin: 20px 0;
       flex: 1;
     }
 
@@ -524,73 +515,45 @@
       align-items: center;
       gap: 8px;
       padding: 10px 20px;
-      background-color: #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
-      transition: all 0.3s;
+      transition: opacity 0.3s;
       white-space: nowrap;
       flex-shrink: 0;
     }
 
     .translate-btn:hover {
-      background-color: #5568d3;
+      opacity: 0.9;
     }
 
     .translate-btn:disabled {
-      background-color: #ccc;
+      background: #ccc;
       cursor: not-allowed;
       opacity: 0.7;
-    }
-
-
-    .generated-summary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 12px;
-      margin-top: 20px;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    }
-
-    .generated-summary-header {
-      margin-bottom: 20px;
-    }
-
-    .generated-summary-header h3 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 600;
-    }
-    
-    .summary-loading {
-      text-align: center;
-      padding: 20px;
-      color: rgba(255, 255, 255, 0.8);
-      font-style: italic;
-    }
-
-    .generated-summary-content {
-      font-size: 16px;
-      line-height: 1.8;
-      white-space: pre-wrap;
     }
 
     .detail-meta {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
       font-size: 14px;
       color: #666;
-      padding-top: 20px;
-      border-top: 1px solid #e0e0e0;
+      padding: 16px 0;
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 20px;
     }
 
     .detail-source {
-      color: #667eea;
-      font-weight: 600;
+      padding: 4px 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px;
+      font-size: 13px;
     }
 
     .detail-date {
@@ -604,15 +567,40 @@
       display: block;
     }
 
+    .ai-summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .ai-summary h3 {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+    }
+
+    .ai-summary-content {
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .summary-loading {
+      text-align: center;
+      padding: 20px;
+      color: rgba(255, 255, 255, 0.8);
+      font-style: italic;
+    }
+
     .detail-content {
-      padding: 40px;
+      padding: 30px;
     }
 
     .detail-summary {
-      font-size: 20px;
+      font-size: 18px;
       color: #555;
       line-height: 1.8;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
       padding: 20px;
       background-color: #f8f9fa;
       border-left: 4px solid #667eea;
@@ -620,7 +608,7 @@
     }
 
     .detail-text {
-      font-size: 18px;
+      font-size: 16px;
       line-height: 1.9;
       color: #333;
       white-space: pre-wrap;
@@ -628,15 +616,14 @@
     }
 
     .detail-text p {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .detail-footer {
-      padding: 30px 40px;
-      border-top: 1px solid #e0e0e0;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      gap: 12px;
+      padding: 20px 30px;
+      border-top: 1px solid #eee;
     }
 
     .source-link {
@@ -644,16 +631,16 @@
       align-items: center;
       gap: 8px;
       padding: 12px 24px;
-      background-color: #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       border-radius: 8px;
       text-decoration: none;
       font-size: 14px;
-      transition: background-color 0.3s;
+      transition: opacity 0.3s;
     }
 
     .source-link:hover {
-      background-color: #5568d3;
+      opacity: 0.9;
     }
 
     .share-btn {
@@ -671,59 +658,64 @@
       background-color: #e0e0e0;
     }
 
-    mark {
-      background-color: #fff3cd;
-      color: #856404;
-      padding: 2px 4px;
-      border-radius: 3px;
-    }
-
+    /* 响应式样式 */
     @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .user-status-content,
+      .guest-status-content {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+
+      .user-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
       .news-items {
         grid-template-columns: 1fr;
       }
 
-      .search-box {
-        flex-direction: column;
-      }
-
-      .search-input {
-        width: 100%;
-      }
-
-      .search-btn, .clear-search-btn {
-        width: 100%;
-      }
-
-      .source-tags {
-        gap: 8px;
-      }
-
-      .source-tag {
-        font-size: 13px;
-        padding: 6px 12px;
-      }
-
       .detail-title {
-        font-size: 28px;
-      }
-
-      .detail-content {
-        padding: 24px;
+        font-size: 22px;
       }
 
       .detail-header {
-        padding: 20px 24px;
+        padding: 20px;
+      }
+
+      .detail-content {
+        padding: 20px;
       }
 
       .detail-footer {
-        padding: 20px 24px;
         flex-direction: column;
-        gap: 12px;
+        padding: 20px;
       }
 
-      .detail-text {
-        font-size: 16px;
+      .detail-header-content {
+        flex-direction: column;
+      }
+
+      .filter-tags {
+        gap: 8px;
+      }
+
+      .filter-tag {
+        font-size: 13px;
+        padding: 6px 12px;
       }
     }
   </style>
@@ -731,13 +723,13 @@
     // 页面加载前立即检查认证状态
     (function() {
       const token = localStorage.getItem('authToken');
-      
+
       if (!token) {
         // 没有 token，立即跳转到登录页
         window.location.href = '/login.html';
         return;
       }
-      
+
       // 验证 token 是否有效（异步，但不等待结果，先跳转）
       // 如果 token 无效，login.html 会处理
       const API_BASE_URL = (() => {
@@ -748,7 +740,7 @@
         // 生产环境：使用 Railway 后端地址
         return 'https://news-agent-production-c5db.up.railway.app/api';
       })();
-      
+
       fetch(`${API_BASE_URL}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -785,64 +777,62 @@
         <div class="user-actions">
           <button class="btn-manage" onclick="showTopicManagement()">管理主题</button>
           <button class="btn-manage" onclick="showSubscriptionManagement()">管理订阅</button>
-          <a href="/dashboard.html#guide" class="btn-manage" style="text-decoration: none; display: inline-block;">用户指南</a>
-          <a href="/dashboard.html#features" class="btn-manage" style="text-decoration: none; display: inline-block;">特性介绍</a>
+          <a href="/dashboard.html#guide" class="btn-manage">用户指南</a>
+          <a href="/dashboard.html#features" class="btn-manage">特性介绍</a>
           <button class="btn-logout" onclick="handleLogout()">退出</button>
         </div>
       </div>
     </div>
-    
+
     <div id="guestStatusBar" class="guest-status-bar">
       <div class="guest-status-content">
         <span>欢迎使用个人信息整理网站</span>
-        <a href="/login.html" class="btn-login">登录/注册</a>
-        <span style="margin: 0 8px;">|</span>
-        <a href="/dashboard.html" class="btn-login">用户中心</a>
-        <span style="margin: 0 8px;">|</span>
-        <a href="/dashboard.html#guide" class="btn-login">用户指南</a>
-        <span style="margin: 0 8px;">|</span>
-        <a href="/dashboard.html#features" class="btn-login">特性介绍</a>
+        <div class="user-actions">
+          <a href="/login.html" class="btn-login">登录/注册</a>
+          <a href="/dashboard.html" class="btn-secondary">用户中心</a>
+          <a href="/dashboard.html#guide" class="btn-secondary">用户指南</a>
+          <a href="/dashboard.html#features" class="btn-secondary">特性介绍</a>
+        </div>
       </div>
     </div>
 
+    <!-- 消息提示 -->
+    <div id="message" class="message"></div>
+
     <!-- 更新信息显示 -->
-    <div class="update-info">
-      <div class="update-info-content">
-        <span class="update-info-label">最近更新：</span>
-        <span id="lastUpdateTime" class="update-info-time">加载中...</span>
-        <span class="update-info-separator">|</span>
-        <span class="update-info-label">总新闻数：</span>
-        <span id="totalNewsCount" class="update-info-count">加载中...</span>
-      </div>
+    <div class="section update-info-section">
+      <span class="update-info-label">最近更新：</span>
+      <span id="lastUpdateTime" class="update-info-time">加载中...</span>
+      <span class="update-info-separator">|</span>
+      <span class="update-info-label">总新闻数：</span>
+      <span id="totalNewsCount" class="update-info-count">加载中...</span>
     </div>
-    
-    <!-- 新闻源过滤卡片 -->
-    <div class="source-filter">
-      <div class="source-filter-header">
-        <div class="source-filter-title">新闻来源</div>
-      </div>
-      <div class="source-tags" id="sourceTags">
-        <div class="source-tag active" onclick="filterBySource(null)">
+
+    <!-- 新闻源过滤区域 -->
+    <div class="section">
+      <div class="filter-section-title">新闻来源</div>
+      <div class="filter-tags" id="sourceTags">
+        <div class="filter-tag active" onclick="filterBySource(null)">
           <span>全部</span>
         </div>
         <!-- 动态加载新闻源 -->
       </div>
-      <div class="category-tags" id="categoryTags" style="margin-top: 12px;">
-        <div class="source-tag active" onclick="filterByCategory(null)">
+      <div class="filter-tags" id="categoryTags" style="margin-top: 16px;">
+        <div class="filter-tag active" onclick="filterByCategory(null)">
           <span>全部分类</span>
         </div>
         <!-- 动态加载分类 -->
       </div>
     </div>
-    
+
     <!-- 新新闻提示 -->
-    <div id="newNewsNotification" class="new-news-notification" style="display: none;">
+    <div id="newNewsNotification" class="notification" style="display: none;">
       <span id="newNewsText"></span>
       <button class="close-notification-btn" onclick="closeNotification()">×</button>
     </div>
 
     <!-- 搜索结果标题 -->
-    <div id="searchResultsHeader" class="search-results-header" style="display: none;">
+    <div id="searchResultsHeader" class="section search-results-header" style="display: none;">
       <div class="search-results-title">搜索结果</div>
       <div class="search-results-count" id="searchResultsCount"></div>
     </div>
@@ -879,11 +869,9 @@
             <span id="detailSource" class="detail-source"></span>
             <span id="detailDate" class="detail-date"></span>
           </div>
-          <div id="generatedSummary" class="generated-summary" style="display: none;">
-            <div class="generated-summary-header">
-              <h3>文章摘要</h3>
-            </div>
-            <div id="generatedSummaryContent" class="generated-summary-content"></div>
+          <div id="generatedSummary" class="ai-summary" style="display: none;">
+            <h3>文章摘要</h3>
+            <div id="generatedSummaryContent" class="ai-summary-content"></div>
           </div>
         </div>
         <div id="detailImageContainer"></div>
@@ -922,7 +910,7 @@
     let savedScrollPosition = 0; // 保存进入详情页前的滚动位置
     let currentUser = null; // 当前登录用户
     let authToken = null; // 认证token
-    
+
     // 格式化日期
     function formatDate(dateStr) {
       const date = new Date(dateStr);
@@ -956,13 +944,13 @@
       } else {
         return '';
       }
-      
+
       // 检查日期是否有效
       if (isNaN(date.getTime())) {
         console.warn('无效的日期:', dateStr);
         return '';
       }
-      
+
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       return `${hours}:${minutes}`;
@@ -986,19 +974,19 @@
     // 渲染新闻源标签
     function renderSourceTags() {
       const sourceTagsEl = document.getElementById('sourceTags');
-      let html = '<div class="source-tag active" onclick="filterBySource(null)"><span>全部</span></div>';
-      
+      let html = '<div class="filter-tag active" onclick="filterBySource(null)"><span>全部</span></div>';
+
       sources.forEach(source => {
         const sourceName = source.source.trim(); // 显示和查询都使用trim后的名称
         // 后端已使用TRIM匹配，所以前端传递trim后的名称即可
         html += `
-          <div class="source-tag" data-source="${sourceName.replace(/"/g, '&quot;')}" onclick="filterBySource('${sourceName.replace(/'/g, "\\'")}')">
+          <div class="filter-tag" data-source="${sourceName.replace(/"/g, '&quot;')}" onclick="filterBySource('${sourceName.replace(/'/g, "\\'")}')">
             <span>${sourceName}</span>
-            <span class="source-tag-count">${source.count}</span>
+            <span class="filter-tag-count">${source.count}</span>
           </div>
         `;
       });
-      
+
       sourceTagsEl.innerHTML = html;
     }
 
@@ -1021,18 +1009,18 @@
     // 渲染分类标签
     function renderCategoryTags() {
       const categoryTagsEl = document.getElementById('categoryTags');
-      let html = '<div class="source-tag active" onclick="filterByCategory(null)"><span>全部分类</span></div>';
-      
+      let html = '<div class="filter-tag active" onclick="filterByCategory(null)"><span>全部分类</span></div>';
+
       categories.forEach(category => {
         const categoryName = category.category || '未分类';
         html += `
-          <div class="source-tag" data-category="${categoryName.replace(/"/g, '&quot;')}" onclick="filterByCategory('${categoryName.replace(/'/g, "\\'")}')">
+          <div class="filter-tag" data-category="${categoryName.replace(/"/g, '&quot;')}" onclick="filterByCategory('${categoryName.replace(/'/g, "\\'")}')">
             <span>${categoryName}</span>
-            <span class="source-tag-count">${category.count}</span>
+            <span class="filter-tag-count">${category.count}</span>
           </div>
         `;
       });
-      
+
       categoryTagsEl.innerHTML = html;
     }
 
@@ -1041,9 +1029,9 @@
     async function filterByCategory(category) {
       // 无论当前在什么状态，都先回到列表视图
       showList();
-      
+
       // 更新分类标签的激活状态
-      document.querySelectorAll('#categoryTags .source-tag').forEach(tag => {
+      document.querySelectorAll('#categoryTags .filter-tag').forEach(tag => {
         tag.classList.remove('active');
         if (category === null) {
           // 点击"全部分类"
@@ -1057,19 +1045,19 @@
           }
         }
       });
-      
+
       // 重置新闻源标签为"全部"
-      document.querySelectorAll('#sourceTags .source-tag').forEach(tag => {
+      document.querySelectorAll('#sourceTags .filter-tag').forEach(tag => {
         tag.classList.remove('active');
         if (tag.textContent.includes('全部')) {
           tag.classList.add('active');
         }
       });
-      
+
       // 重置当前筛选状态
       currentSource = null;
       currentCategory = category;
-      
+
       // 加载对应分类的新闻
       if (category === null) {
         await loadNewsAll();
@@ -1083,13 +1071,13 @@
       document.getElementById('loading').style.display = 'block';
       document.getElementById('error').style.display = 'none';
       document.getElementById('listView').style.display = 'block';
-      
+
       try {
         const response = await fetch(`${API_BASE_URL}/news/category/${encodeURIComponent(category)}`);
         const result = await response.json();
-        
+
         document.getElementById('loading').style.display = 'none';
-        
+
         if (result.success) {
           renderNewsList(result.data);
         } else {
@@ -1107,7 +1095,7 @@
     async function checkUserAuth() {
       authToken = localStorage.getItem('authToken');
       const userInfoStr = localStorage.getItem('userInfo');
-      
+
       if (authToken && userInfoStr) {
         try {
           // 验证token是否有效
@@ -1116,9 +1104,9 @@
               'Authorization': `Bearer ${authToken}`
             }
           });
-          
+
           const result = await response.json();
-          
+
           if (result.success) {
             currentUser = result.user;
             updateUserUI();
@@ -1153,7 +1141,7 @@
     function updateUserUI() {
       const userStatusBar = document.getElementById('userStatusBar');
       const guestStatusBar = document.getElementById('guestStatusBar');
-      
+
       if (currentUser) {
         if (userStatusBar) userStatusBar.style.display = 'block';
         if (guestStatusBar) guestStatusBar.style.display = 'none';
@@ -1203,19 +1191,19 @@
     async function filterBySource(source) {
       // 无论当前在什么状态，都先回到列表视图
       showList();
-      
+
       currentSource = source;
       isSearchMode = false;
       currentKeyword = '';
-      
+
       // 隐藏搜索结果标题（如果存在）
       const searchResultsHeader = document.getElementById('searchResultsHeader');
       if (searchResultsHeader) {
         searchResultsHeader.style.display = 'none';
       }
-      
+
       // 更新标签状态
-      document.querySelectorAll('.source-tag').forEach(tag => {
+      document.querySelectorAll('.filter-tag').forEach(tag => {
         tag.classList.remove('active');
         if (source === null) {
           // 点击"全部"
@@ -1230,11 +1218,11 @@
           }
         }
       });
-      
+
       const loadingEl = document.getElementById('loading');
       const errorEl = document.getElementById('error');
       const newsListEl = document.getElementById('newsList');
-      
+
       loadingEl.style.display = 'block';
       errorEl.style.display = 'none';
       newsListEl.innerHTML = '';
@@ -1246,7 +1234,7 @@
         } else {
           url = `${API_BASE_URL}/news/list`;
         }
-        
+
         const response = await fetch(url);
         const result = await response.json();
 
@@ -1268,7 +1256,7 @@
     // 渲染新闻列表
     function renderNewsList(data, isSearch = false) {
       const newsListEl = document.getElementById('newsList');
-      
+
       if (!data || data.length === 0) {
         if (isSearch) {
           newsListEl.innerHTML = `
@@ -1344,30 +1332,30 @@
     // 加载全部新闻
     async function loadNewsAll() {
       const apiUrl = API_BASE_URL;
-      
+
       // 清除搜索状态
       isSearchMode = false;
       currentKeyword = '';
       currentSource = null;
-      
+
       // 隐藏搜索结果标题（如果存在）
       const searchResultsHeader = document.getElementById('searchResultsHeader');
       if (searchResultsHeader) {
         searchResultsHeader.style.display = 'none';
       }
-      
+
       // 重置标签状态
-      document.querySelectorAll('.source-tag').forEach(tag => {
+      document.querySelectorAll('.filter-tag').forEach(tag => {
         tag.classList.remove('active');
         if (tag.textContent.includes('全部')) {
           tag.classList.add('active');
         }
       });
-      
+
       const loadingEl = document.getElementById('loading');
       const errorEl = document.getElementById('error');
       const newsListEl = document.getElementById('newsList');
-      
+
       loadingEl.style.display = 'block';
       errorEl.style.display = 'none';
       newsListEl.innerHTML = '';
@@ -1406,7 +1394,7 @@
     async function performSearch() {
       // 搜索功能已移除
       return;
-      
+
       if (!keyword) {
         alert('请输入搜索关键词');
         return;
@@ -1416,7 +1404,7 @@
       const loadingEl = document.getElementById('loading');
       const errorEl = document.getElementById('error');
       const newsListEl = document.getElementById('newsList');
-      
+
       loadingEl.style.display = 'block';
       errorEl.style.display = 'none';
       newsListEl.innerHTML = '';
@@ -1454,20 +1442,20 @@
       try {
         const response = await fetch(`${API_BASE_URL}/news/update-info`);
         const result = await response.json();
-        
+
         if (result.success && result.data) {
           const { lastUpdateTime, totalCount } = result.data;
-          
+
           // 更新总新闻数
           document.getElementById('totalNewsCount').textContent = totalCount + ' 条';
-          
+
           // 更新最近更新时间
           if (lastUpdateTime) {
             const updateTime = new Date(lastUpdateTime);
             const now = new Date();
             const diffMs = now - updateTime;
             const diffMins = Math.floor(diffMs / 60000);
-            
+
             let timeText = '';
             if (diffMins < 1) {
               timeText = '刚刚';
@@ -1482,7 +1470,7 @@
                 timeText = `${days}天前`;
               }
             }
-            
+
             document.getElementById('lastUpdateTime').textContent = timeText;
           }
         }
@@ -1495,24 +1483,24 @@
     let lastCheckTime = Date.now();
     let notificationShown = false;
     let lastTotalCount = 0;
-    
+
     async function checkNewNews() {
       try {
         // 先获取更新信息
         const updateResponse = await fetch(`${API_BASE_URL}/news/update-info`);
         const updateResult = await updateResponse.json();
-        
+
         if (updateResult.success && updateResult.data) {
           const { totalCount } = updateResult.data;
-          
+
           // 如果总数增加了，说明有新新闻
           if (lastTotalCount > 0 && totalCount > lastTotalCount) {
             const newCount = totalCount - lastTotalCount;
             const minutesSinceLastCheck = Math.floor((Date.now() - lastCheckTime) / 60000);
-            
+
             // 显示提示信息
             showNewNewsNotification(newCount, minutesSinceLastCheck);
-            
+
             // 更新新闻列表和新闻源
             await loadSources();
             await loadCategories();
@@ -1522,22 +1510,22 @@
               await loadNewsAll();
             }
           }
-          
+
           lastTotalCount = totalCount;
           await loadUpdateInfo(); // 更新显示信息
         }
-        
+
         lastCheckTime = Date.now();
       } catch (error) {
         console.error('检查新新闻失败:', error);
       }
     }
-    
+
     // 显示新新闻提示
     function showNewNewsNotification(count, minutes) {
       const notification = document.getElementById('newNewsNotification');
       const text = document.getElementById('newNewsText');
-      
+
       let timeText = '';
       if (minutes < 60) {
         timeText = `过去${minutes}分钟`;
@@ -1550,11 +1538,11 @@
           timeText = `过去${hours}小时${mins}分钟`;
         }
       }
-      
+
       text.textContent = `📰 ${timeText}出现了${count}条新新闻`;
       notification.style.display = 'flex';
       notificationShown = true;
-      
+
       // 5秒后自动隐藏
       setTimeout(() => {
         if (notificationShown) {
@@ -1562,14 +1550,14 @@
         }
       }, 5000);
     }
-    
+
     // 关闭提示
     function closeNotification() {
       const notification = document.getElementById('newNewsNotification');
       notification.style.display = 'none';
       notificationShown = false;
     }
-    
+
     // 启动定期检查（每2分钟检查一次）
     setInterval(checkNewNews, 2 * 60 * 1000);
 
@@ -1602,35 +1590,35 @@
     // 查看详情
     async function viewDetail(id) {
       const apiUrl = API_BASE_URL;
-      
+
       // 保存当前滚动位置
       savedScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-      
+
       // 显示加载状态
       showDetail();
       document.getElementById('detailTitle').textContent = '加载中...';
       document.getElementById('detailText').textContent = '';
-      
+
       // 清除之前的摘要
       const generatedSummaryEl = document.getElementById('generatedSummary');
       generatedSummaryEl.style.display = 'none';
       document.getElementById('generatedSummaryContent').textContent = '';
       isGeneratingSummary = false; // 重置生成状态
-      
+
       try {
         const response = await fetch(`${apiUrl}/news/${id}`);
         const result = await response.json();
 
         if (result.success) {
           const news = result.data;
-          
+
           // 填充详情页面
           const titleEl = document.getElementById('detailTitle');
           titleEl.textContent = news.title;
           titleEl.setAttribute('data-original', news.title); // 保存原始标题
           document.getElementById('detailSource').textContent = news.source || '未知来源';
           document.getElementById('detailDate').textContent = formatFullDate(news.publish_date);
-          
+
           // 图片
           const imageContainer = document.getElementById('detailImageContainer');
           if (news.image_url) {
@@ -1638,7 +1626,7 @@
           } else {
             imageContainer.innerHTML = '';
           }
-          
+
           // 检测语言并显示翻译按钮
           const textToCheck = (news.title + ' ' + (news.summary || '') + ' ' + (news.content || '')).substring(0, 500);
           const isEnglish = detectLanguage(textToCheck);
@@ -1651,7 +1639,7 @@
           } else {
             translateBtn.style.display = 'none';
           }
-          
+
           // 摘要
           const summaryEl = document.getElementById('detailSummary');
           let originalSummary = '';
@@ -1663,7 +1651,7 @@
           } else {
             summaryEl.style.display = 'none';
           }
-          
+
           // 正文内容
           const contentEl = document.getElementById('detailText');
           let originalContent = '';
@@ -1677,14 +1665,14 @@
               .replace(/&gt;/g, '>')
               .replace(/&quot;/g, '"')
               .trim();
-            
+
             originalContent = content;
             contentEl.setAttribute('data-original', originalContent);
-            
+
             // 按段落分割（双换行）
             content = content.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
             contentEl.innerHTML = content.map(para => `<p>${para}</p>`).join('');
-            
+
             // 检测文章长度，如果超过500字，自动生成摘要
             const contentLength = originalContent.length;
             if (contentLength > 500) {
@@ -1694,7 +1682,7 @@
           } else {
             contentEl.textContent = '暂无详细内容';
           }
-          
+
           // 原文链接
           const sourceLink = document.getElementById('sourceLink');
           if (news.url) {
@@ -1703,7 +1691,7 @@
           } else {
             sourceLink.style.display = 'none';
           }
-          
+
           // 保存当前新闻ID用于分享
           window.currentNewsId = id;
           window.currentNews = news;
@@ -1727,13 +1715,13 @@
     // 检测语言（简单检测：如果主要是英文字符，返回true）
     function detectLanguage(text) {
       if (!text || text.length === 0) return false;
-      
+
       // 计算英文字符的比例
       const englishChars = text.match(/[a-zA-Z]/g) || [];
       const totalChars = text.match(/[a-zA-Z\u4e00-\u9fa5]/g) || [];
-      
+
       if (totalChars.length === 0) return false;
-      
+
       // 如果英文字符占比超过60%，认为是英文
       const englishRatio = englishChars.length / totalChars.length;
       return englishRatio > 0.6;
@@ -1742,35 +1730,35 @@
     // 翻译功能
     let isTranslating = false;
     window.isTranslated = false;
-    
+
     async function toggleTranslate() {
       const translateBtn = document.getElementById('translateBtn');
       const translateText = document.getElementById('translateText');
       const titleEl = document.getElementById('detailTitle');
       const contentEl = document.getElementById('detailText');
       const summaryEl = document.getElementById('detailSummary');
-      
+
       if (isTranslating) return;
-      
+
       if (window.isTranslated) {
         // 恢复原文
         const originalTitle = titleEl.getAttribute('data-original') || '';
         const originalContent = contentEl.getAttribute('data-original') || '';
         const originalSummary = summaryEl.getAttribute('data-original') || '';
-        
+
         if (originalTitle) {
           titleEl.textContent = originalTitle;
         }
-        
+
         if (originalContent) {
           const paragraphs = originalContent.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
           contentEl.innerHTML = paragraphs.map(para => `<p>${para}</p>`).join('');
         }
-        
+
         if (originalSummary) {
           summaryEl.textContent = originalSummary;
         }
-        
+
         translateText.textContent = '翻译为中文';
         translateBtn.setAttribute('data-translated', 'false');
         window.isTranslated = false;
@@ -1779,32 +1767,32 @@
         translateBtn.disabled = true;
         translateText.textContent = '翻译中...';
         isTranslating = true;
-        
+
         try {
           const titleToTranslate = titleEl.textContent || '';
           const textToTranslate = contentEl.textContent || '';
           const summaryToTranslate = summaryEl.textContent || '';
-          
+
           // 使用免费的翻译API
           const translatedTitle = titleToTranslate ? await translateTextAPI(titleToTranslate) : '';
           const translatedText = textToTranslate ? await translateTextAPI(textToTranslate) : '';
           const translatedSummary = summaryToTranslate ? await translateTextAPI(summaryToTranslate) : '';
-          
+
           if (translatedTitle) {
             titleEl.textContent = translatedTitle;
           }
-          
+
           if (translatedText) {
             const paragraphs = translatedText.split(/\n\s*\n/).map(para => para.trim()).filter(para => para.length > 0);
             if (paragraphs.length > 0) {
               contentEl.innerHTML = paragraphs.map(para => `<p>${para}</p>`).join('');
             }
           }
-          
+
           if (translatedSummary) {
             summaryEl.textContent = translatedSummary;
           }
-          
+
           translateText.textContent = '显示原文';
           translateBtn.setAttribute('data-translated', 'true');
           window.isTranslated = true;
@@ -1822,7 +1810,7 @@
     // 调用翻译API
     async function translateTextAPI(text) {
       if (!text || text.trim().length === 0) return '';
-      
+
       // 使用 LibreTranslate 的公共API（免费，无需API key）
       try {
         const response = await fetch('https://libretranslate.de/translate', {
@@ -1837,11 +1825,11 @@
             format: 'text'
           })
         });
-        
+
         if (!response.ok) {
           throw new Error('翻译服务不可用');
         }
-        
+
         const result = await response.json();
         return result.translatedText || text;
       } catch (error) {
@@ -1849,7 +1837,7 @@
         try {
           const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.substring(0, 500))}&langpair=en|zh`);
           const result = await response.json();
-          
+
           if (result.responseStatus === 200 && result.responseData) {
             return result.responseData.translatedText || text;
           }
@@ -1884,26 +1872,26 @@
 
     // 自动生成摘要功能
     let isGeneratingSummary = false;
-    
+
     async function autoGenerateSummary(text) {
       if (isGeneratingSummary) return;
-      
+
       const generatedSummaryEl = document.getElementById('generatedSummary');
       const generatedSummaryContent = document.getElementById('generatedSummaryContent');
-      
+
       // 显示加载状态
       generatedSummaryEl.style.display = 'block';
       generatedSummaryContent.innerHTML = '<div class="summary-loading">正在生成摘要...</div>';
       isGeneratingSummary = true;
-      
+
       try {
         if (!text || text.trim().length === 0) {
           throw new Error('没有可用的内容');
         }
-        
+
         // 调用摘要生成API
         const summary = await generateSummaryAPI(text);
-        
+
         if (summary) {
           generatedSummaryContent.textContent = summary;
         } else {
@@ -1921,10 +1909,10 @@
     // 调用摘要生成API（使用大模型服务）
     async function generateSummaryAPI(text) {
       if (!text || text.trim().length === 0) return '';
-      
+
       // 限制文本长度（避免API限制）
       const textToSummarize = text.substring(0, 4000);
-      
+
       try {
         // 优先使用后端API（如果配置了）
         const backendAPI = API_BASE_URL + '/news/summarize';
@@ -1938,7 +1926,7 @@
               text: textToSummarize
             })
           });
-          
+
           if (response.ok) {
             const result = await response.json();
             if (result.success && result.summary) {
@@ -1948,7 +1936,7 @@
         } catch (backendError) {
           console.log('后端API不可用，使用前端AI服务:', backendError);
         }
-        
+
         // 使用免费的AI摘要服务（Hugging Face Inference API）
         return await generateAISummary(textToSummarize);
       } catch (error) {
@@ -1980,7 +1968,7 @@
             }
           })
         });
-        
+
         if (response.ok) {
           const result = await response.json();
           if (result[0] && result[0].summary_text) {
@@ -1994,10 +1982,10 @@
       } catch (error) {
         console.warn('Hugging Face API错误:', error);
       }
-      
+
       // 方案2: 使用 OpenAI 兼容的免费API（如 Groq、Together AI 等）
       // 注意：这些服务可能需要API key，建议在后端实现
-      
+
       // 方案3: 使用简单的提取式摘要作为备选
       return generateSimpleSummary(text);
     }
@@ -2006,16 +1994,16 @@
     function generateSimpleSummary(text) {
       // 按段落分割
       const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-      
+
       if (paragraphs.length === 0) return '';
-      
+
       // 如果只有一段，提取前几句
       if (paragraphs.length === 1) {
         const sentences = paragraphs[0].split(/[.!?。！？]\s+/).filter(s => s.trim().length > 20);
         const summaryLength = Math.min(3, Math.ceil(sentences.length * 0.3));
         return sentences.slice(0, summaryLength).join('。') + '。';
       }
-      
+
       // 如果有多段，提取前两段
       const summaryParagraphs = paragraphs.slice(0, Math.min(2, paragraphs.length));
       return summaryParagraphs.join('\n\n');
@@ -2024,13 +2012,13 @@
     // 检查认证状态并决定跳转
     async function checkAuthAndRedirect() {
       const token = localStorage.getItem('authToken');
-      
+
       if (!token) {
         // 没有 token，跳转到登录页
         window.location.href = '/login.html';
         return false;
       }
-      
+
       // 验证 token 是否有效
       try {
         const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -2038,9 +2026,9 @@
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
           // token 有效，跳转到用户中心
           window.location.href = '/dashboard.html';
@@ -2066,20 +2054,20 @@
     window.onload = async function() {
       // 先检查认证状态，如果有有效 token 会跳转到 dashboard
       const isAuthenticated = await checkAuthAndRedirect();
-      
+
       // 如果没有认证（会跳转到 login），下面的代码不会执行
       // 如果认证了（会跳转到 dashboard），下面的代码也不会执行
       // 但为了安全，我们还是检查一下
       if (!isAuthenticated) {
         return; // 已跳转到登录页，停止执行
       }
-      
+
       // 如果用户仍然在这个页面（理论上不应该），继续加载内容
       await loadUpdateInfo(); // 先加载更新信息
       await loadSources();
       await loadCategories();
       await loadNewsAll();
-      
+
       // 获取初始总数
       try {
         const response = await fetch(`${API_BASE_URL}/news/update-info`);
@@ -2090,7 +2078,7 @@
       } catch (error) {
         console.error('获取初始总数失败:', error);
       }
-      
+
       // 初始化新新闻检查（延迟30秒后开始第一次检查）
       setTimeout(() => {
         checkNewNews();
