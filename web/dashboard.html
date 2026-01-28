@@ -7674,8 +7674,12 @@
       const countEl = document.getElementById(`sub-selected-count-${index}`);
       const btn = document.getElementById(`sub-subscribe-btn-${index}`);
 
-      countEl.textContent = checkboxes.length;
-      btn.disabled = checkboxes.length === 0;
+      if (countEl) {
+        countEl.textContent = checkboxes.length;
+      }
+      if (btn) {
+        btn.disabled = checkboxes.length === 0;
+      }
     }
 
     // 开始推荐信息源（仅使用内置信息源）
@@ -7972,8 +7976,10 @@
       });
 
       const btn = document.getElementById(`sub-subscribe-btn-${index}`);
-      btn.disabled = true;
-      btn.textContent = '订阅中...';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '订阅中...';
+      }
 
       const subTaskId = `subscribe-${topicKeywords}`;
       GlobalProgress.addTask(subTaskId, '订阅信息源', topicKeywords, 0, '正在添加订阅...');
@@ -8009,8 +8015,10 @@
         showMessage('订阅失败: ' + error.message, 'error');
         GlobalProgress.removeTask(subTaskId);
       } finally {
-        btn.disabled = false;
-        btn.textContent = '订阅选中 (0)';
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '订阅选中 (0)';
+        }
         updateSubSelectedCount(index);
       }
     }
