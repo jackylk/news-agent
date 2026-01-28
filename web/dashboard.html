@@ -285,58 +285,6 @@
       display: block;
     }
 
-    /* 进度条样式 */
-    .progress-container {
-      margin-bottom: 24px;
-      padding: 16px;
-      background: #f8f9fa;
-      border-radius: 8px;
-    }
-
-    .progress-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .progress-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .progress-percentage {
-      font-size: 14px;
-      color: #8B5CF6;
-      font-weight: 600;
-    }
-
-    .progress-bar-wrapper {
-      height: 8px;
-      background: #e0e0e0;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 8px;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
-      border-radius: 4px;
-      transition: width 0.3s ease;
-      width: 0%;
-    }
-
-    .progress-text {
-      font-size: 13px;
-      color: #666;
-    }
-
-    .progress-container.hidden {
-      display: none;
-    }
-
     /* 已订阅信息源区域 */
     .subscribed-sources-section {
       margin-bottom: 24px;
@@ -6953,18 +6901,6 @@
         panel.id = `sub-panel-${i}`;
         panel.dataset.topicKeywords = topicKeywords;
         panel.innerHTML = `
-          <!-- 进度提示区域 -->
-          <div class="progress-container hidden" id="sub-progress-${i}">
-            <div class="progress-header">
-              <span class="progress-title" id="sub-progress-title-${i}">正在处理...</span>
-              <span class="progress-percentage" id="sub-progress-percent-${i}">0%</span>
-            </div>
-            <div class="progress-bar-wrapper">
-              <div class="progress-bar" id="sub-progress-bar-${i}"></div>
-            </div>
-            <div class="progress-text" id="sub-progress-text-${i}"></div>
-          </div>
-
           <!-- 已订阅信息源区域 -->
           <div class="subscribed-sources-section">
             <div class="subscribed-sources-header">
@@ -7212,15 +7148,16 @@
       if (data.isRecommending) return;
 
       data.isRecommending = true;
-      showSubProgress(index, '正在推荐信息源', 0, '正在分析主题关键词...');
+      const taskId = `recommend-${topicKeywords}`;
+      GlobalProgress.addTask(taskId, '推荐信息源', topicKeywords, 0, '正在分析主题关键词...');
 
       try {
         // 先加载内置信息源
-        showSubProgress(index, '正在推荐信息源', 10, '正在加载内置信息源...');
+        GlobalProgress.updateTask(taskId, 10, '正在加载内置信息源...');
         const curatedSources = await loadCuratedSourcesForSub();
 
         // 从内置信息源中匹配
-        showSubProgress(index, '正在推荐信息源', 30, '正在匹配内置信息源...');
+        GlobalProgress.updateTask(taskId, 30, '正在匹配内置信息源...');
         const matchedCurated = matchCuratedSources(topicKeywords, curatedSources);
         console.log(`[推荐] 从内置信息源匹配到 ${matchedCurated.length} 个`);
 
@@ -7228,7 +7165,7 @@
 
         // 如果内置信息源不足，调用DeepSeek补充
         if (matchedCurated.length < 10) {
-          showSubProgress(index, '正在推荐信息源', 50, '正在调用AI推荐更多信息源...');
+          GlobalProgress.updateTask(taskId, 50, '正在调用AI推荐更多信息源...');
 
           const response = await fetch(`${API_BASE_URL}/user/topics/recommend`, {
             method: 'POST',
@@ -7255,7 +7192,7 @@
                   try {
                     const jsonData = JSON.parse(line.slice(6));
                     if (jsonData.type === 'progress') {
-                      showSubProgress(index, '正在推荐信息源', 50 + jsonData.progress * 0.4, jsonData.message);
+                      GlobalProgress.updateTask(taskId, 50 + jsonData.progress * 0.4, jsonData.message);
                     } else if (jsonData.type === 'complete' && jsonData.data) {
                       // 合并DeepSeek推荐的信息源（去重）
                       const existingUrls = new Set(allRecommendations.map(s => s.sourceUrl));
@@ -7271,22 +7208,18 @@
           }
         }
 
-        showSubProgress(index, '正在推荐信息源', 100, '推荐完成！');
+        GlobalProgress.completeTask(taskId, '推荐完成');
 
         // 保存推荐结果
         data.allRecommendations = allRecommendations;
         data.displayedCount = 0;
 
-        // 延迟隐藏进度条
-        setTimeout(() => {
-          hideSubProgress(index);
-          renderSubRecommendations(index);
-        }, 500);
+        // 渲染推荐结果
+        renderSubRecommendations(index);
 
       } catch (error) {
         console.error('推荐失败:', error);
-        showSubProgress(index, '推荐失败', 0, error.message);
-        setTimeout(() => hideSubProgress(index), 2000);
+        GlobalProgress.completeTask(taskId, '推荐失败: ' + error.message, 3000);
       } finally {
         data.isRecommending = false;
       }
@@ -7316,30 +7249,6 @@
       return matched;
     }
 
-    // 显示进度
-    function showSubProgress(index, title, percent, text) {
-      const container = document.getElementById(`sub-progress-${index}`);
-      const titleEl = document.getElementById(`sub-progress-title-${index}`);
-      const percentEl = document.getElementById(`sub-progress-percent-${index}`);
-      const barEl = document.getElementById(`sub-progress-bar-${index}`);
-      const textEl = document.getElementById(`sub-progress-text-${index}`);
-
-      if (container) {
-        container.classList.remove('hidden');
-        titleEl.textContent = title;
-        percentEl.textContent = `${Math.round(percent)}%`;
-        barEl.style.width = `${percent}%`;
-        textEl.textContent = text;
-      }
-    }
-
-    // 隐藏进度
-    function hideSubProgress(index) {
-      const container = document.getElementById(`sub-progress-${index}`);
-      if (container) {
-        container.classList.add('hidden');
-      }
-    }
 
     // 添加新主题
     async function addNewTopic() {
@@ -7489,7 +7398,8 @@
       btn.disabled = true;
       btn.textContent = '订阅中...';
 
-      showSubProgress(index, '正在订阅', 0, '正在添加订阅...');
+      const subTaskId = `subscribe-${topicKeywords}`;
+      GlobalProgress.addTask(subTaskId, '订阅信息源', topicKeywords, 0, '正在添加订阅...');
 
       try {
         // 添加订阅
@@ -7502,10 +7412,10 @@
         const result = await response.json();
 
         if (result.success) {
-          showSubProgress(index, '正在抓取文章', 30, '订阅成功，开始抓取文章...');
+          GlobalProgress.updateTask(subTaskId, 30, '订阅成功，开始抓取文章...');
 
           // 开始抓取文章
-          await fetchArticlesForSubscriptions(index, topicKeywords, selectedSources);
+          await fetchArticlesForSubscriptions(subTaskId, topicKeywords, selectedSources);
 
           showMessage(`成功订阅 ${selectedSources.length} 个信息源`, 'success');
 
@@ -7515,12 +7425,12 @@
           renderSubRecommendations(index);
         } else {
           showMessage(result.message || '订阅失败', 'error');
-          hideSubProgress(index);
+          GlobalProgress.removeTask(subTaskId);
         }
       } catch (error) {
         console.error('订阅失败:', error);
         showMessage('订阅失败: ' + error.message, 'error');
-        hideSubProgress(index);
+        GlobalProgress.removeTask(subTaskId);
       } finally {
         btn.disabled = false;
         btn.textContent = '订阅选中 (0)';
@@ -7529,14 +7439,14 @@
     }
 
     // 抓取文章
-    async function fetchArticlesForSubscriptions(index, topicKeywords, sources) {
+    async function fetchArticlesForSubscriptions(subTaskId, topicKeywords, sources) {
       const totalSources = sources.length;
       let completedSources = 0;
 
       for (const source of sources) {
         completedSources++;
         const percent = 30 + (completedSources / totalSources) * 60;
-        showSubProgress(index, '正在抓取文章', percent, `正在抓取 ${source.sourceName} (${completedSources}/${totalSources})...`);
+        GlobalProgress.updateTask(subTaskId, percent, `正在抓取 ${source.sourceName} (${completedSources}/${totalSources})...`);
 
         try {
           // 调用抓取API（如果有的话）
@@ -7547,8 +7457,7 @@
         }
       }
 
-      showSubProgress(index, '完成', 100, '文章抓取完成！');
-      setTimeout(() => hideSubProgress(index), 1000);
+      GlobalProgress.completeTask(subTaskId, '文章抓取完成');
     }
 
     // ==================== 订阅管理页面新功能结束 ====================
