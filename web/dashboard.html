@@ -534,6 +534,47 @@
       cursor: not-allowed;
     }
 
+    .btn-ai-recommend {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-ai-recommend:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-ai-recommend:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-ai-recommend .loading-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     .add-topic-btn {
       width: 28px;
       height: 28px;
@@ -2896,7 +2937,7 @@
       <div class="section curated-sources-section">
         <div class="curated-sources-header" onclick="toggleAllCuratedSources()">
           <span class="curated-sources-toggle" id="allCuratedSourcesToggle">▶</span>
-          <h3>全部内置信息源</h3>
+          <h3>内置信息源</h3>
           <span class="curated-sources-count" id="allCuratedSourcesCount">(加载中...)</span>
         </div>
         <div class="curated-sources-content" id="allCuratedSourcesContent" style="display: none;">
@@ -7412,6 +7453,9 @@
               <button class="btn-secondary" onclick="loadMoreRecommendationsSub(${i})" id="sub-load-more-btn-${i}" style="display: none;">
                 加载更多
               </button>
+              <button class="btn-ai-recommend" onclick="loadMoreAIRecommendations(${i}, '${topicKeywords.replace(/'/g, "\\'")}')" id="ai-recommend-btn-${i}">
+                🤖 使用AI推荐更多
+              </button>
             </div>
           </div>
         `;
@@ -7424,7 +7468,8 @@
             recommendations: [],
             allRecommendations: [],
             displayedCount: 0,
-            isRecommending: false
+            isRecommending: false,
+            hasLoadedAI: false
           };
         }
       }
@@ -7541,8 +7586,13 @@
       const loadMoreBtn = document.getElementById(`sub-load-more-btn-${index}`);
 
       if (!data.allRecommendations || data.allRecommendations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">暂无推荐信息源</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">暂无匹配的内置信息源，请尝试使用AI推荐</td></tr>';
         loadMoreBtn.style.display = 'none';
+        // 显示AI推荐按钮
+        const aiBtn = document.getElementById(`ai-recommend-btn-${index}`);
+        if (aiBtn && !data.hasLoadedAI) {
+          aiBtn.style.display = 'inline-flex';
+        }
         return;
       }
 
@@ -7598,6 +7648,18 @@
         loadMoreBtn.style.display = 'none';
       }
 
+      // 显示/隐藏AI推荐按钮（如果已使用过AI推荐则隐藏）
+      const aiBtn = document.getElementById(`ai-recommend-btn-${index}`);
+      if (aiBtn) {
+        if (data.hasLoadedAI) {
+          aiBtn.style.display = 'none';
+        } else {
+          aiBtn.style.display = 'inline-flex';
+          aiBtn.disabled = false;
+          aiBtn.innerHTML = '🤖 使用AI推荐更多';
+        }
+      }
+
       updateSubSelectedCount(index);
     }
 
@@ -7616,7 +7678,7 @@
       btn.disabled = checkboxes.length === 0;
     }
 
-    // 开始推荐信息源
+    // 开始推荐信息源（仅使用内置信息源）
     async function startSubRecommendation(index, topicKeywords) {
       const data = subTopicsData[topicKeywords];
       if (data.isRecommending) return;
@@ -7626,67 +7688,21 @@
       GlobalProgress.addTask(taskId, '推荐信息源', topicKeywords, 0, '正在分析主题关键词...');
 
       try {
-        // 先加载内置信息源
-        GlobalProgress.updateTask(taskId, 10, '正在加载内置信息源...');
+        // 加载内置信息源
+        GlobalProgress.updateTask(taskId, 30, '正在加载内置信息源...');
         const curatedSources = await loadCuratedSourcesForSub();
 
         // 从内置信息源中匹配
-        GlobalProgress.updateTask(taskId, 30, '正在匹配内置信息源...');
+        GlobalProgress.updateTask(taskId, 70, '正在匹配内置信息源...');
         const matchedCurated = matchCuratedSources(topicKeywords, curatedSources);
         console.log(`[推荐] 从内置信息源匹配到 ${matchedCurated.length} 个`);
 
-        let allRecommendations = [...matchedCurated];
-
-        // 如果内置信息源不足，调用DeepSeek补充
-        if (matchedCurated.length < 10) {
-          GlobalProgress.updateTask(taskId, 50, '正在调用AI推荐更多信息源...');
-
-          const response = await fetch(`${API_BASE_URL}/user/topics/recommend`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({ keywords: topicKeywords })
-          });
-
-          if (response.ok) {
-            // 处理流式响应
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  try {
-                    const jsonData = JSON.parse(line.slice(6));
-                    if (jsonData.type === 'progress') {
-                      GlobalProgress.updateTask(taskId, 50 + jsonData.progress * 0.4, jsonData.message);
-                    } else if (jsonData.type === 'complete' && jsonData.data) {
-                      // 合并DeepSeek推荐的信息源（去重）
-                      const existingUrls = new Set(allRecommendations.map(s => s.sourceUrl));
-                      const newSources = jsonData.data.filter(s => !existingUrls.has(s.sourceUrl));
-                      allRecommendations = [...allRecommendations, ...newSources];
-                    }
-                  } catch (e) {
-                    // 忽略解析错误
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        GlobalProgress.completeTask(taskId, '推荐完成');
+        GlobalProgress.completeTask(taskId, `从内置信息源匹配到 ${matchedCurated.length} 个`);
 
         // 保存推荐结果
-        data.allRecommendations = allRecommendations;
+        data.allRecommendations = [...matchedCurated];
         data.displayedCount = 0;
+        data.hasLoadedAI = false; // 标记是否已使用AI推荐
 
         // 渲染推荐结果
         renderSubRecommendations(index);
@@ -7694,6 +7710,92 @@
       } catch (error) {
         console.error('推荐失败:', error);
         GlobalProgress.completeTask(taskId, '推荐失败: ' + error.message, 3000);
+      } finally {
+        data.isRecommending = false;
+      }
+    }
+
+    // 使用 DeepSeek AI 获取更多推荐
+    async function loadMoreAIRecommendations(index, topicKeywords) {
+      const data = subTopicsData[topicKeywords];
+      if (data.isRecommending) return;
+
+      data.isRecommending = true;
+      const taskId = `ai-recommend-${topicKeywords}`;
+      GlobalProgress.addTask(taskId, 'AI推荐', topicKeywords, 0, '正在调用AI推荐更多信息源...');
+
+      // 更新按钮状态
+      const btn = document.getElementById(`ai-recommend-btn-${index}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span> AI推荐中...';
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/topics/recommend`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ keywords: topicKeywords })
+        });
+
+        if (response.ok) {
+          // 处理流式响应
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let aiRecommendations = [];
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const jsonData = JSON.parse(line.slice(6));
+                  if (jsonData.type === 'progress') {
+                    GlobalProgress.updateTask(taskId, jsonData.progress, jsonData.message);
+                  } else if (jsonData.type === 'complete' && jsonData.data) {
+                    aiRecommendations = jsonData.data;
+                  }
+                } catch (e) {
+                  // 忽略解析错误
+                }
+              }
+            }
+          }
+
+          // 合并AI推荐的信息源（去重）
+          const existingUrls = new Set(data.allRecommendations.map(s => s.sourceUrl));
+          const newSources = aiRecommendations.filter(s => !existingUrls.has(s.sourceUrl));
+          
+          if (newSources.length > 0) {
+            data.allRecommendations = [...data.allRecommendations, ...newSources];
+            GlobalProgress.completeTask(taskId, `AI推荐了 ${newSources.length} 个新信息源`);
+          } else {
+            GlobalProgress.completeTask(taskId, 'AI没有找到更多新信息源');
+          }
+
+          data.hasLoadedAI = true;
+          
+          // 重新渲染推荐结果
+          renderSubRecommendations(index);
+        } else {
+          throw new Error('AI推荐请求失败');
+        }
+
+      } catch (error) {
+        console.error('AI推荐失败:', error);
+        GlobalProgress.completeTask(taskId, 'AI推荐失败: ' + error.message, 3000);
+        // 恢复按钮状态
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '🤖 使用AI推荐更多';
+        }
       } finally {
         data.isRecommending = false;
       }
@@ -7758,7 +7860,8 @@
             recommendations: [],
             allRecommendations: [],
             displayedCount: 0,
-            isRecommending: false
+            isRecommending: false,
+            hasLoadedAI: false
           };
 
           // 重新加载页面
