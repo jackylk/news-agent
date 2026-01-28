@@ -1365,9 +1365,11 @@
 
     .topics-tabs-header {
       display: flex;
-      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-      border-bottom: 2px solid #dee2e6;
+      gap: 8px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 0;
       overflow-x: auto;
+      flex-wrap: nowrap;
       scrollbar-width: thin;
     }
 
@@ -1381,28 +1383,27 @@
     }
 
     .topic-tab {
-      padding: 14px 24px;
-      background: transparent;
+      padding: 12px 20px;
+      background: none;
       border: none;
-      border-bottom: 3px solid transparent;
+      border-bottom: 2px solid transparent;
       cursor: pointer;
-      font-size: 15px;
-      font-weight: 500;
+      font-size: 14px;
       color: #666;
       white-space: nowrap;
       transition: all 0.3s;
       position: relative;
+      margin-bottom: -2px;
     }
 
     .topic-tab:hover {
-      background: rgba(139, 92, 246, 0.1);
       color: #8B5CF6;
     }
 
     .topic-tab.active {
       color: #8B5CF6;
+      font-weight: 600;
       border-bottom-color: #8B5CF6;
-      background: white;
     }
 
     .topic-tab .tab-badge {
@@ -1421,7 +1422,7 @@
     }
 
     .topics-tabs-content {
-      padding: 24px;
+      padding-top: 20px;
     }
 
     .topic-tab-panel {
@@ -1577,70 +1578,69 @@
 
     /* 文章阅读页面新样式 */
     .articles-stats-bar {
-      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
-      padding: 20px 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
-      margin-bottom: 24px;
+      background: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      margin-bottom: 16px;
       display: flex;
-      gap: 40px;
+      gap: 24px;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
+      border: 1px solid #e0e0e0;
     }
-    
+
     .stats-items-container {
       display: flex;
-      gap: 40px;
+      gap: 24px;
       flex-wrap: wrap;
       align-items: center;
       flex: 1;
       justify-content: flex-end;
     }
-    
+
     .btn-refresh-now {
-      padding: 10px 20px;
-      background: rgba(255, 255, 255, 0.2);
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       color: white;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 8px;
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.3s ease;
-      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
     }
-    
+
     .btn-refresh-now:hover {
-      background: rgba(255, 255, 255, 0.3);
-      border-color: rgba(255, 255, 255, 0.5);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
     }
-    
+
     .btn-refresh-now:active {
       transform: translateY(0);
     }
-    
+
     .btn-refresh-now:disabled {
       opacity: 0.6;
       cursor: not-allowed;
       transform: none;
     }
-    
+
     .btn-refresh-now span {
-      font-size: 16px;
+      font-size: 14px;
       display: inline-block;
       animation: none;
     }
-    
+
     .btn-refresh-now.refreshing span {
       animation: spin 1s linear infinite;
     }
-    
+
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
@@ -1650,21 +1650,21 @@
     .stat-item {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
 
     .stat-label {
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 12px;
+      color: #999;
+      font-size: 11px;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .stat-value {
-      color: #fff;
-      font-weight: 700;
-      font-size: 18px;
+      color: #333;
+      font-weight: 600;
+      font-size: 14px;
     }
 
     .source-filter-cards {
