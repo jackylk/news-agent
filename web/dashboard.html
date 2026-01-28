@@ -4688,11 +4688,21 @@
       }
       
       console.log(`🎨 开始渲染 ${histories?.length || 0} 个主题的页签...`);
-      
+
+      // 获取当前选中的主题关键词（在清空之前保存）
+      let activeTopicKeywords = null;
+      const currentActiveTab = tabsHeader.querySelector('.topic-tab.active');
+      if (currentActiveTab) {
+        // 从当前活动页签的文本中提取主题关键词（去掉徽章和"推荐中..."）
+        const tabText = currentActiveTab.textContent.trim();
+        activeTopicKeywords = tabText.replace(/\s*\(\d+\)\s*$/, '').replace(/\s*推荐中\.\.\.\s*$/, '').trim();
+        console.log(`📌 当前活动的主题: "${activeTopicKeywords}"`);
+      }
+
       // 清空现有内容
       tabsHeader.innerHTML = '';
       tabsContent.innerHTML = '';
-      
+
       if (!histories || histories.length === 0) {
         console.log('ℹ️  没有推荐历史，清空页签并隐藏容器');
         // 如果没有推荐历史，隐藏页签容器
@@ -4703,25 +4713,19 @@
         return;
       }
       
-      // 获取当前选中的主题关键词（如果有）
-      let activeTopicKeywords = null;
-      const currentActiveTab = tabsHeader.querySelector('.topic-tab.active');
-      if (currentActiveTab) {
-        // 从当前活动页签的文本中提取主题关键词（去掉徽章和"推荐中..."）
-        const tabText = currentActiveTab.textContent.trim();
-        activeTopicKeywords = tabText.replace(/\s*\(\d+\)\s*$/, '').replace(/\s*推荐中\.\.\.\s*$/, '').trim();
-      }
-      
       // 生成页签和内容
+      let hasActiveTab = false; // 标记是否有页签被激活
       histories.forEach((history, index) => {
         const topicKeywords = history.topic_keywords;
         const tabId = `tab-${index}`;
         const panelId = `panel-${index}`;
         // 如果当前主题关键词匹配之前选中的，则保持选中状态
-        const isActive = activeTopicKeywords && topicKeywords === activeTopicKeywords 
-          ? true 
-          : (index === 0 && !activeTopicKeywords);
-        
+        let isActive = false;
+        if (activeTopicKeywords && topicKeywords === activeTopicKeywords) {
+          isActive = true;
+          hasActiveTab = true;
+        }
+
         // 创建页签按钮
         const tabBtn = document.createElement('button');
         tabBtn.className = `topic-tab ${isActive ? 'active' : ''}`;
@@ -4730,7 +4734,7 @@
         const sourceCount = history.recommended_sources ? history.recommended_sources.length : 0;
         tabBtn.innerHTML = `${escapeHtml(topicKeywords)}${sourceCount > 0 ? `<span class="tab-badge">${sourceCount}</span>` : ''}`;
         tabsHeader.appendChild(tabBtn);
-        
+
         // 创建页签内容面板
         const panel = document.createElement('div');
         panel.className = `topic-tab-panel ${isActive ? 'active' : ''}`;
@@ -4811,6 +4815,15 @@
           renderRecommendationsInTab(index, history.recommended_sources);
         }
       });
+
+      // 如果没有任何页签被激活（之前选中的主题已被删除），激活第一个页签
+      if (!hasActiveTab && histories.length > 0) {
+        console.log('⚠️  之前选中的主题已被删除，激活第一个页签');
+        const firstTab = tabsHeader.querySelector('.topic-tab');
+        const firstPanel = tabsContent.querySelector('.topic-tab-panel');
+        if (firstTab) firstTab.classList.add('active');
+        if (firstPanel) firstPanel.classList.add('active');
+      }
     }
 
     // 切换主题页签
