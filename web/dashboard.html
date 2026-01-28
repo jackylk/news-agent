@@ -109,12 +109,80 @@
       background-color: #e0e0e0;
     }
 
+    /* 日期过滤侧边栏 */
+    .date-sidebar {
+      width: 140px;
+      background: linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%);
+      border-right: 1px solid #e9d5ff;
+      position: fixed;
+      left: 240px;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 99;
+      box-shadow: 2px 0 8px rgba(139, 92, 246, 0.1);
+    }
+
+    .date-sidebar-header {
+      padding: 20px 16px;
+      border-bottom: 1px solid #e9d5ff;
+      background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
+    }
+
+    .date-sidebar-header h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .date-sidebar-list {
+      padding: 8px 0;
+    }
+
+    .date-sidebar-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #6b7280;
+      border-bottom: 1px solid #f3e8ff;
+      transition: all 0.2s ease;
+    }
+
+    .date-sidebar-item:hover {
+      background: #f3e8ff;
+      color: #7c3aed;
+    }
+
+    .date-sidebar-item.active {
+      background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
+      color: white;
+      font-weight: 500;
+    }
+
+    .date-sidebar-item.all-dates {
+      font-weight: 600;
+      color: #8B5CF6;
+      border-bottom: 2px solid #e9d5ff;
+    }
+
+    .date-sidebar-item.all-dates.active {
+      background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
+      color: white;
+    }
+
     /* 主内容区 */
     .main-content {
       flex: 1;
       margin-left: 240px;
       padding: 0;
       min-height: 100vh;
+      transition: margin-left 0.3s ease;
+    }
+
+    /* 当日期侧边栏显示时，主内容区需要增加左边距 */
+    .main-content.with-date-sidebar {
+      margin-left: 380px;
     }
 
     .content-page {
@@ -1811,6 +1879,25 @@
       }
     }
 
+    /* 日期侧边栏响应式 */
+    @media (max-width: 1024px) {
+      .date-sidebar {
+        width: 120px;
+      }
+      .main-content.with-date-sidebar {
+        margin-left: 360px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .date-sidebar {
+        display: none !important;
+      }
+      .main-content.with-date-sidebar {
+        margin-left: 240px;
+      }
+    }
+
     .article-card {
       background: white;
       padding: 20px;
@@ -2509,6 +2596,17 @@
     </div>
   </div>
 
+  <!-- 日期过滤侧边栏（仅在文章阅读页面显示） -->
+  <div class="date-sidebar" id="dateSidebar" style="display: none;">
+    <div class="date-sidebar-header">
+      <h3>日期筛选</h3>
+    </div>
+    <div class="date-sidebar-list" id="dateSidebarList">
+      <div class="date-sidebar-item active" data-date="all" onclick="filterByDate('all')">全部日期</div>
+      <!-- 日期列表将动态生成 -->
+    </div>
+  </div>
+
   <!-- 主内容区 -->
   <div class="main-content">
     <!-- 订阅管理页面 -->
@@ -2909,6 +3007,13 @@
         page = 'subscriptions';
       }
       document.getElementById(page + 'Page').classList.add('active');
+      
+      // 控制日期侧边栏的显示/隐藏（仅在文章阅读页面显示）
+      if (page === 'articles') {
+        showDateSidebar();
+      } else {
+        hideDateSidebar();
+      }
 
       // 加载对应页面数据
       if (page === 'subscriptions') {
@@ -4279,6 +4384,9 @@
       if (statsBar) statsBar.style.display = 'none';
       if (sourceFilterCards) sourceFilterCards.style.display = 'none';
       
+      // 隐藏日期侧边栏
+      hideDateSidebar();
+      
       // 隐藏当前活动页签的列表视图，隐藏主题页签容器，显示详情视图
       const currentListView = document.getElementById(`articlesListView-${currentTabIndex}`);
       if (currentListView) currentListView.style.display = 'none';
@@ -4443,6 +4551,9 @@
       
       if (statsBar) statsBar.style.display = 'flex';
       if (sourceFilterCards) sourceFilterCards.style.display = 'flex';
+      
+      // 显示日期侧边栏
+      showDateSidebar();
       
       // 隐藏详情视图，显示主题页签容器和当前活动页签的列表视图
       document.getElementById('articleDetailView').style.display = 'none';
@@ -5905,6 +6016,9 @@
         }
       });
       
+      // 重置日期过滤器（切换主题时重置为"全部日期"）
+      currentDateFilter = 'all';
+      
       // 更新当前主题过滤和活动页签索引
       if (userTopics[index]) {
         currentTopicFilter = userTopics[index].topic_keywords;
@@ -6015,6 +6129,9 @@
           }
           window.topicArticlesData[topicKeywords] = topicArticles;
           
+          // 加载日期侧边栏
+          loadDateSidebar(topicArticles);
+          
           // 应用当前过滤和搜索
           applyFiltersForTab(topicKeywords, tabIndex);
         } else {
@@ -6119,6 +6236,14 @@
         filtered = filtered.filter(a => a.is_relevant_to_topic === true);
       }
       
+      // 按日期过滤
+      if (currentDateFilter && currentDateFilter !== 'all') {
+        filtered = filtered.filter(a => {
+          const articleDate = new Date(a.publish_date).toDateString();
+          return articleDate === currentDateFilter;
+        });
+      }
+      
       // 渲染文章列表
       renderArticlesForTab(filtered, tabIndex);
     }
@@ -6174,6 +6299,83 @@
       // 转换为数组并按日期排序（最新的在前）
       return Object.values(groups).sort((a, b) => b.date - a.date);
     }
+
+    // ========== 日期过滤侧边栏功能 ==========
+    let currentDateFilter = 'all'; // 当前选中的日期过滤器
+    
+    // 加载日期侧边栏
+    function loadDateSidebar(articles) {
+      const dateSidebarList = document.getElementById('dateSidebarList');
+      if (!dateSidebarList) return;
+      
+      // 从文章中提取所有唯一日期
+      const dateGroups = groupArticlesByDate(articles);
+      
+      // 生成日期列表HTML
+      let html = `<div class="date-sidebar-item all-dates ${currentDateFilter === 'all' ? 'active' : ''}" data-date="all" onclick="filterByDate('all')">全部日期</div>`;
+      
+      dateGroups.forEach(group => {
+        const dateStr = group.date.toDateString();
+        const year = group.date.getFullYear();
+        const month = group.date.getMonth() + 1;
+        const day = group.date.getDate();
+        const displayDate = `${year}年${month}月${day}日`;
+        const isActive = currentDateFilter === dateStr ? 'active' : '';
+        const articleCount = group.articles.length;
+        
+        html += `<div class="date-sidebar-item ${isActive}" data-date="${dateStr}" onclick="filterByDate('${dateStr}')" title="${articleCount}篇文章">${displayDate}</div>`;
+      });
+      
+      dateSidebarList.innerHTML = html;
+    }
+    
+    // 按日期过滤文章
+    function filterByDate(dateStr) {
+      currentDateFilter = dateStr;
+      
+      // 更新日期侧边栏的激活状态
+      const dateItems = document.querySelectorAll('.date-sidebar-item');
+      dateItems.forEach(item => {
+        if (item.getAttribute('data-date') === dateStr) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+      
+      // 获取当前活动的主题页签索引
+      const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
+      
+      // 重新应用过滤器
+      if (currentTopicFilter && userTopics && userTopics.length > 0) {
+        applyFiltersForTab(currentTopicFilter, currentTabIndex);
+      }
+    }
+    
+    // 显示日期侧边栏
+    function showDateSidebar() {
+      const dateSidebar = document.getElementById('dateSidebar');
+      const mainContent = document.querySelector('.main-content');
+      if (dateSidebar) {
+        dateSidebar.style.display = 'block';
+      }
+      if (mainContent) {
+        mainContent.classList.add('with-date-sidebar');
+      }
+    }
+    
+    // 隐藏日期侧边栏
+    function hideDateSidebar() {
+      const dateSidebar = document.getElementById('dateSidebar');
+      const mainContent = document.querySelector('.main-content');
+      if (dateSidebar) {
+        dateSidebar.style.display = 'none';
+      }
+      if (mainContent) {
+        mainContent.classList.remove('with-date-sidebar');
+      }
+    }
+    // ========== 日期过滤侧边栏功能结束 ==========
 
     // 添加文章到指定页签
     function addArticleToTab(tabIndex, article) {
