@@ -473,7 +473,61 @@ class BaseCrawler {
    */
   generateSummary(content, maxLength = 300) {
     if (!content) return '';
-    return content.substring(0, maxLength).trim();
+    
+    // 清理HTML内容为纯文本
+    let summary = this.cleanHTMLToText(content);
+    
+    // 截断到指定长度
+    return summary.substring(0, maxLength).trim();
+  }
+
+  /**
+   * 将HTML内容清理为纯文本
+   * @param {string} html - HTML内容
+   * @returns {string} 纯文本
+   */
+  cleanHTMLToText(html) {
+    if (!html) return '';
+    
+    let text = html;
+    
+    // 1. 移除HTML注释
+    text = text.replace(/<!--[\s\S]*?-->/g, '');
+    
+    // 2. 移除script和style标签及其内容
+    text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    
+    // 3. 移除iframe标签
+    text = text.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
+    
+    // 4. 将块级元素转换为换行
+    text = text.replace(/<\/(p|div|h[1-6]|li|br|hr)[^>]*>/gi, '\n');
+    text = text.replace(/<br\s*\/?>/gi, '\n');
+    
+    // 5. 移除所有剩余的HTML标签
+    text = text.replace(/<[^>]+>/g, '');
+    
+    // 6. 解码HTML实体
+    text = text
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&apos;/gi, "'")
+      .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
+      .replace(/&#x([0-9a-f]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+    
+    // 7. 清理多余的空白字符
+    text = text
+      .replace(/\n\s*\n/g, '\n')  // 多个换行合并为一个
+      .replace(/[ \t]+/g, ' ')     // 多个空格/制表符合并为一个
+      .replace(/^\s+|\s+$/gm, '')  // 移除每行首尾空白
+      .trim();
+    
+    return text;
   }
 
   /**
