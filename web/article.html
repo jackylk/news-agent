@@ -3,21 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>文章详情 - 新闻聚合</title>
-  <script src="js/global-progress.js"></script>
+  <title>文章详情 - 个人信息整理</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
       background-color: #f5f5f5;
       color: #333;
       line-height: 1.6;
     }
+
     .container {
       max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
     }
+
     .header {
       background: white;
       padding: 24px;
@@ -28,11 +34,12 @@
       justify-content: space-between;
       align-items: center;
     }
+
     .header h1 {
       font-size: 24px;
       color: #333;
     }
-    .header-links { display: flex; gap: 12px; }
+
     .back-btn {
       padding: 8px 16px;
       background-color: #f5f5f5;
@@ -44,9 +51,11 @@
       font-size: 14px;
       transition: background-color 0.3s;
     }
+
     .back-btn:hover {
       background-color: #e0e0e0;
     }
+
     .section {
       background: white;
       padding: 24px;
@@ -55,139 +64,11 @@
       margin-bottom: 20px;
     }
 
-    .article-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-bottom: 25px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #eee;
-    }
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      color: #666;
-    }
-    .meta-item .label { color: #999; }
-    .source-tag {
-      display: inline-block;
-      padding: 4px 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-radius: 15px;
-      font-size: 13px;
-    }
-    .topic-tag {
-      display: inline-block;
-      padding: 4px 12px;
-      background: #e8f4fd;
-      color: #1976d2;
-      border-radius: 15px;
-      font-size: 13px;
-      border: 1px solid #b3d9f7;
-    }
-
-    .article-title {
-      font-size: 26px;
-      font-weight: 600;
-      color: #333;
-      line-height: 1.4;
-      margin-bottom: 25px;
-    }
-
-    .article-content {
-      font-size: 16px;
-      line-height: 1.8;
-      color: #444;
-    }
-    .article-content p { margin-bottom: 16px; }
-    .article-content img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-    .article-content a {
-      color: #667eea;
-      text-decoration: none;
-    }
-    .article-content a:hover { text-decoration: underline; }
-    .article-content pre {
-      background: #f5f5f5;
-      padding: 15px;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin: 15px 0;
-    }
-    .article-content code {
-      background: #f0f0f0;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'Monaco', 'Consolas', monospace;
-      font-size: 14px;
-    }
-    .article-content blockquote {
-      border-left: 4px solid #667eea;
-      padding-left: 20px;
-      margin: 20px 0;
-      color: #666;
-      font-style: italic;
-    }
-    .article-content h1, .article-content h2, .article-content h3 {
-      margin: 25px 0 15px;
-      color: #333;
-    }
-    .article-content ul, .article-content ol {
-      margin: 15px 0;
-      padding-left: 25px;
-    }
-    .article-content li { margin-bottom: 8px; }
-
-    .article-actions {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #eee;
-      display: flex;
-      gap: 15px;
-    }
-    .article-actions a {
-      padding: 10px 20px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 14px;
-      transition: all 0.3s;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    .btn-primary:hover {
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-      transform: translateY(-2px);
-    }
-    .btn-secondary {
-      background: #f0f0f0;
-      color: #555;
-    }
-    .btn-secondary:hover { background: #e0e0e0; }
-
     .loading {
       text-align: center;
-      padding: 60px 20px;
-      color: #888;
+      padding: 40px;
+      color: #666;
     }
-    .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid #f0f0f0;
-      border-top-color: #667eea;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 15px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     .error-message {
       text-align: center;
@@ -201,144 +82,338 @@
       margin-bottom: 20px;
       display: none;
     }
-    .message.show { display: block; }
-    .message.error { background-color: #fee; color: #c33; border: 1px solid #fcc; }
-    .message.success { background-color: #efe; color: #3c3; border: 1px solid #cfc; }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.error {
+      background-color: #fee;
+      color: #c33;
+      border: 1px solid #fcc;
+    }
+
+    .message.success {
+      background-color: #efe;
+      color: #3c3;
+      border: 1px solid #cfc;
+    }
+
+    /* 文章内容样式 */
+    .article-header {
+      margin-bottom: 30px;
+    }
+
+    .article-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+      line-height: 1.4;
+      margin-bottom: 20px;
+    }
+
+    .article-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      padding: 16px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .meta-label {
+      color: #999;
+    }
+
+    .source-tag {
+      padding: 4px 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .topic-tag {
+      padding: 4px 12px;
+      background-color: #e8f4fd;
+      color: #1976d2;
+      border-radius: 15px;
+      font-size: 13px;
+      border: 1px solid #b3d9f7;
+    }
+
+    .article-content {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #444;
+      margin-top: 30px;
+    }
+
+    .article-content p {
+      margin-bottom: 16px;
+    }
+
+    .article-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .article-content a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .article-content a:hover {
+      text-decoration: underline;
+    }
+
+    .article-content pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+
+    .article-content code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 14px;
+    }
+
+    .article-content blockquote {
+      border-left: 4px solid #667eea;
+      padding-left: 20px;
+      margin: 20px 0;
+      color: #666;
+      font-style: italic;
+    }
+
+    .article-content h1,
+    .article-content h2,
+    .article-content h3,
+    .article-content h4,
+    .article-content h5,
+    .article-content h6 {
+      margin: 25px 0 15px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .article-content ul,
+    .article-content ol {
+      margin: 15px 0;
+      padding-left: 25px;
+    }
+
+    .article-content li {
+      margin-bottom: 8px;
+    }
+
+    .article-actions {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-primary {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+      transition: opacity 0.3s;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      padding: 10px 20px;
+      background-color: #f5f5f5;
+      color: #333;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+      transition: background-color 0.3s;
+    }
+
+    .btn-secondary:hover {
+      background-color: #e0e0e0;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>文章详情</h1>
-      <div class="header-links">
-        <a href="index.html" class="back-btn">文章列表</a>
-        <a href="topics.html" class="back-btn">订阅管理</a>
-      </div>
+      <a href="/" class="back-btn">← 返回首页</a>
     </div>
 
     <div id="message" class="message"></div>
 
     <div class="section">
-      <div class="loading" id="loading">
-        <div class="loading-spinner"></div>
-        <p>正在加载文章...</p>
-      </div>
+      <div class="loading" id="loading">加载中...</div>
       <div id="articleContent" style="display: none;"></div>
       <div class="error-message" id="errorMessage" style="display: none;"></div>
     </div>
   </div>
 
-<script>
-const API_BASE_URL = (() => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return `${window.location.protocol}//${window.location.host}/api`;
-  }
-  return 'https://news-agent-production-c5db.up.railway.app/api';
-})();
+  <script>
+    // API 基础地址
+    const API_BASE_URL = (() => {
+      // 本地开发：使用本地API
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return `${window.location.protocol}//${window.location.host}/api`;
+      }
+      // 生产环境：使用 Railway 后端地址
+      return 'https://news-agent-production-c5db.up.railway.app/api';
+    })();
 
-document.addEventListener('DOMContentLoaded', () => {
-  checkAuth();
-});
+    let authToken = localStorage.getItem('authToken');
 
-function checkAuth() {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    window.location.href = 'login.html';
-    return;
-  }
-  loadArticle();
-}
-
-function getAuthHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
-  };
-}
-
-function showMessage(text, type = 'error') {
-  const msg = document.getElementById('message');
-  msg.textContent = text;
-  msg.className = `message show ${type}`;
-  setTimeout(() => msg.classList.remove('show'), 3000);
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-async function loadArticle() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const articleId = urlParams.get('id');
-
-  if (!articleId) {
-    showError('未指定文章ID');
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/news/${articleId}`, {
-      headers: getAuthHeaders()
-    });
-    const data = await res.json();
-
-    if (data.success && data.data) {
-      renderArticle(data.data);
-    } else {
-      showError(data.message || '文章不存在');
+    // 检查登录状态
+    if (!authToken) {
+      alert('请先登录');
+      window.location.href = '/login.html';
     }
-  } catch (e) {
-    showError('加载文章失败: ' + e.message);
-  }
-}
 
-function showError(message) {
-  document.getElementById('loading').style.display = 'none';
-  const errorEl = document.getElementById('errorMessage');
-  errorEl.textContent = message;
-  errorEl.style.display = 'block';
-}
+    function getHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      };
+    }
 
-function renderArticle(article) {
-  document.getElementById('loading').style.display = 'none';
-  const container = document.getElementById('articleContent');
-  container.style.display = 'block';
+    function showMessage(text, type) {
+      const messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = `message ${type} show`;
+      setTimeout(() => {
+        messageEl.classList.remove('show');
+      }, 5000);
+    }
 
-  document.title = `${article.title} - 新闻聚合`;
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return dateStr;
+      }
+    }
 
-  container.innerHTML = `
-    <div class="article-meta">
-      <div class="meta-item">
-        <span class="label">来源:</span>
-        <span class="source-tag">${article.source || '-'}</span>
-      </div>
-      ${article.topic_keywords ? `
-      <div class="meta-item">
-        <span class="label">主题:</span>
-        <span class="topic-tag">${article.topic_keywords}</span>
-      </div>
-      ` : ''}
-      <div class="meta-item">
-        <span class="label">发布时间:</span>
-        <span>${formatDate(article.published_at || article.created_at)}</span>
-      </div>
-    </div>
-    <h1 class="article-title">${article.title}</h1>
-    <div class="article-content">${article.content || article.summary || '<p>暂无内容</p>'}</div>
-    <div class="article-actions">
-      ${article.url ? `<a href="${article.url}" target="_blank" class="btn-primary">查看原文</a>` : ''}
-      <a href="index.html" class="btn-secondary">返回列表</a>
-    </div>
-  `;
-}
-</script>
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 加载文章
+    async function loadArticle() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const articleId = urlParams.get('id');
+
+      if (!articleId) {
+        showError('未指定文章ID');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/news/${articleId}`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          renderArticle(result.data);
+        } else {
+          showError(result.message || '文章不存在');
+        }
+      } catch (error) {
+        showError('加载文章失败: ' + error.message);
+      }
+    }
+
+    function showError(message) {
+      document.getElementById('loading').style.display = 'none';
+      const errorEl = document.getElementById('errorMessage');
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+    }
+
+    function renderArticle(article) {
+      document.getElementById('loading').style.display = 'none';
+      const container = document.getElementById('articleContent');
+      container.style.display = 'block';
+
+      // 更新页面标题
+      document.title = `${article.title} - 个人信息整理`;
+
+      // 渲染文章内容
+      container.innerHTML = `
+        <div class="article-header">
+          <h1 class="article-title">${escapeHtml(article.title)}</h1>
+          <div class="article-meta">
+            <div class="meta-item">
+              <span class="meta-label">来源:</span>
+              <span class="source-tag">${escapeHtml(article.source || '-')}</span>
+            </div>
+            ${article.topic_keywords ? `
+            <div class="meta-item">
+              <span class="meta-label">主题:</span>
+              <span class="topic-tag">${escapeHtml(article.topic_keywords)}</span>
+            </div>
+            ` : ''}
+            <div class="meta-item">
+              <span class="meta-label">发布时间:</span>
+              <span>${formatDate(article.published_at || article.created_at)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="article-content">
+          ${article.content || article.summary || '<p>暂无内容</p>'}
+        </div>
+        <div class="article-actions">
+          ${article.url ? `<a href="${article.url}" target="_blank" class="btn-primary">查看原文</a>` : ''}
+          <a href="/" class="btn-secondary">返回列表</a>
+        </div>
+      `;
+    }
+
+    // 页面加载时
+    window.onload = function() {
+      loadArticle();
+    };
+  </script>
 </body>
 </html>

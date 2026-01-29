@@ -2170,11 +2170,11 @@
     .article-card {
       background: white;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
       cursor: pointer;
       transition: all 0.3s;
-      border: 1px solid #e0e0e0;
+      border: 1px solid #f0f0f0;
       position: relative;
       overflow: hidden;
       display: flex;
@@ -2207,15 +2207,15 @@
       left: 0;
       width: 4px;
       height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       transform: scaleY(0);
       transition: transform 0.3s;
     }
 
     .article-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
-      border-color: #667eea;
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+      border-color: #8B5CF6;
     }
 
     .article-card:hover::before {
@@ -2261,7 +2261,7 @@
     }
 
     .article-card:hover .article-card-title {
-      color: #667eea;
+      color: #8B5CF6;
     }
 
     .article-card-meta {
@@ -2278,12 +2278,12 @@
     .article-card-source {
       display: inline-block;
       padding: 6px 14px;
-      background: #f5f5f5;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
-      color: #667eea;
-      border: 1px solid #e0e0e0;
+      color: #495057;
+      border: 1px solid #dee2e6;
     }
 
     .article-card-summary {
@@ -2369,9 +2369,9 @@
     }
 
     .article-detail-summary {
-      background: #f8f9fa;
+      background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%);
       padding: 16px;
-      border-left: 4px solid #667eea;
+      border-left: 4px solid #8B5CF6;
       border-radius: 4px;
       margin-bottom: 24px;
       font-size: 15px;
@@ -2380,9 +2380,9 @@
     }
 
     .article-generated-summary {
-      background: #f8f9fa;
+      background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%);
       padding: 20px;
-      border-left: 4px solid #667eea;
+      border-left: 4px solid #EC4899;
       border-radius: 8px;
       margin-bottom: 24px;
     }
@@ -2390,7 +2390,7 @@
     .article-generated-summary h3 {
       font-size: 18px;
       font-weight: 600;
-      color: #333;
+      color: #BE185D;
       margin-bottom: 12px;
     }
 
@@ -2469,7 +2469,7 @@
     }
     
     .article-detail-text blockquote {
-      border-left: 4px solid #667eea;
+      border-left: 4px solid #8B5CF6;
       padding-left: 16px;
       margin: 16px 0;
       color: #666;
@@ -2485,14 +2485,14 @@
     }
     
     .article-detail-text a {
-      color: #667eea;
+      color: #8B5CF6;
       text-decoration: none;
       border-bottom: 1px solid transparent;
       transition: border-color 0.3s;
     }
     
     .article-detail-text a:hover {
-      border-bottom-color: #667eea;
+      border-bottom-color: #8B5CF6;
     }
     
     .article-detail-text table {
@@ -2530,20 +2530,21 @@
 
     .btn-translate {
       padding: 10px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
       font-weight: 600;
-      transition: opacity 0.3s;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+      transition: all 0.3s;
+      box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4);
       white-space: nowrap;
     }
 
     .btn-translate:hover {
-      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
     }
 
     .btn-translate:disabled {
@@ -2553,20 +2554,17 @@
     }
 
     .article-source-link {
-      display: inline-flex;
-      align-items: center;
+      display: inline-block;
       margin-top: 24px;
-      padding: 10px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      color: #8B5CF6;
       text-decoration: none;
       font-size: 14px;
-      border-radius: 8px;
-      transition: opacity 0.3s;
+      transition: color 0.2s;
     }
 
     .article-source-link:hover {
-      opacity: 0.9;
+      color: #7C3AED;
+      text-decoration: underline;
     }
 
     /* 用户指南页面样式 */
