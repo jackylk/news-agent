@@ -19,7 +19,7 @@
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 900px;
       margin: 0 auto;
       padding: 20px;
     }
@@ -58,22 +58,10 @@
 
     .section {
       background: white;
-      padding: 24px;
+      padding: 32px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       margin-bottom: 20px;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-    }
-
-    .error-message {
-      text-align: center;
-      padding: 60px 20px;
-      color: #c33;
     }
 
     .message {
@@ -99,25 +87,56 @@
       border: 1px solid #cfc;
     }
 
-    /* 文章内容样式 */
-    .article-header {
-      margin-bottom: 30px;
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
     }
 
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f0f0f0;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .error-state p {
+      margin-bottom: 16px;
+      color: #c33;
+    }
+
+    /* 文章标题 */
     .article-title {
       font-size: 28px;
       font-weight: 600;
       color: #333;
-      line-height: 1.4;
-      margin-bottom: 20px;
+      line-height: 1.5;
+      margin-bottom: 24px;
     }
 
+    /* 元信息栏 */
     .article-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 15px;
+      align-items: center;
+      gap: 12px;
       padding: 16px 0;
       border-bottom: 1px solid #eee;
+      margin-bottom: 32px;
     }
 
     .meta-item {
@@ -150,84 +169,154 @@
       border: 1px solid #b3d9f7;
     }
 
+    .time-tag {
+      padding: 4px 12px;
+      background-color: #f8f9fa;
+      color: #666;
+      border-radius: 15px;
+      font-size: 13px;
+    }
+
+    /* 文章正文 */
     .article-content {
-      font-size: 16px;
-      line-height: 1.8;
+      font-size: 17px;
+      line-height: 1.9;
       color: #444;
-      margin-top: 30px;
     }
 
     .article-content p {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
 
     .article-content img {
       max-width: 100%;
       height: auto;
       border-radius: 8px;
-      margin: 20px 0;
+      margin: 24px 0;
+      display: block;
     }
 
     .article-content a {
       color: #667eea;
       text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
     }
 
     .article-content a:hover {
-      text-decoration: underline;
+      border-bottom-color: #667eea;
     }
 
     .article-content pre {
       background: #f8f9fa;
-      padding: 15px;
+      padding: 16px 20px;
       border-radius: 8px;
       overflow-x: auto;
-      margin: 15px 0;
+      margin: 20px 0;
+      border: 1px solid #eee;
     }
 
     .article-content code {
       background: #f0f0f0;
       padding: 2px 6px;
       border-radius: 4px;
-      font-family: 'Monaco', 'Consolas', monospace;
-      font-size: 14px;
+      font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+      font-size: 15px;
+      color: #e83e8c;
+    }
+
+    .article-content pre code {
+      background: none;
+      padding: 0;
+      color: #333;
     }
 
     .article-content blockquote {
       border-left: 4px solid #667eea;
-      padding-left: 20px;
-      margin: 20px 0;
-      color: #666;
-      font-style: italic;
+      padding: 16px 20px;
+      margin: 24px 0;
+      background: #f8f9fa;
+      border-radius: 0 8px 8px 0;
+      color: #555;
+      font-style: normal;
     }
 
-    .article-content h1,
-    .article-content h2,
-    .article-content h3,
+    .article-content blockquote p:last-child {
+      margin-bottom: 0;
+    }
+
+    .article-content h1 {
+      font-size: 26px;
+      margin: 36px 0 20px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .article-content h2 {
+      font-size: 22px;
+      margin: 32px 0 16px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .article-content h3 {
+      font-size: 18px;
+      margin: 28px 0 14px;
+      color: #333;
+      font-weight: 600;
+    }
+
     .article-content h4,
     .article-content h5,
     .article-content h6 {
-      margin: 25px 0 15px;
+      font-size: 16px;
+      margin: 24px 0 12px;
       color: #333;
       font-weight: 600;
     }
 
     .article-content ul,
     .article-content ol {
-      margin: 15px 0;
-      padding-left: 25px;
+      margin: 20px 0;
+      padding-left: 28px;
     }
 
     .article-content li {
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
+    .article-content hr {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 32px 0;
+    }
+
+    .article-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    .article-content th,
+    .article-content td {
+      padding: 12px;
+      border: 1px solid #eee;
+      text-align: left;
+    }
+
+    .article-content th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+
+    /* 操作按钮区 */
     .article-actions {
-      margin-top: 30px;
-      padding-top: 20px;
+      margin-top: 40px;
+      padding-top: 24px;
       border-top: 1px solid #eee;
       display: flex;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
     .btn-primary {
@@ -240,11 +329,12 @@
       font-size: 14px;
       text-decoration: none;
       display: inline-block;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s, transform 0.2s;
     }
 
     .btn-primary:hover {
       opacity: 0.9;
+      transform: translateY(-1px);
     }
 
     .btn-secondary {
@@ -263,6 +353,60 @@
     .btn-secondary:hover {
       background-color: #e0e0e0;
     }
+
+    /* 空内容提示 */
+    .empty-content {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-size: 15px;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .container {
+        padding: 12px;
+      }
+
+      .header {
+        padding: 16px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .section {
+        padding: 20px;
+      }
+
+      .article-title {
+        font-size: 22px;
+      }
+
+      .article-content {
+        font-size: 16px;
+        line-height: 1.8;
+      }
+
+      .article-meta {
+        gap: 8px;
+      }
+
+      .meta-item {
+        font-size: 13px;
+      }
+
+      .article-actions {
+        flex-direction: column;
+      }
+
+      .article-actions a,
+      .article-actions button {
+        width: 100%;
+        text-align: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -275,9 +419,15 @@
     <div id="message" class="message"></div>
 
     <div class="section">
-      <div class="loading" id="loading">加载中...</div>
+      <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <p>加载中...</p>
+      </div>
       <div id="articleContent" style="display: none;"></div>
-      <div class="error-message" id="errorMessage" style="display: none;"></div>
+      <div class="error-state" id="errorState" style="display: none;">
+        <p id="errorMessage"></p>
+        <a href="/" class="btn-secondary">返回首页</a>
+      </div>
     </div>
   </div>
 
@@ -366,9 +516,10 @@
 
     function showError(message) {
       document.getElementById('loading').style.display = 'none';
-      const errorEl = document.getElementById('errorMessage');
-      errorEl.textContent = message;
-      errorEl.style.display = 'block';
+      const errorState = document.getElementById('errorState');
+      const errorMessage = document.getElementById('errorMessage');
+      errorMessage.textContent = message;
+      errorState.style.display = 'block';
     }
 
     function renderArticle(article) {
@@ -379,32 +530,31 @@
       // 更新页面标题
       document.title = `${article.title} - 个人信息整理`;
 
+      // 处理文章内容
+      const content = article.content || article.summary || '';
+      const hasContent = content.trim().length > 0;
+
       // 渲染文章内容
       container.innerHTML = `
-        <div class="article-header">
-          <h1 class="article-title">${escapeHtml(article.title)}</h1>
-          <div class="article-meta">
-            <div class="meta-item">
-              <span class="meta-label">来源:</span>
-              <span class="source-tag">${escapeHtml(article.source || '-')}</span>
-            </div>
-            ${article.topic_keywords ? `
-            <div class="meta-item">
-              <span class="meta-label">主题:</span>
-              <span class="topic-tag">${escapeHtml(article.topic_keywords)}</span>
-            </div>
-            ` : ''}
-            <div class="meta-item">
-              <span class="meta-label">发布时间:</span>
-              <span>${formatDate(article.published_at || article.created_at)}</span>
-            </div>
+        <h1 class="article-title">${escapeHtml(article.title)}</h1>
+        <div class="article-meta">
+          <div class="meta-item">
+            <span class="source-tag">${escapeHtml(article.source || '未知来源')}</span>
+          </div>
+          ${article.topic_keywords ? `
+          <div class="meta-item">
+            <span class="topic-tag">${escapeHtml(article.topic_keywords)}</span>
+          </div>
+          ` : ''}
+          <div class="meta-item">
+            <span class="time-tag">${formatDate(article.published_at || article.created_at)}</span>
           </div>
         </div>
         <div class="article-content">
-          ${article.content || article.summary || '<p>暂无内容</p>'}
+          ${hasContent ? content : '<div class="empty-content">暂无详细内容</div>'}
         </div>
         <div class="article-actions">
-          ${article.url ? `<a href="${article.url}" target="_blank" class="btn-primary">查看原文</a>` : ''}
+          ${article.url ? `<a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer" class="btn-primary">查看原文</a>` : ''}
           <a href="/" class="btn-secondary">返回列表</a>
         </div>
       `;
