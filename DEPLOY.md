@@ -143,7 +143,29 @@ Render 提供免费层，适合中小型应用。
 
 ---
 
-## 方案四：使用 Docker（适合 VPS）
+## 方案四：Zeabur（推荐，一键部署）
+
+Zeabur 支持从 GitHub 一键部署，使用根目录 Dockerfile 构建，并支持内置 PostgreSQL。
+
+### 步骤：
+
+1. **注册 Zeabur 账号**：访问 https://zeabur.com，使用 GitHub 登录
+2. **创建项目**：New Project → Deploy from GitHub → 选择 `news-agent` 仓库
+3. **添加 PostgreSQL**：Add Service → Marketplace → PostgreSQL（或使用 Neon 并设置 `DATABASE_URL`）
+4. **配置环境变量**：在应用服务中设置 `DATABASE_URL`（若用 Zeabur PostgreSQL 且已连接可能已自动注入）、`JWT_SECRET`、`ADMIN_TOKEN` 等
+5. **部署**：Zeabur 会自动检测 Dockerfile 并构建、部署，提供 `*.zeabur.app` 域名
+
+详细步骤、环境变量说明和故障排查见 **`ZEABUR_DEPLOY.md`**。
+
+### 优点：
+- ✅ 使用现有 Dockerfile，无需改构建方式
+- ✅ 支持 Zeabur 内置 PostgreSQL 或 Neon
+- ✅ 前后端一体部署，同一域名
+- ✅ 自动 HTTPS 与域名
+
+---
+
+## 方案五：使用 Docker（适合 VPS）
 
 如果你有自己的服务器，可以使用 Docker 部署。
 
@@ -220,12 +242,11 @@ CORS_ORIGIN=https://your-frontend-url.com
 
 ## 推荐方案
 
-**对于快速部署，推荐使用 Railway**：
-- 最简单，一键部署
-- 支持定时任务
-- 免费额度足够使用
+**对于快速部署，推荐使用 Zeabur 或 Railway**：
+- **Zeabur**：使用现有 Dockerfile，支持内置 PostgreSQL，前后端一体部署，详见 `ZEABUR_DEPLOY.md`
+- **Railway**：一键部署，支持定时任务，免费额度足够使用，详见 `RAILWAY_DEPLOY.md`
 
-**如果需要更好的前端性能，推荐 Vercel + Railway**：
+**如果需要更好的前端性能，推荐 Vercel + Railway/Zeabur**：
 - 前端全球 CDN
 - 后端稳定运行
 

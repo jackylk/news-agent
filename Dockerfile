@@ -24,6 +24,9 @@ RUN npm install --production
 # 复制应用代码
 COPY server/ .
 
+# 复制前端文件（统一部署）
+COPY web/ ./web/
+
 # 创建数据库目录
 RUN mkdir -p database
 

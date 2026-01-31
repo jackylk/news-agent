@@ -1,8 +1,11 @@
 const { Pool } = require('pg');
 
 // 从环境变量获取数据库连接信息
-// 支持 Neon、Railway PostgreSQL 或其他 PostgreSQL 服务
-// 本地开发时设置 USE_LOCAL_DB=true 使用本地数据库
+// 支持多种部署平台的环境变量格式：
+// 1. DATABASE_URL（优先，适用于 Neon、Railway 等）
+// 2. POSTGRES_* 变量（Zeabur PostgreSQL 注入的变量）
+// 3. DB_* 变量（通用标准变量）
+// 4. 本地开发时设置 USE_LOCAL_DB=true 使用本地数据库
 
 // 判断是否使用本地数据库
 const useLocalDB = process.env.USE_LOCAL_DB === 'true';
@@ -55,6 +58,28 @@ if (useLocalDB) {
   if (isNeon) {
     console.log('   🚀 检测到 Neon Serverless 数据库，已优化连接池配置');
   }
+} else if (process.env.POSTGRES_HOST || process.env.DB_HOST) {
+  // 使用独立的环境变量（支持 Zeabur PostgreSQL 注入的 POSTGRES_* 变量或标准 DB_* 变量）
+  const host = process.env.POSTGRES_HOST || process.env.DB_HOST || 'localhost';
+  const port = parseInt(process.env.POSTGRES_PORT || process.env.DB_PORT || '5432');
+  const database = process.env.POSTGRES_DATABASE || process.env.DB_NAME || 'news_db';
+  const user = process.env.POSTGRES_USERNAME || process.env.POSTGRES_USER || process.env.DB_USER || 'postgres';
+  const password = process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD || '';
+  
+  poolConfig = {
+    host,
+    port,
+    database,
+    user,
+    password,
+    // Zeabur PostgreSQL 通常不需要 SSL（内网连接）
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  };
+  console.log('📦 使用独立环境变量连接数据库');
+  console.log(`   主机: ${host}:${port}, 数据库: ${database}`);
 } else {
   // 没有配置任何数据库，使用默认本地配置
   console.warn('⚠️  警告: 未配置数据库连接');

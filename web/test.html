@@ -29,7 +29,7 @@
   </style>
 </head>
 <body>
-  <h1>Vercel 部署测试页面</h1>
+  <h1>部署测试页面</h1>
   
   <div class="test-item info">
     <h3>基本信息</h3>
@@ -40,7 +40,7 @@
 
   <div class="test-item" id="apiTest">
     <h3>API 连接测试</h3>
-    <p>测试连接到 Railway 后端 API...</p>
+    <p>测试连接到当前域名 API...</p>
     <button onclick="testAPI()">测试 API</button>
     <div id="apiResult"></div>
   </div>
@@ -63,9 +63,10 @@
     document.getElementById('userAgent').textContent = navigator.userAgent;
     document.getElementById('screenSize').textContent = `${window.innerWidth} x ${window.innerHeight}`;
 
-    // 测试 API 连接
+    // 测试 API 连接（使用当前域名，支持统一部署）
+    const API_BASE_URL = `${window.location.protocol}//${window.location.host}/api`;
     async function testAPI() {
-      const apiUrl = 'https://news-agent-production-c5db.up.railway.app/api';
+      const apiUrl = API_BASE_URL;
       const resultDiv = document.getElementById('apiResult');
       resultDiv.innerHTML = '<p>正在测试...</p>';
       
@@ -107,7 +108,7 @@
 
     // 测试 CORS
     async function testCORS() {
-      const apiUrl = 'https://news-agent-production-c5db.up.railway.app/api';
+      const apiUrl = API_BASE_URL;
       const resultDiv = document.getElementById('corsResult');
       resultDiv.innerHTML = '<p>正在测试 CORS...</p>';
       

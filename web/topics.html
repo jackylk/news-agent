@@ -286,12 +286,8 @@
 </style>
 
 <script>
-const API_BASE_URL = (() => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return `${window.location.protocol}//${window.location.host}/api`;
-  }
-  return 'https://news-agent-production-c5db.up.railway.app/api';
-})();
+// API 基础地址（统一部署，前后端同域）
+const API_BASE_URL = `${window.location.protocol}//${window.location.host}/api`;
 
 let topics = [];
 let curatedSourcesCache = null;

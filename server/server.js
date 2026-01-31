@@ -48,7 +48,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // 静态文件服务（提供 web 目录下的前端页面）
 const path = require('path');
-app.use(express.static(path.join(__dirname, '../web')));
+// 支持两种目录结构：本地开发 (../web) 和 Docker 部署 (./web)
+const webPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, 'web')
+  : path.join(__dirname, '../web');
+app.use(express.static(webPath));
 
 // 路由
 app.use('/api/auth', authRoutes);

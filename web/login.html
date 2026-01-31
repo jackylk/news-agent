@@ -254,14 +254,8 @@
 
   <script>
     // API 基础地址
-    const API_BASE_URL = (() => {
-      // 本地开发：使用本地API
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return `${window.location.protocol}//${window.location.host}/api`;
-      }
-      // 生产环境：使用 Railway 后端地址
-      return 'https://news-agent-production-c5db.up.railway.app/api';
-    })();
+    // API 基础地址（统一部署，前后端同域）
+    const API_BASE_URL = `${window.location.protocol}//${window.location.host}/api`;
 
     function switchTab(tab) {
       // 更新标签页
