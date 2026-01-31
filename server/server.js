@@ -48,10 +48,27 @@ app.use(express.urlencoded({ extended: true }));
 
 // 静态文件服务（提供 web 目录下的前端页面）
 const path = require('path');
-// 支持两种目录结构：本地开发 (../web) 和 Docker 部署 (./web)
-const webPath = process.env.NODE_ENV === 'production' 
-  ? path.join(__dirname, 'web')
-  : path.join(__dirname, '../web');
+const fs = require('fs');
+
+// 智能检测 web 目录路径（支持 Docker 部署和本地开发）
+const dockerWebPath = path.join(__dirname, 'web');
+const devWebPath = path.join(__dirname, '../web');
+
+let webPath;
+if (fs.existsSync(dockerWebPath)) {
+  webPath = dockerWebPath;
+  console.log('📁 使用 Docker 部署路径:', dockerWebPath);
+} else if (fs.existsSync(devWebPath)) {
+  webPath = devWebPath;
+  console.log('📁 使用开发路径:', devWebPath);
+} else {
+  console.error('❌ 错误: 找不到 web 目录！');
+  console.error('   尝试的路径:');
+  console.error('   - Docker 路径:', dockerWebPath);
+  console.error('   - 开发路径:', devWebPath);
+  process.exit(1);
+}
+
 app.use(express.static(webPath));
 
 // 路由
