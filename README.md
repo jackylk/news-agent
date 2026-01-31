@@ -1,6 +1,6 @@
 # 科技新闻小程序
 
-一个微信小程序应用，自动收集和展示科技新闻。支持多平台部署（Zeabur、Railway、Vercel、Render 等）。
+一个微信小程序应用，自动收集和展示科技新闻。支持多平台部署（Railway、Vercel、Render 等）。
 
 ## 项目结构
 
@@ -27,7 +27,6 @@ news-agent/
 │   ├── app.js          # 小程序入口
 │   └── app.json        # 小程序配置
 ├── Dockerfile          # Docker 构建文件
-├── zeabur.json        # Zeabur 部署配置
 └── railway.json       # Railway 部署配置
 ```
 
@@ -48,19 +47,18 @@ news-agent/
 
 ## 🚀 快速部署
 
-### 推荐方式：Zeabur（5 分钟部署）
+### 推荐方式：Railway（5 分钟部署）
 
-**特点**：使用现有 Dockerfile、内置 PostgreSQL、前后端一体部署
+**特点**：使用 Dockerfile、内置 PostgreSQL、前后端一体部署、数据持久化
 
-📖 **快速开始**：见 [`ZEABUR_QUICK_START.md`](./ZEABUR_QUICK_START.md)（5 分钟上手）
+📖 **快速开始**：见 [`RAILWAY_QUICK_START.md`](./RAILWAY_QUICK_START.md)（5 分钟上手）
 
-📚 **详细文档**：见 [`ZEABUR_DEPLOY.md`](./ZEABUR_DEPLOY.md)（完整指南）
+📚 **详细文档**：见 [`RAILWAY_DEPLOY.md`](./RAILWAY_DEPLOY.md)（完整指南）
 
-✅ **测试清单**：见 [`ZEABUR_TEST_CHECKLIST.md`](./ZEABUR_TEST_CHECKLIST.md)（部署后测试）
+📊 **数据库配置**：见 [`RAILWAY_POSTGRESQL_SETUP.md`](./RAILWAY_POSTGRESQL_SETUP.md)（PostgreSQL 设置）
 
 ### 其他部署方式
 
-- **Railway**：见 [`RAILWAY_DEPLOY.md`](./RAILWAY_DEPLOY.md)
 - **Vercel**：见 [`VERCEL_DEPLOY.md`](./VERCEL_DEPLOY.md)
 - **Render**：见 [`DEPLOY.md`](./DEPLOY.md)（方案二）
 - **本地部署**：见 [`LOCAL_DEPLOY.md`](./LOCAL_DEPLOY.md)
