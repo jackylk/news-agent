@@ -5,5 +5,6 @@ npm-debug.log
 .gitignore
 README.md
 DEPLOY.md
+web/
 *.db
 *.db-journal
