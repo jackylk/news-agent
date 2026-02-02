@@ -1910,11 +1910,12 @@
       cursor: pointer;
       font-size: 13px;
       font-weight: 500;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
       transition: all 0.3s ease;
       box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+      margin-bottom: 12px;
     }
 
     .btn-refresh-now:hover {
@@ -1936,6 +1937,12 @@
       font-size: 14px;
       display: inline-block;
       animation: none;
+    }
+
+    /* 文章详情页时隐藏刷新按钮 */
+    .article-detail-view ~ .btn-refresh-now,
+    .topic-tab-panel:has(.article-detail-view[style*="display: block"]) .btn-refresh-now {
+      display: none;
     }
 
     .btn-refresh-now.refreshing span {
@@ -3062,30 +3069,76 @@
         min-height: 44px;
       }
 
-      /* Articles page */
+      /* Articles page - mobile optimized */
       .btn-refresh-now {
-        width: 100%;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        padding: 0;
         justify-content: center;
-        min-height: 44px;
+        align-items: center;
+        z-index: 100;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+      }
+
+      .btn-refresh-now span {
+        font-size: 20px;
+        margin: 0;
+      }
+
+      /* 隐藏按钮文字，只显示图标 */
+      .btn-refresh-now {
+        font-size: 0;
       }
 
       .source-filter-cards {
-        padding: 12px;
-        gap: 8px;
+        padding: 8px 12px;
+        gap: 6px;
+        margin-bottom: 12px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+        background: transparent;
+        box-shadow: none;
+        border-radius: 0;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .source-filter-cards::-webkit-scrollbar {
+        display: none;
       }
 
       .source-card {
-        padding: 10px 16px;
-        font-size: 13px;
-        min-height: 44px;
+        padding: 6px 12px;
+        font-size: 12px;
+        min-height: 32px;
         display: inline-flex;
         align-items: center;
+        flex-shrink: 0;
+        border-radius: 16px;
       }
 
       .relevant-filter-checkbox {
         margin-left: 0;
-        width: 100%;
+        width: auto;
         justify-content: center;
+        padding: 6px 12px;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+
+      .relevant-filter-checkbox label {
+        font-size: 12px;
+      }
+
+      .relevant-filter-checkbox input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
       }
 
       .date-section {
@@ -5132,9 +5185,11 @@
       // 隐藏当前活动页签的统计信息栏、信息源过滤卡片
       const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
       const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
-      
+      const refreshBtn = document.getElementById(`refreshNowBtn-${currentTabIndex}`);
+
       if (statsBar) statsBar.style.display = 'none';
       if (sourceFilterCards) sourceFilterCards.style.display = 'none';
+      if (refreshBtn) refreshBtn.style.display = 'none';
       
       // 隐藏日期侧边栏
       hideDateSidebar();
@@ -5305,9 +5360,11 @@
       // 显示当前活动页签的统计信息栏、信息源过滤卡片
       const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
       const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
-      
+      const refreshBtn = document.getElementById(`refreshNowBtn-${currentTabIndex}`);
+
       if (statsBar) statsBar.style.display = 'flex';
       if (sourceFilterCards) sourceFilterCards.style.display = 'flex';
+      if (refreshBtn) refreshBtn.style.display = 'inline-flex';
       
       // 显示日期侧边栏
       showDateSidebar();
@@ -6691,13 +6748,6 @@
         panel.className = 'topic-tab-panel' + (index === 0 ? ' active' : '');
         panel.id = `articlesTopicPanel-${index}`;
         panel.innerHTML = `
-          <!-- 刷新按钮 -->
-          <div style="margin-bottom: 12px;">
-            <button class="btn-refresh-now" onclick="refreshNewsNow(${index})" id="refreshNowBtn-${index}">
-              <span>🔄</span> 立即刷新
-            </button>
-          </div>
-
           <!-- 信息源过滤卡片 -->
           <div class="source-filter-cards" id="sourceFilterCards-${index}">
             <div class="source-card active" data-source="all" onclick="filterArticlesBySourceInTab(${index}, null)">
@@ -6707,9 +6757,14 @@
             <!-- 只看相关文章checkbox -->
             <div class="relevant-filter-checkbox">
               <input type="checkbox" id="relevantFilterCheckbox-${index}" ${showOnlyRelevantArticles ? 'checked' : ''} onchange="toggleRelevantFilter(${index})">
-              <label for="relevantFilterCheckbox-${index}">只看相关文章</label>
+              <label for="relevantFilterCheckbox-${index}">只看相关</label>
             </div>
           </div>
+
+          <!-- 刷新按钮（移动端为浮动按钮） -->
+          <button class="btn-refresh-now" onclick="refreshNewsNow(${index})" id="refreshNowBtn-${index}">
+            <span>🔄</span> 立即刷新
+          </button>
 
           <!-- 文章列表视图 -->
           <div id="articlesListView-${index}" class="articles-list-view">
@@ -8736,8 +8791,10 @@
 
       const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
       const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
+      const refreshBtn = document.getElementById(`refreshNowBtn-${currentTabIndex}`);
       if (statsBar) statsBar.style.display = 'flex';
       if (sourceFilterCards) sourceFilterCards.style.display = 'flex';
+      if (refreshBtn) refreshBtn.style.display = 'inline-flex';
 
       showDateSidebar();
 
@@ -8761,8 +8818,10 @@
 
       const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
       const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
+      const refreshBtn = document.getElementById(`refreshNowBtn-${currentTabIndex}`);
       if (statsBar) statsBar.style.display = 'none';
       if (sourceFilterCards) sourceFilterCards.style.display = 'none';
+      if (refreshBtn) refreshBtn.style.display = 'none';
 
       hideDateSidebar();
 
