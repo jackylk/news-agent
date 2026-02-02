@@ -409,6 +409,137 @@
     .modal-content .modal-buttons .btn-cancel:hover {
       background-color: #5a6268;
     }
+
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+      .container {
+        padding: 12px;
+      }
+
+      .header {
+        padding: 16px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .header p {
+        font-size: 13px;
+      }
+
+      .stats-section {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+      }
+
+      .section {
+        padding: 16px;
+      }
+
+      .section h2 {
+        font-size: 18px;
+      }
+
+      .tabs-header {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0;
+      }
+
+      .tab-button {
+        padding: 10px 14px;
+        font-size: 13px;
+        white-space: nowrap;
+        min-height: 44px;
+      }
+
+      .search-bar {
+        flex-direction: column;
+      }
+
+      .search-bar input,
+      .search-bar select {
+        width: 100%;
+        min-width: unset;
+        min-height: 44px;
+      }
+
+      .search-bar button {
+        width: 100%;
+        min-height: 44px;
+      }
+
+      .btn {
+        padding: 10px 16px;
+        font-size: 14px;
+        min-height: 44px;
+      }
+
+      .btn-small {
+        padding: 8px 12px;
+        font-size: 13px;
+        min-height: 40px;
+      }
+
+      .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -16px;
+        padding: 0 16px;
+      }
+
+      table {
+        font-size: 13px;
+        min-width: 600px;
+      }
+
+      table th,
+      table td {
+        padding: 10px 8px;
+      }
+
+      .pagination button {
+        min-height: 44px;
+        padding: 10px 16px;
+      }
+
+      .auth-section {
+        max-width: 100%;
+        padding: 20px;
+      }
+
+      .auth-section input {
+        min-height: 44px;
+      }
+
+      .auth-section button {
+        min-height: 44px;
+      }
+
+      .modal-content {
+        width: 95%;
+        max-width: none;
+        padding: 20px;
+        margin: 16px;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+
+      .modal-content select {
+        min-height: 44px;
+      }
+
+      .modal-content .modal-buttons button {
+        min-height: 44px;
+        padding: 12px 20px;
+      }
+    }
   </style>
 </head>
 <body>
