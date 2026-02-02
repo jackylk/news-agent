@@ -198,21 +198,6 @@
       display: block;
     }
 
-    .page-header {
-      margin-bottom: 24px;
-    }
-
-    .page-header h2 {
-      font-size: 24px;
-      color: #333;
-      margin-bottom: 8px;
-    }
-
-    .page-header p {
-      color: #666;
-      font-size: 14px;
-    }
-
     /* 订阅管理页面样式 */
     .section {
       background: white;
@@ -1916,29 +1901,6 @@
     }
 
     /* 文章阅读页面新样式 */
-    .articles-stats-bar {
-      background: white;
-      padding: 12px 16px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-      margin-bottom: 16px;
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      border: 1px solid #e0e0e0;
-    }
-
-    .stats-items-container {
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-      align-items: center;
-      flex: 1;
-      justify-content: flex-end;
-    }
-
     .btn-refresh-now {
       padding: 8px 16px;
       background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
@@ -2905,10 +2867,6 @@
         overflow-x: hidden;
       }
 
-      .page-header h2 {
-        font-size: 20px;
-      }
-
       .section {
         padding: 16px;
         overflow-x: hidden;
@@ -2994,8 +2952,19 @@
         min-width: 600px;
       }
 
+      /* 表格外层容器添加横向滚动 */
       .curated-sources-table-wrapper,
-      .curated-sources-table-container {
+      .curated-sources-table-container,
+      [id^="sub-recommendations-container-"],
+      .recommended-sources-section,
+      .sub-topic-panel > div:has(.recommendations-table) {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* 确保 section 内的表格可以滚动 */
+      .section:has(.recommendations-table),
+      .section:has(.sub-recommendations-table) {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
       }
@@ -3094,17 +3063,6 @@
       }
 
       /* Articles page */
-      .articles-stats-bar {
-        flex-direction: column;
-        gap: 12px;
-        padding: 12px;
-      }
-
-      .stats-items-container {
-        justify-content: flex-start;
-        gap: 16px;
-      }
-
       .btn-refresh-now {
         width: 100%;
         justify-content: center;
@@ -3295,11 +3253,6 @@
   <div class="main-content">
     <!-- 订阅管理页面 -->
     <div id="subscriptionsPage" class="content-page active">
-      <div class="page-header">
-        <h2>订阅管理</h2>
-        <p>管理您关注的主题和信息源</p>
-      </div>
-
       <div id="message" class="message"></div>
 
       <!-- 主题词输入区域 -->
@@ -3353,7 +3306,7 @@
         <div class="curated-sources-header" onclick="toggleAllCuratedSources()">
           <span class="curated-sources-toggle" id="allCuratedSourcesToggle">▶</span>
           <h3>内置信息源</h3>
-          <span class="curated-sources-count" id="allCuratedSourcesCount">(加载中...)</span>
+          <span class="curated-sources-count" id="allCuratedSourcesCount"></span>
         </div>
         <div class="curated-sources-content" id="allCuratedSourcesContent" style="display: none;">
           <!-- 搜索和筛选区域 -->
@@ -3442,10 +3395,6 @@
 
     <!-- 用户指南页面 -->
     <div id="guidePage" class="content-page">
-      <div class="page-header">
-        <h2>用户指南</h2>
-        <p>了解如何使用个人信息整理系统</p>
-      </div>
 
       <!-- 基础使用流程 -->
       <div class="section">
@@ -3571,10 +3520,6 @@
 
     <!-- 特性介绍页面 -->
     <div id="featuresPage" class="content-page">
-      <div class="page-header">
-        <h2>特性介绍</h2>
-        <p>了解系统的核心功能</p>
-      </div>
 
         <div class="features-grid">
           <div class="feature-card">
@@ -3714,6 +3659,11 @@
 
       // 保存当前页面到 localStorage
       localStorage.setItem('dashboardCurrentPage', page);
+
+      // 添加浏览器历史记录，支持返回键导航
+      if (window.location.hash !== `#${page}`) {
+        history.pushState({ page: page, view: 'list' }, '', `#${page}`);
+      }
 
       // 更新菜单状态
       document.querySelectorAll('.menu-item').forEach(item => {
@@ -4634,11 +4584,13 @@
         const result = await response.json();
 
         if (result.success) {
-          showMessage(`成功订阅 ${selectedSources.length} 个信息源`, 'success');
+          showMessage(`成功订阅 ${selectedSources.length} 个信息源，正在收集文章...`, 'success');
           // 重新加载订阅列表并更新表格显示
           await loadUserSubscriptions();
           renderRecommendations();
           // 不清空输入框和推荐列表，保留表格供用户查看和修改
+          // 自动触发文章收集
+          triggerCollectAfterSubscribe();
         } else {
           showMessage(result.message || '订阅失败', 'error');
         }
@@ -4762,15 +4714,66 @@
           const data = result.data;
           const lastUpdateTime = data.lastUpdateTime ? new Date(data.lastUpdateTime) : null;
           
-          if (lastUpdateTime) {
-            document.getElementById('lastRefreshTime').textContent = formatTimeAgo(lastUpdateTime);
-          } else {
-            document.getElementById('lastRefreshTime').textContent = '-';
+          const refreshEl = document.getElementById('lastRefreshTime');
+          if (refreshEl) {
+            refreshEl.textContent = lastUpdateTime ? formatTimeAgo(lastUpdateTime) : '-';
           }
         }
       } catch (error) {
         console.error('加载刷新状态失败:', error);
       }
+    }
+
+    // 订阅后自动触发文章收集（后台执行，不阻塞UI）
+    function triggerCollectAfterSubscribe(topicKeywords) {
+      const taskId = `auto-collect-${topicKeywords || 'all'}`;
+      GlobalProgress.addTask(taskId, '收集文章', topicKeywords || '全部', 0, '订阅成功，正在收集文章...');
+
+      const requestBody = {};
+      if (topicKeywords) {
+        requestBody.topicKeywords = topicKeywords;
+      }
+
+      fetch(`${API_BASE_URL}/collect`, {
+        method: 'POST',
+        headers: {
+          ...getHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      }).then(async response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.progress !== undefined) {
+                  GlobalProgress.updateTask(taskId, data.progress, data.message || '收集中...');
+                }
+              } catch (e) {}
+            }
+          }
+        }
+        GlobalProgress.completeTask(taskId, '文章收集完成');
+        // 刷新文章列表
+        if (document.getElementById('articlesPage')?.classList.contains('active')) {
+          await loadArticlesTopicsTabs();
+        }
+      }).catch(error => {
+        console.error('自动收集文章失败:', error);
+        GlobalProgress.completeTask(taskId, '收集失败: ' + error.message);
+      });
     }
 
     // 立即刷新新闻
@@ -5108,10 +5111,19 @@
     async function viewArticle(id) {
       // 保存滚动位置
       savedScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-      
+
       // 获取当前活动的主题页签索引（如果未设置，默认为0）
       const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
-      
+
+      // 添加浏览器历史记录，支持返回键导航
+      history.pushState({
+        page: 'articles',
+        view: 'detail',
+        articleId: id,
+        topicIndex: currentTabIndex,
+        scrollPosition: savedScrollPosition
+      }, '', `#articles/article/${id}`);
+
       // 保存文章详情状态到 localStorage
       localStorage.setItem('dashboardCurrentPage', 'articles');
       localStorage.setItem('dashboardViewingArticleId', id.toString());
@@ -5281,10 +5293,15 @@
     function backToList() {
       // 清除文章详情状态
       localStorage.removeItem('dashboardViewingArticleId');
-      
+
       // 获取当前活动的主题页签索引（如果未设置，默认为0）
       const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
-      
+
+      // 添加浏览器历史记录
+      if (window.location.hash !== '#articles') {
+        history.pushState({ page: 'articles', view: 'list', topicIndex: currentTabIndex }, '', '#articles');
+      }
+
       // 显示当前活动页签的统计信息栏、信息源过滤卡片
       const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
       const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
@@ -6674,31 +6691,11 @@
         panel.className = 'topic-tab-panel' + (index === 0 ? ' active' : '');
         panel.id = `articlesTopicPanel-${index}`;
         panel.innerHTML = `
-          <!-- 统计信息栏 -->
-          <div class="articles-stats-bar" id="articlesStatsBar-${index}">
-            <div style="display: flex; align-items: center;">
-              <button class="btn-refresh-now" onclick="refreshNewsNow(${index})" id="refreshNowBtn-${index}">
-                <span>🔄</span> 立即刷新
-              </button>
-            </div>
-            <div class="stats-items-container">
-              <div class="stat-item">
-                <span class="stat-label">最后刷新</span>
-                <span class="stat-value" id="lastRefreshTime-${index}">-</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">发布时间</span>
-                <span class="stat-value" id="publishDateRange-${index}">-</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">最近刷新</span>
-                <span class="stat-value" id="recentArticlesCount-${index}">-</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">文章总数</span>
-                <span class="stat-value" id="totalArticles-${index}">-</span>
-              </div>
-            </div>
+          <!-- 刷新按钮 -->
+          <div style="margin-bottom: 12px;">
+            <button class="btn-refresh-now" onclick="refreshNewsNow(${index})" id="refreshNowBtn-${index}">
+              <span>🔄</span> 立即刷新
+            </button>
           </div>
 
           <!-- 信息源过滤卡片 -->
@@ -6884,9 +6881,12 @@
     
     // 更新特定页签的统计信息
     function updateStatsForTab(articles, tabIndex) {
-      document.getElementById(`totalArticles-${tabIndex}`).textContent = articles.length;
-      document.getElementById(`publishDateRange-${tabIndex}`).textContent = calculatePublishDateRange(articles);
-      document.getElementById(`recentArticlesCount-${tabIndex}`).textContent = calculateRecentArticlesCount(articles);
+      const totalEl = document.getElementById(`totalArticles-${tabIndex}`);
+      const dateEl = document.getElementById(`publishDateRange-${tabIndex}`);
+      const recentEl = document.getElementById(`recentArticlesCount-${tabIndex}`);
+      if (totalEl) totalEl.textContent = articles.length;
+      if (dateEl) dateEl.textContent = calculatePublishDateRange(articles);
+      if (recentEl) recentEl.textContent = calculateRecentArticlesCount(articles);
     }
     
     // 为特定页签加载信息源卡片
@@ -7540,11 +7540,13 @@
         const result = await response.json();
         
         if (result.success) {
-          showMessage(`成功订阅 ${subscriptions.length} 个信息源到主题"${selectedTopic}"`, 'success');
+          showMessage(`成功订阅 ${subscriptions.length} 个信息源到主题"${selectedTopic}"，正在收集文章...`, 'success');
           // 重新加载订阅列表和内置信息源表格
           await loadUserSubscriptions();
           await loadUserSubscriptionsForCurated();
           renderCuratedSourcesTable();
+          // 自动触发文章收集
+          triggerCollectAfterSubscribe(selectedTopic);
           // 取消全选
           const selectAll = document.getElementById('selectAllCurated');
           const selectAllHeader = document.getElementById('selectAllCuratedHeader');
@@ -7786,6 +7788,9 @@
     async function initSubscriptionPage() {
       console.log('[订阅管理] 初始化页面...');
       try {
+        // 预加载内置信息源数量（不阻塞主流程）
+        preloadCuratedSourcesCount();
+
         // 加载用户主题
         const response = await fetch(`${API_BASE_URL}/user/topics`, {
           headers: getHeaders(),
@@ -7805,6 +7810,31 @@
         }
       } catch (error) {
         console.error('[订阅管理] 初始化失败:', error);
+      }
+    }
+
+    // 预加载内置信息源数量，页面初始化时即显示个数
+    async function preloadCuratedSourcesCount() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/curated-sources`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+        if (result.success) {
+          const sources = result.sources || result.data || [];
+          const count = sources.length;
+          document.getElementById('allCuratedSourcesCount').textContent = `(${count}个)`;
+          // 同时预填充缓存，避免展开时重复请求
+          if (result.sources) {
+            allCuratedSourcesData = sources;
+          }
+          if (!curatedSourcesCache && result.data) {
+            curatedSourcesCache = result.data;
+          }
+        }
+      } catch (error) {
+        console.error('[内置信息源] 预加载数量失败:', error);
+        document.getElementById('allCuratedSourcesCount').textContent = '';
       }
     }
 
@@ -8422,12 +8452,11 @@
         const result = await response.json();
 
         if (result.success) {
-          GlobalProgress.updateTask(subTaskId, 30, '订阅成功，开始抓取文章...');
+          GlobalProgress.completeTask(subTaskId, `成功订阅 ${selectedSources.length} 个信息源`);
 
-          // 开始抓取文章
-          await fetchArticlesForSubscriptions(subTaskId, topicKeywords, selectedSources);
-
-          showMessage(`成功订阅 ${selectedSources.length} 个信息源`, 'success');
+          showMessage(`成功订阅 ${selectedSources.length} 个信息源，正在收集文章...`, 'success');
+          // 自动触发文章收集
+          triggerCollectAfterSubscribe(topicKeywords);
 
           // 刷新订阅列表和推荐列表
           await loadSubSubscriptions(index, topicKeywords);
@@ -8628,8 +8657,157 @@
 
     // ==================== 订阅管理页面新功能结束 ====================
 
+    // 处理浏览器返回/前进按钮
+    window.addEventListener('popstate', function(event) {
+      const state = event.state;
+
+      if (!state) {
+        // 如果没有状态，返回默认页面
+        switchPage('subscriptions');
+        return;
+      }
+
+      const page = state.page || 'subscriptions';
+
+      // 如果是文章详情页
+      if (page === 'articles' && state.view === 'detail' && state.articleId) {
+        // 恢复主题页签索引
+        if (state.topicIndex !== undefined) {
+          window.currentArticlesTopicIndex = state.topicIndex;
+        }
+        // 显示文章详情（不触发新的 pushState）
+        viewArticleWithoutHistory(state.articleId, state.scrollPosition);
+      }
+      // 如果是文章列表页
+      else if (page === 'articles' && state.view === 'list') {
+        // 检查当前是否在文章详情页
+        const articleDetailView = document.getElementById('articleDetailView');
+        if (articleDetailView && articleDetailView.style.display !== 'none') {
+          // 返回列表（不触发新的 pushState）
+          backToListWithoutHistory();
+        } else {
+          // 确保在文章列表页
+          if (!document.getElementById('articlesPage').classList.contains('active')) {
+            switchPageWithoutHistory(page);
+          }
+        }
+      }
+      // 其他页面
+      else {
+        switchPageWithoutHistory(page);
+      }
+    });
+
+    // 不触发 history.pushState 的页面切换
+    function switchPageWithoutHistory(page) {
+      const currentPage = document.querySelector('.content-page.active')?.id.replace('Page', '');
+      if (currentPage === page) return;
+
+      // 关闭侧边栏
+      closeSidebar();
+
+      // 更新菜单状态
+      document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+      const menuItems = document.querySelectorAll('.menu-item');
+      const pageIndexMap = { 'subscriptions': 0, 'articles': 1, 'guide': 2, 'features': 3 };
+      menuItems.forEach((item, index) => {
+        if (pageIndexMap[page] === index) item.classList.add('active');
+      });
+
+      // 更新页面显示
+      document.querySelectorAll('.content-page').forEach(p => p.classList.remove('active'));
+      document.getElementById(page + 'Page').classList.add('active');
+
+      // 控制日期侧边栏
+      if (page === 'articles') {
+        showDateSidebar();
+      } else {
+        hideDateSidebar();
+      }
+
+      // 保存到 localStorage
+      localStorage.setItem('dashboardCurrentPage', page);
+    }
+
+    // 不触发 history.pushState 的返回列表
+    function backToListWithoutHistory() {
+      localStorage.removeItem('dashboardViewingArticleId');
+      const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
+
+      const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
+      const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
+      if (statsBar) statsBar.style.display = 'flex';
+      if (sourceFilterCards) sourceFilterCards.style.display = 'flex';
+
+      showDateSidebar();
+
+      document.getElementById('articleDetailView').style.display = 'none';
+      const topicsTabsContainer = document.getElementById('articlesTopicsTabsContainer');
+      if (topicsTabsContainer) topicsTabsContainer.style.display = 'block';
+      const currentListView = document.getElementById(`articlesListView-${currentTabIndex}`);
+      if (currentListView) currentListView.style.display = 'block';
+
+      window.scrollTo(0, savedScrollPosition);
+    }
+
+    // 不触发 history.pushState 的文章详情查看
+    async function viewArticleWithoutHistory(id, scrollPos) {
+      savedScrollPosition = scrollPos || 0;
+      const currentTabIndex = window.currentArticlesTopicIndex !== undefined ? window.currentArticlesTopicIndex : 0;
+
+      localStorage.setItem('dashboardCurrentPage', 'articles');
+      localStorage.setItem('dashboardViewingArticleId', id.toString());
+      localStorage.setItem('dashboardCurrentTopicIndex', currentTabIndex.toString());
+
+      const statsBar = document.getElementById(`articlesStatsBar-${currentTabIndex}`);
+      const sourceFilterCards = document.getElementById(`sourceFilterCards-${currentTabIndex}`);
+      if (statsBar) statsBar.style.display = 'none';
+      if (sourceFilterCards) sourceFilterCards.style.display = 'none';
+
+      hideDateSidebar();
+
+      const currentListView = document.getElementById(`articlesListView-${currentTabIndex}`);
+      if (currentListView) currentListView.style.display = 'none';
+      const topicsTabsContainer = document.getElementById('articlesTopicsTabsContainer');
+      if (topicsTabsContainer) topicsTabsContainer.style.display = 'none';
+      document.getElementById('articleDetailView').style.display = 'block';
+
+      window.scrollTo(0, 0);
+
+      // 加载文章详情（复用现有逻辑）
+      try {
+        const response = await fetch(`${API_BASE_URL}/news/${id}`, {
+          headers: getHeaders()
+        });
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const article = result.data;
+          document.getElementById('articleDetailTitle').textContent = article.title;
+          document.getElementById('articleDetailSource').textContent = `来源：${article.source || '未知'}`;
+          document.getElementById('articleDetailCategory').textContent = `分类：${article.category || '未分类'}`;
+          document.getElementById('articleDetailDate').textContent = `发布时间：${formatDate(article.publish_date)}`;
+          if (article.summary) {
+            document.getElementById('articleDetailSummary').textContent = article.summary;
+            document.getElementById('articleDetailSummary').parentElement.style.display = 'block';
+          } else {
+            document.getElementById('articleDetailSummary').parentElement.style.display = 'none';
+          }
+          document.getElementById('articleDetailContent').innerHTML = article.content || '';
+          document.getElementById('articleDetailLink').href = article.url || '#';
+        }
+      } catch (error) {
+        console.error('加载文章详情失败:', error);
+      }
+    }
+
     // 页面加载时
     window.onload = async function() {
+      // 设置初始历史状态，避免第一次返回就退出网站
+      if (!history.state) {
+        history.replaceState({ page: 'subscriptions', view: 'list' }, '', '#subscriptions');
+      }
+
       await initUser();
       await initSubscriptionPage(); // 初始化订阅管理页面
       await loadUserSubscriptions(); // 加载用户订阅列表
