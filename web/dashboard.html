@@ -177,6 +177,8 @@
       margin-left: 240px;
       padding: 0;
       min-height: 100vh;
+      min-width: 0;
+      overflow-x: hidden;
       transition: margin-left 0.3s ease;
     }
 
@@ -2306,6 +2308,7 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       padding: 24px;
       position: relative;
+      overflow: hidden;
     }
 
     .article-detail-header {
@@ -2341,6 +2344,8 @@
 
     .article-detail-content {
       max-width: 100%;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .article-detail-title {
@@ -2406,6 +2411,8 @@
       color: #333;
       max-width: 100%;
       word-wrap: break-word;
+      overflow-wrap: anywhere;
+      overflow-x: hidden;
     }
 
     .article-detail-text p {
@@ -2893,6 +2900,9 @@
       .content-page {
         padding: 16px;
         padding-top: 72px;
+        max-width: 100%;
+        width: 100%;
+        overflow-x: hidden;
       }
 
       .page-header h2 {
@@ -2901,14 +2911,63 @@
 
       .section {
         padding: 16px;
+        overflow-x: hidden;
+      }
+
+      /* 文章详情 */
+      .article-detail-view {
+        padding: 16px;
+        overflow: hidden;
+      }
+
+      .article-detail-content {
+        overflow-x: hidden;
+      }
+
+      .article-detail-text {
+        overflow-x: hidden;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .article-detail-text pre {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .article-detail-text img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .article-detail-text table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+      }
+
+      .article-generated-summary {
+        padding: 16px;
+        overflow-wrap: anywhere;
+      }
+
+      .article-detail-summary {
+        overflow-wrap: anywhere;
       }
 
       /* Topic input area */
       .topic-input-container {
         flex-direction: column;
+        width: 100%;
       }
 
-      .topic-input {
+      .topic-input-container .topic-input {
+        width: 100%;
+        min-height: 44px;
+      }
+
+      .topic-input-container .btn-primary {
         width: 100%;
       }
 
@@ -3087,11 +3146,6 @@
         font-size: 16px;
       }
 
-      /* Article detail view */
-      .article-detail-view {
-        padding: 16px;
-      }
-
       .article-detail-header {
         flex-direction: column;
         gap: 12px;
@@ -3130,17 +3184,6 @@
 
       .article-detail-text {
         font-size: 15px;
-      }
-
-      .article-detail-text pre {
-        padding: 12px;
-        font-size: 13px;
-      }
-
-      .article-detail-text table {
-        display: block;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
       }
 
       /* Topics tabs */
