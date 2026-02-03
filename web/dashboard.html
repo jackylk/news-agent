@@ -1902,39 +1902,36 @@
 
     /* 文章阅读页面新样式 */
     .btn-refresh-now {
-      padding: 8px 16px;
-      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      padding: 5px 12px;
+      background: #8B5CF6;
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 16px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
-      margin-bottom: 12px;
+      gap: 4px;
+      transition: all 0.2s ease;
+      margin-left: auto;
     }
 
     .btn-refresh-now:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+      background: #7c3aed;
     }
 
     .btn-refresh-now:active {
-      transform: translateY(0);
+      transform: scale(0.98);
     }
 
     .btn-refresh-now:disabled {
       opacity: 0.6;
       cursor: not-allowed;
-      transform: none;
     }
 
     .btn-refresh-now span {
-      font-size: 14px;
+      font-size: 12px;
       display: inline-block;
       animation: none;
     }
@@ -1978,42 +1975,40 @@
     .source-filter-cards {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 24px;
-      padding: 20px;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
       align-items: center;
-      justify-content: space-between;
     }
 
     /* 只看相关文章checkbox容器 */
     .relevant-filter-checkbox {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
+      gap: 6px;
+      padding: 5px 10px;
       background: #f8f9fa;
-      border: 2px solid #e9ecef;
-      border-radius: 24px;
+      border: 1px solid #e0e0e0;
+      border-radius: 16px;
       cursor: pointer;
-      transition: all 0.3s;
-      font-size: 14px;
+      transition: all 0.2s;
+      font-size: 12px;
       font-weight: 500;
-      color: #495057;
+      color: #666;
       user-select: none;
-      margin-left: auto;
     }
 
     .relevant-filter-checkbox:hover {
       border-color: #8B5CF6;
-      background: #f3e8ff;
+      background: #f9f5ff;
     }
 
     .relevant-filter-checkbox input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
+      width: 14px;
+      height: 14px;
       cursor: pointer;
       accent-color: #8B5CF6;
       margin: 0;
@@ -2026,9 +2021,9 @@
     .relevant-filter-checkbox label {
       cursor: pointer;
       margin: 0;
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 500;
-      color: #495057;
+      color: #666;
     }
 
     .relevant-filter-checkbox:hover label {
@@ -2036,30 +2031,27 @@
     }
 
     .source-card {
-      padding: 12px 24px;
-      background: #f8f9fa;
-      border: 2px solid #e9ecef;
-      border-radius: 24px;
+      padding: 6px 14px;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 16px;
       cursor: pointer;
-      transition: all 0.3s;
-      font-size: 14px;
+      transition: all 0.2s;
+      font-size: 12px;
       font-weight: 500;
-      color: #495057;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      color: #666;
     }
 
     .source-card:hover {
       border-color: #8B5CF6;
       color: #8B5CF6;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+      background: #f9f5ff;
     }
 
     .source-card.active {
-      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      background: #8B5CF6;
       border-color: #8B5CF6;
       color: white;
-      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
     }
 
 
@@ -2070,41 +2062,41 @@
     .articles-list {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 16px;
     }
 
     .date-section {
       background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
       border: 1px solid #f0f0f0;
     }
 
     .date-header {
-      padding-bottom: 16px;
-      border-bottom: 2px solid #e8e8e8;
-      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 16px;
     }
 
     .date-text {
-      font-size: 20px;
-      font-weight: 700;
-      color: #8B5CF6;
+      font-size: 15px;
+      font-weight: 600;
+      color: #666;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .date-text::before {
       content: '📅';
-      font-size: 18px;
+      font-size: 14px;
     }
 
     .articles-by-date {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      gap: 16px;
     }
 
     @media (max-width: 1200px) {
@@ -2140,11 +2132,11 @@
 
     .article-card {
       background: white;
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.2s;
       border: 1px solid #f0f0f0;
       position: relative;
       overflow: hidden;
@@ -2156,19 +2148,18 @@
     /* 不相关文章的样式 */
     .article-card.irrelevant {
       background: #fafafa;
-      border-color: #e0e0e0;
-      opacity: 0.85;
+      border-color: #e8e8e8;
+      opacity: 0.8;
     }
 
     .article-card.irrelevant::before {
-      background: linear-gradient(135deg, #9e9e9e 0%, #bdbdbd 100%);
+      background: #bdbdbd;
     }
 
     .article-card.irrelevant:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(158, 158, 158, 0.15);
-      border-color: #bdbdbd;
-      opacity: 0.95;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      opacity: 0.9;
     }
 
     .article-card::before {
@@ -2176,17 +2167,17 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 4px;
+      width: 3px;
       height: 100%;
-      background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      background: #8B5CF6;
       transform: scaleY(0);
-      transition: transform 0.3s;
+      transition: transform 0.2s;
     }
 
     .article-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
-      border-color: #8B5CF6;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+      border-color: #d8b4fe;
     }
 
     .article-card:hover::before {
@@ -2196,16 +2187,15 @@
     /* 不相关标签 */
     .article-irrelevant-badge {
       position: absolute;
-      top: 12px;
-      right: 12px;
-      padding: 4px 10px;
-      background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+      top: 8px;
+      right: 8px;
+      padding: 2px 8px;
+      background: #9e9e9e;
       color: white;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 500;
       z-index: 10;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .article-card.irrelevant .article-card-title {
@@ -2217,12 +2207,12 @@
     }
 
     .article-card-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1a1a1a;
-      margin-bottom: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
       line-height: 1.4;
-      transition: color 0.3s;
+      transition: color 0.2s;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       line-clamp: 2;
@@ -2237,34 +2227,34 @@
 
     .article-card-meta {
       display: flex;
-      gap: 12px;
+      gap: 8px;
       align-items: center;
-      font-size: 12px;
-      color: #6c757d;
-      margin-bottom: 12px;
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 8px;
       flex-wrap: wrap;
       flex-shrink: 0;
     }
 
     .article-card-source {
       display: inline-block;
-      padding: 6px 14px;
-      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #495057;
-      border: 1px solid #dee2e6;
+      padding: 3px 8px;
+      background: #f5f5f5;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #666;
+      border: 1px solid #e8e8e8;
     }
 
     .article-card-summary {
-      color: #495057;
-      font-size: 14px;
-      line-height: 1.6;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
       margin-top: auto;
       display: -webkit-box;
-      -webkit-line-clamp: 3;
-      line-clamp: 3;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
       flex-grow: 1;
@@ -3074,18 +3064,19 @@
         position: fixed;
         bottom: 20px;
         right: 20px;
-        width: 50px;
-        height: 50px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         padding: 0;
         justify-content: center;
         align-items: center;
         z-index: 100;
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        margin-left: 0;
       }
 
       .btn-refresh-now span {
-        font-size: 20px;
+        font-size: 18px;
         margin: 0;
       }
 
@@ -3114,47 +3105,48 @@
       }
 
       .source-card {
-        padding: 6px 12px;
-        font-size: 12px;
-        min-height: 32px;
+        padding: 5px 10px;
+        font-size: 11px;
+        min-height: 28px;
         display: inline-flex;
         align-items: center;
         flex-shrink: 0;
-        border-radius: 16px;
+        border-radius: 14px;
       }
 
       .relevant-filter-checkbox {
         margin-left: 0;
         width: auto;
         justify-content: center;
-        padding: 6px 12px;
-        font-size: 12px;
+        padding: 5px 10px;
+        font-size: 11px;
         flex-shrink: 0;
       }
 
       .relevant-filter-checkbox label {
-        font-size: 12px;
+        font-size: 11px;
       }
 
       .relevant-filter-checkbox input[type="checkbox"] {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
       }
 
       .date-section {
-        padding: 16px;
+        padding: 12px;
       }
 
       .articles-by-date {
         grid-template-columns: 1fr;
+        gap: 12px;
       }
 
       .article-card {
-        padding: 16px;
+        padding: 14px;
       }
 
       .article-card-title {
-        font-size: 16px;
+        font-size: 14px;
       }
 
       .article-detail-header {
@@ -6759,12 +6751,11 @@
               <input type="checkbox" id="relevantFilterCheckbox-${index}" ${showOnlyRelevantArticles ? 'checked' : ''} onchange="toggleRelevantFilter(${index})">
               <label for="relevantFilterCheckbox-${index}">只看相关</label>
             </div>
+            <!-- 刷新按钮 -->
+            <button class="btn-refresh-now" onclick="refreshNewsNow(${index})" id="refreshNowBtn-${index}">
+              <span>🔄</span> 刷新
+            </button>
           </div>
-
-          <!-- 刷新按钮（移动端为浮动按钮） -->
-          <button class="btn-refresh-now" onclick="refreshNewsNow(${index})" id="refreshNowBtn-${index}">
-            <span>🔄</span> 立即刷新
-          </button>
 
           <!-- 文章列表视图 -->
           <div id="articlesListView-${index}" class="articles-list-view">
