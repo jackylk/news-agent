@@ -10,18 +10,18 @@ const XMLPreprocessor = require('./XMLPreprocessor');
 class RSSCrawler extends BaseCrawler {
   constructor(options = {}) {
     super();
-    // 增加超时时间到60秒（对于慢速源）
-    const timeout = options.timeout || 60000;
+    // 增加超时时间到90秒（对于慢速源）
+    const timeout = options.timeout || 90000;
     this.parser = new RSSParser({
       timeout: timeout,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
         'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
         'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
       },
-      maxRedirects: 5,
+      maxRedirects: 10,  // 增加重定向次数
       requestOptions: {
         timeout: timeout,
         rejectUnauthorized: false,
@@ -30,6 +30,8 @@ class RSSCrawler extends BaseCrawler {
         item: [
           ['content:encoded', 'contentEncoded'],
           ['description', 'description'],
+          ['media:content', 'mediaContent'],  // 添加媒体内容字段
+          ['media:thumbnail', 'mediaThumbnail'],  // 添加缩略图字段
         ]
       }
     });
@@ -517,7 +519,7 @@ class RSSCrawler extends BaseCrawler {
     }
     
     // 如果内容太短，尝试从文章URL获取完整内容
-    if (articleUrl && (!content || content.length < 500)) {
+    if (articleUrl && (!content || content.length < 300)) {  // 降低阈值从500到300
       try {
         console.log(`RSS内容不足(${content.length}字符)，从文章URL获取完整内容: ${articleUrl}`);
         
@@ -540,7 +542,7 @@ class RSSCrawler extends BaseCrawler {
           }
         }
         
-        if (content && content.length > 500) {
+        if (content && content.length > 300) {  // 降低阈值从500到300
           console.log(`成功从URL获取内容，长度: ${content.length}字符`);
         }
       } catch (error) {
@@ -640,18 +642,47 @@ class RSSCrawler extends BaseCrawler {
    * @returns {string} 图片URL
    */
   extractImageFromRSSItem(item) {
+    // 优先检查enclosure
     if (item.enclosure && item.enclosure.type && item.enclosure.type.startsWith('image/')) {
       return item.enclosure.url;
     }
+
+    // 检查media:content
     if (item['media:content'] && item['media:content'].$.url) {
       return item['media:content'].$.url;
     }
+    if (item.mediaContent && item.mediaContent.$ && item.mediaContent.$.url) {
+      return item.mediaContent.$.url;
+    }
+
+    // 检查media:thumbnail
+    if (item['media:thumbnail'] && item['media:thumbnail'].$.url) {
+      return item['media:thumbnail'].$.url;
+    }
+    if (item.mediaThumbnail && item.mediaThumbnail.$ && item.mediaThumbnail.$.url) {
+      return item.mediaThumbnail.$.url;
+    }
+
+    // 检查itunes:image
+    if (item['itunes:image'] && item['itunes:image'].href) {
+      return item['itunes:image'].href;
+    }
+
     // 尝试从内容中提取图片
-    const content = item.content || item.description || '';
-    const imgMatch = content.match(/<img[^>]+src="([^"]+)"/i);
+    const content = item.contentEncoded || item.content || item.description || '';
+    const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
     if (imgMatch) {
       return imgMatch[1];
     }
+
+    // 检查og:image或其他meta字段
+    if (item.image && typeof item.image === 'string') {
+      return item.image;
+    }
+    if (item.image && item.image.url) {
+      return item.image.url;
+    }
+
     return '';
   }
 

@@ -113,234 +113,146 @@ router.delete('/topics/:keywords', (req, res) => {
   });
 });
 
-// 根据主题推荐信息源
+// 根据主题推荐信息源（优化版：更快展示表格）
 router.post('/topics/recommend', async (req, res) => {
   const { keywords } = req.body;
-  
+
   if (!keywords || keywords.trim().length === 0) {
     return res.status(400).json({
       success: false,
       message: '主题关键词不能为空'
     });
   }
-  
+
   const trimmedKeywords = keywords.trim();
   const processLogs = [];
   const startTime = Date.now();
-  
+
   // 设置流式响应头
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Transfer-Encoding', 'chunked');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  
+
   // 发送进度消息的函数
   const sendProgress = (data) => {
     res.write(JSON.stringify(data) + '\n');
   };
-  
-  // 后台日志：开始推荐
-  console.log(`\n[推荐信息源] 用户 ${req.user.id} (${req.user.username}) 开始为关键词 "${trimmedKeywords}" 获取推荐信息源...`);
-  
+
+  console.log(`\n[推荐信息源] 用户 ${req.user.id} (${req.user.username}) 开始为关键词 "${trimmedKeywords}" 获取推荐...`);
+
   try {
-    // 记录开始
-    const startLog = {
+    // 简化进度消息
+    sendProgress({
       type: 'progress',
-      message: `开始为关键词 "${trimmedKeywords}" 获取推荐信息源...`,
+      message: `正在为"${trimmedKeywords}"获取推荐信息源...`,
       logType: 'loading',
       timestamp: new Date().toISOString()
-    };
-    processLogs.push(startLog);
-    sendProgress(startLog);
-    console.log(`[推荐信息源] ${startLog.message}`);
-    
-    const apiCallLog = {
-      type: 'progress',
-      message: `正在调用 DeepSeek API 为"${trimmedKeywords}"做信息源推荐...`,
-      logType: 'loading',
-      timestamp: new Date().toISOString()
-    };
-    processLogs.push(apiCallLog);
-    sendProgress(apiCallLog);
-    console.log(`[推荐信息源] ${apiCallLog.message}`);
-    
+    });
+
     const recommender = new TopicRecommender();
-    console.log(`[推荐信息源] 调用 DeepSeek API 获取推荐...`);
     const sources = await recommender.recommendSources(trimmedKeywords);
-    console.log(`[推荐信息源] DeepSeek API 返回 ${sources.length} 个推荐信息源`);
-    
+
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    const apiCompleteLog = {
+    console.log(`[推荐信息源] API返回 ${sources.length} 个推荐，耗时 ${elapsedTime}s`);
+
+    sendProgress({
       type: 'progress',
-      message: `API 调用完成，耗时 ${elapsedTime} 秒`,
+      message: `获取到 ${sources.length} 个推荐信息源，耗时 ${elapsedTime}s`,
       logType: 'success',
       timestamp: new Date().toISOString()
-    };
-    processLogs.push(apiCompleteLog);
-    sendProgress(apiCompleteLog);
-    console.log(`[推荐信息源] ${apiCompleteLog.message}`);
-    
-    const successLog = {
-      type: 'progress',
-      message: `成功获取 ${sources.length} 个推荐信息源`,
-      logType: 'success',
-      timestamp: new Date().toISOString()
-    };
-    processLogs.push(successLog);
-    sendProgress(successLog);
-    console.log(`[推荐信息源] ${successLog.message}`);
-    
-    // 先发送所有推荐的信息源（未验证状态），让前端先显示表格
+    });
+
+    // 立即发送所有推荐的信息源，让前端先显示表格
     sendProgress({
       type: 'sourcesReceived',
       sources: sources.map(s => ({
         ...s,
-        isValid: undefined, // 未验证状态
+        isValid: undefined,
         validationError: null
       }))
     });
-    
-    // 开始验证信息源
-    const validateStartLog = {
+
+    // 开始并行验证信息源（3个并发）
+    sendProgress({
       type: 'progress',
-      message: `开始验证 ${sources.length} 个信息源的有效性...`,
+      message: `开始验证 ${sources.length} 个信息源...`,
       logType: 'loading',
       timestamp: new Date().toISOString()
-    };
-    processLogs.push(validateStartLog);
-    sendProgress(validateStartLog);
-    console.log(`[推荐信息源] ${validateStartLog.message}`);
-    
-    // 验证信息源，带进度回调（实时推送）
+    });
+
     const validatedSources = [];
     await recommender.validateSources(sources, (sourceName, sourceUrl, result, sourceData) => {
-      if (result.validating) {
-        const validatingLog = {
-          type: 'progress',
-          message: `正在验证: ${sourceName}`,
-          logType: 'loading',
-          timestamp: new Date().toISOString()
-        };
-        processLogs.push(validatingLog);
-        sendProgress(validatingLog);
-        console.log(`[推荐信息源] ${validatingLog.message}`);
-      } else {
-        // 验证完成，构建验证后的信息源对象
+      if (!result.validating) {
+        // 验证完成
         const validatedSource = {
           ...sourceData,
           isValid: result.valid,
           validationError: result.error || null
         };
         validatedSources.push(validatedSource);
-        
-        if (result.valid) {
-          const validLog = {
-            type: 'progress',
-            message: `✓ ${sourceName} 验证通过`,
-            logType: 'success',
-            timestamp: new Date().toISOString()
-          };
-          processLogs.push(validLog);
-          sendProgress(validLog);
-          console.log(`[推荐信息源] ${validLog.message}`);
-        } else {
-          const invalidLog = {
-            type: 'progress',
-            message: `✗ ${sourceName} 验证失败: ${result.error || '无效的RSS源'}`,
-            logType: 'error',
-            timestamp: new Date().toISOString()
-          };
-          processLogs.push(invalidLog);
-          sendProgress(invalidLog);
-          console.log(`[推荐信息源] ${invalidLog.message}`);
-        }
-        
-        // 实时发送验证结果（无论有效还是无效）
+
+        // 实时发送验证结果
         sendProgress({
           type: 'sourceValidated',
           source: validatedSource
         });
+
+        // 简化日志
+        const status = result.valid ? '✓' : '✗';
+        console.log(`[验证] ${status} ${sourceName}`);
       }
-    });
-    
+    }, 3); // 3个并发验证
+
     // 统计验证结果
     const validCount = validatedSources.filter(s => s.isValid).length;
     const invalidCount = validatedSources.filter(s => !s.isValid).length;
-    
-    const validateCompleteLog = {
+
+    sendProgress({
       type: 'progress',
       message: `验证完成: ${validCount} 个有效，${invalidCount} 个无效`,
       logType: validCount > 0 ? 'success' : 'warning',
       timestamp: new Date().toISOString()
-    };
-    processLogs.push(validateCompleteLog);
-    sendProgress(validateCompleteLog);
-    console.log(`[推荐信息源] ${validateCompleteLog.message}`);
-    console.log(`[推荐信息源] 推荐完成，共 ${validatedSources.length} 个信息源，其中 ${validCount} 个有效，${invalidCount} 个无效\n`);
-    
-    // 保存推荐历史到数据库（包含验证结果）
-    console.log(`[推荐信息源] 正在保存推荐历史到数据库...`);
+    });
+
+    console.log(`[推荐信息源] 完成，${validCount}/${validatedSources.length} 个有效\n`);
+
+    // 后台保存推荐历史（不阻塞响应）
     User.saveRecommendationHistory(
       req.user.id,
       trimmedKeywords,
       processLogs,
       validatedSources,
-      (err, result) => {
-        if (err) {
-          console.error('[推荐信息源] 保存推荐历史失败:', err);
-          // 即使保存失败，也返回推荐结果
-        } else {
-          console.log(`[推荐信息源] 推荐历史已保存到数据库`);
-        }
+      (err) => {
+        if (err) console.error('[推荐信息源] 保存历史失败:', err.message);
       }
     );
-    
+
     // 发送最终结果
     sendProgress({
       type: 'final',
       success: true,
       data: validatedSources,
-      processLogs: processLogs,
-      message: `已找到 ${sources.length} 个推荐信息源，其中 ${validCount} 个有效，${invalidCount} 个无效`
+      message: `已找到 ${sources.length} 个推荐信息源，其中 ${validCount} 个有效`
     });
-    
+
     res.end();
   } catch (error) {
-    const errorLog = {
+    console.error(`[推荐信息源] 错误:`, error.message);
+
+    sendProgress({
       type: 'progress',
-      message: `API 调用异常: ${error.message}`,
+      message: `推荐失败: ${error.message}`,
       logType: 'error',
       timestamp: new Date().toISOString()
-    };
-    processLogs.push(errorLog);
-    sendProgress(errorLog);
-    console.error(`[推荐信息源] ${errorLog.message}`);
-    console.error(`[推荐信息源] 错误详情:`, error);
-    
-    // 即使失败也保存错误日志
-    console.log(`[推荐信息源] 正在保存错误日志到数据库...`);
-    User.saveRecommendationHistory(
-      req.user.id,
-      trimmedKeywords,
-      processLogs,
-      [],
-      (err, result) => {
-        if (err) {
-          console.error('[推荐信息源] 保存推荐历史失败:', err);
-        } else {
-          console.log(`[推荐信息源] 错误日志已保存到数据库`);
-        }
-      }
-    );
-    
-    // 发送错误结果
+    });
+
     sendProgress({
       type: 'final',
       success: false,
-      message: error.message,
-      processLogs: processLogs
+      message: error.message
     });
-    
+
     res.end();
   }
 });

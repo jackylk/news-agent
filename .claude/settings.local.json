@@ -6,7 +6,8 @@
       "Bash(node server.js:*)",
       "Bash(find:*)",
       "Bash(wc:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(node -c:*)"
     ]
   }
 }

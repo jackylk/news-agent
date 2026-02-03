@@ -85,17 +85,29 @@ class PuppeteerHelper {
         await page.setRequestInterception(true);
         page.on('request', (request) => {
           const resourceType = request.resourceType();
-          // 只加载文档、样式表、脚本和字体，阻止图片、媒体等
-          if (['document', 'stylesheet', 'script', 'font'].includes(resourceType)) {
+          // 允许更多资源类型以确保页面正确加载
+          const allowedTypes = ['document', 'stylesheet', 'script', 'font', 'xhr', 'fetch'];
+          if (allowedTypes.includes(resourceType)) {
             request.continue();
           } else {
-            request.abort();
+            // 对于图片，只阻止大图片广告
+            if (resourceType === 'image') {
+              const url = request.url();
+              // 允许小图片和内容图片，阻止广告图片
+              if (url.includes('ad') || url.includes('track') || url.includes('analytics')) {
+                request.abort();
+              } else {
+                request.continue();
+              }
+            } else {
+              request.abort();
+            }
           }
         });
       }
 
       // 设置超时
-      const timeout = options.timeout || 30000;
+      const timeout = options.timeout || 45000;  // 增加默认超时时间
 
       // 导航到页面
       await page.goto(url, {
@@ -105,13 +117,12 @@ class PuppeteerHelper {
 
       // 等待内容加载（可选）
       if (options.waitForSelector) {
-        await page.waitForSelector(options.waitForSelector, { timeout: 10000 }).catch(() => {});
+        await page.waitForSelector(options.waitForSelector, { timeout: 15000 }).catch(() => {});
       }
 
-      // 等待额外时间以确保JS执行完成
-      if (options.waitTime) {
-        await page.waitForTimeout(options.waitTime);
-      }
+      // 等待额外时间以确保JS执行完成（默认等待1秒）
+      const waitTime = options.waitTime || 1000;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
 
       // 获取HTML内容
       const html = await page.content();
@@ -286,14 +297,14 @@ class PuppeteerHelper {
             // 保留HTML格式
             const htmlContent = clone.innerHTML.trim();
             const textLength = clone.textContent.trim().length;
-            if (textLength > 500) {
+            if (textLength > 200) {  // 降低阈值从500到200
               content = htmlContent;
               break;
             }
           }
         }
 
-        if (!content || content.length < 500) {
+        if (!content || content.length < 200) {  // 降低阈值从500到200
           const body = document.body.cloneNode(true);
           const unwanted = body.querySelectorAll(
             'script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player'
@@ -348,7 +359,7 @@ class PuppeteerHelper {
           
           const bodyHtml = body.innerHTML.trim();
           const bodyTextLength = body.textContent.trim().length;
-          if (bodyTextLength > 500) {
+          if (bodyTextLength > 200) {  // 降低阈值从500到200
             content = bodyHtml.substring(0, 50000); // 限制长度
           } else {
             content = bodyHtml;

@@ -15,7 +15,8 @@ class BaseCrawler {
       'Connection': 'keep-alive',
       'Upgrade-Insecure-Requests': '1',
     };
-    this.timeout = 30000;
+    this.timeout = 45000; // 增加默认超时时间
+    this.maxRetries = 3;
   }
 
   /**
@@ -57,6 +58,15 @@ class BaseCrawler {
       '.article-header h1',
       '.post-header h1',
       'header h1',
+      // 常见网站特定选择器
+      '.post__title', // 某些博客平台
+      '.article__title',
+      '.story__title',
+      '[data-testid="headline"]', // 某些新闻网站
+      '[class*="title"] h1',
+      '[class*="heading"] h1',
+      '.page-title',
+      '#page-title',
       'h1',
     ];
 
@@ -111,6 +121,19 @@ class BaseCrawler {
       '.article-text',
       '.post-text',
       '.entry-text',
+      // 常见网站特定选择器
+      '.post__content',
+      '.article__content',
+      '.story__content',
+      '[data-testid="article-body"]',
+      '[class*="article-body"]',
+      '[class*="post-body"]',
+      '.prose', // Tailwind prose样式
+      '.markdown-body', // GitHub风格
+      '.rich-text',
+      '.text-content',
+      '.main-content',
+      '#main-content',
       '[class*="article"]',
       '[class*="post"]',
       '[class*="entry"]',
@@ -144,14 +167,20 @@ class BaseCrawler {
           clone.find('img').each((i, img) => {
             const $img = $(img);
             // 尝试多个可能的图片源属性
-            const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url'];
+            const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url', 'data-lazy', 'data-srcset', 'srcset'];
             let imageUrl = '';
-            
+
             for (const attr of srcAttrs) {
               imageUrl = $img.attr(attr) || '';
-              if (imageUrl) break;
+              if (imageUrl) {
+                // 处理srcset，取第一个URL
+                if (attr === 'srcset' || attr === 'data-srcset') {
+                  imageUrl = imageUrl.split(',')[0].split(' ')[0].trim();
+                }
+                break;
+              }
             }
-            
+
             if (imageUrl) {
               // 处理相对URL
               if (imageUrl.startsWith('/')) {
@@ -161,7 +190,7 @@ class BaseCrawler {
                 } catch (e) {
                   return; // 跳过无效URL
                 }
-              } else if (!imageUrl.startsWith('http')) {
+              } else if (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
                 try {
                   const baseUrl = new URL(url);
                   imageUrl = new URL(imageUrl, baseUrl).href;
@@ -169,24 +198,24 @@ class BaseCrawler {
                   return; // 跳过无效URL
                 }
               }
-              
+
               // 统一设置到src属性，确保图片能正常显示
               $img.attr('src', imageUrl);
               // 移除懒加载属性，避免前端问题
-              $img.removeAttr('data-src data-lazy-src data-original data-url loading');
+              $img.removeAttr('data-src data-lazy-src data-original data-url data-lazy data-srcset srcset loading');
             }
           });
-          
+
           let htmlContent = clone.html() || '';
-          // 检查内容长度（去除HTML标签后的文本长度）
+          // 检查内容长度（去除HTML标签后的文本长度）- 降低阈值以支持短文章
           const textLength = clone.text().trim().length;
-          if (textLength > 500) {
+          if (textLength > 200) {  // 降低阈值从500到200
             return htmlContent;
           }
         } else {
           // 只提取文本内容
           const content = clone.text().trim();
-          if (content && content.length > 500) {
+          if (content && content.length > 200) {  // 降低阈值从500到200
             return content;
           }
         }
@@ -246,13 +275,13 @@ class BaseCrawler {
       
       const bodyHtml = bodyClone.html() || '';
       const bodyTextLength = bodyClone.text().trim().length;
-      if (bodyTextLength > 500) {
+      if (bodyTextLength > 200) {  // 降低阈值从500到200
         return bodyHtml.substring(0, 50000); // 限制HTML长度
       }
       return bodyHtml;
     } else {
       const bodyText = bodyClone.text().trim();
-      if (bodyText.length > 500) {
+      if (bodyText.length > 200) {  // 降低阈值从500到200
         return bodyText.substring(0, 20000);
       }
       return bodyText;
@@ -423,7 +452,7 @@ class BaseCrawler {
   }
 
   /**
-   * 获取HTML内容
+   * 获取HTML内容（带重试机制）
    * @param {string} url - URL
    * @param {Object} options - 可选参数
    * @returns {Promise<string>} HTML内容
@@ -431,18 +460,80 @@ class BaseCrawler {
   async fetchHTML(url, options = {}) {
     const headers = { ...this.defaultHeaders, ...options.headers };
     const timeout = options.timeout || this.timeout;
+    const maxRetries = options.maxRetries || this.maxRetries;
 
-    try {
-      const response = await axios.get(url, {
-        headers,
-        timeout,
-        maxRedirects: 5,
-      });
-      return response.data;
-    } catch (error) {
-      console.error(`获取HTML失败 ${url}:`, error.message);
-      throw error;
+    let lastError = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 1) {
+          // 指数退避
+          const delay = Math.pow(2, attempt - 2) * 1000;
+          console.log(`第 ${attempt} 次尝试获取HTML (等待 ${delay}ms): ${url}`);
+          await this.sleep(delay);
+        }
+
+        const response = await axios.get(url, {
+          headers,
+          timeout,
+          maxRedirects: 5,
+          validateStatus: (status) => status < 500, // 允许4xx状态码进行重试判断
+        });
+
+        // 检查响应状态
+        if (response.status >= 400) {
+          throw new Error(`HTTP状态码 ${response.status}`);
+        }
+
+        return response.data;
+      } catch (error) {
+        lastError = error;
+        const errorMsg = error.message || '';
+
+        // 判断是否为可重试的错误
+        const isRetryable = this._isRetryableError(error);
+
+        if (isRetryable && attempt < maxRetries) {
+          console.warn(`获取HTML失败 (尝试 ${attempt}/${maxRetries}) ${url}: ${errorMsg}`);
+          continue;
+        }
+
+        if (attempt === maxRetries) {
+          console.error(`获取HTML失败 (已重试 ${maxRetries} 次) ${url}:`, errorMsg);
+        }
+      }
     }
+
+    throw lastError || new Error(`获取HTML失败: ${url}`);
+  }
+
+  /**
+   * 判断错误是否可重试
+   * @param {Error} error - 错误对象
+   * @returns {boolean} 是否可重试
+   */
+  _isRetryableError(error) {
+    if (!error) return false;
+    const errorMsg = error.message || error.toString();
+    const code = error.code || '';
+    const retryableCodes = [
+      'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED',
+      'EHOSTUNREACH', 'ENETUNREACH', 'EPROTO', 'EPIPE', 'EAI_AGAIN',
+      'ECONNABORTED', 'ESOCKETTIMEDOUT'
+    ];
+    return (
+      errorMsg.includes('socket') ||
+      errorMsg.includes('TLS') ||
+      errorMsg.includes('timeout') ||
+      errorMsg.includes('disconnected') ||
+      errorMsg.includes('network') ||
+      errorMsg.includes('CERT_') ||
+      errorMsg.includes('certificate') ||
+      errorMsg.includes('ECONNRESET') ||
+      errorMsg.includes('ETIMEDOUT') ||
+      errorMsg.includes('aborted') ||
+      retryableCodes.includes(code) ||
+      (error.response && error.response.status >= 500) // 服务器错误可重试
+    );
   }
 
   /**

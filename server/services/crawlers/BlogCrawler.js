@@ -65,7 +65,7 @@ class BlogCrawler extends BaseCrawler {
     content = this.cleanContent(content);
 
     // 如果内容不足，尝试更宽松的选择器
-    if (!content || (typeof content === 'string' && content.replace(/<[^>]*>/g, '').trim().length < 500)) {
+    if (!content || (typeof content === 'string' && content.replace(/<[^>]*>/g, '').trim().length < 200)) {  // 降低阈值从500到200
       // 尝试从body提取，但移除更多无关元素
       const bodyClone = $('body').clone();
       bodyClone.find('script, style, nav, header, footer, .ad, .advertisement, .ads, .adsense, .sidebar, .comments, .comment, .social-share, .share-buttons, .author-box, .related-posts, .related-articles, .newsletter, .subscribe, .tags, .categories, .breadcrumb, .navigation, .menu, iframe, .embed, .video-player, .widget, .sidebar-widget, .footer-widget').remove();
@@ -85,12 +85,18 @@ class BlogCrawler extends BaseCrawler {
       // 处理所有图片标签，将相对路径转换为绝对路径
       bodyClone.find('img').each((i, img) => {
         const $img = $(img);
-        const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url'];
+        const srcAttrs = ['src', 'data-src', 'data-lazy-src', 'data-original', 'data-url', 'data-lazy', 'data-srcset', 'srcset'];
         let imageUrl = '';
-        
+
         for (const attr of srcAttrs) {
           imageUrl = $img.attr(attr) || '';
-          if (imageUrl) break;
+          if (imageUrl) {
+            // 处理srcset，取第一个URL
+            if (attr === 'srcset' || attr === 'data-srcset') {
+              imageUrl = imageUrl.split(',')[0].split(' ')[0].trim();
+            }
+            break;
+          }
         }
         
         if (imageUrl) {
@@ -102,7 +108,7 @@ class BlogCrawler extends BaseCrawler {
             } catch (e) {
               return;
             }
-          } else if (!imageUrl.startsWith('http')) {
+          } else if (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
             try {
               const baseUrl = new URL(url);
               imageUrl = new URL(imageUrl, baseUrl).href;
@@ -110,11 +116,11 @@ class BlogCrawler extends BaseCrawler {
               return;
             }
           }
-          
+
           // 统一设置到src属性
           $img.attr('src', imageUrl);
           // 移除懒加载属性
-          $img.removeAttr('data-src data-lazy-src data-original data-url loading');
+          $img.removeAttr('data-src data-lazy-src data-original data-url data-lazy data-srcset srcset loading');
         }
       });
       
@@ -137,7 +143,7 @@ class BlogCrawler extends BaseCrawler {
     // 生成摘要
     const summary = this.generateSummary(content);
 
-    if (!title || !content || content.length < 100) {
+    if (!title || !content || content.length < 50) {  // 降低阈值从100到50
       console.log(`文章内容不足，跳过: ${url}`);
       return null;
     }
