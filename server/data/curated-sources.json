@@ -3120,6 +3120,14 @@
     "region": "国外"
   },
   {
+    "sourceName": "AI Weekly",
+    "sourceUrl": "https://aiweekly.co/feed",
+    "sourceType": "rss",
+    "category": "技术",
+    "description": "追踪有影响力的AI专家和机构正在阅读与分享的内容",
+    "region": "国外"
+  },
+  {
     "sourceName": "Next.js Blog",
     "sourceUrl": "https://nextjs.org/feed.xml",
     "sourceType": "feed",
